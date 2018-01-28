@@ -31,7 +31,7 @@ namespace boofcv {
         virtual void reshape( uint32_t width , uint32_t height ) = 0;
 
         bool isInBounds( uint32_t x , uint32_t y ) const {
-            return x >= 0 && x < width && y >= 0 && y <= height;
+            return x < width && y < height;
         }
     };
 

@@ -1,5 +1,5 @@
-#ifndef BOOFCPP_IMAGE_TYPES_H
-#define BOOFCPP_IMAGE_TYPES_H
+#ifndef BOOFCPP_BASE_TYPES_H
+#define BOOFCPP_BASE_TYPES_H
 
 #include <cstdint>
 
