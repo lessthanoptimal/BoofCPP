@@ -10,6 +10,11 @@ namespace boofcv
      * Checks to see if the two images have the same shape. If not an exception is thrown
      */
     void checkSameShape( const ImageBase& a , const ImageBase& b );
+
+    /**
+     * Checks to see if the three images have the same shape. If not an exception is thrown
+     */
+    void checkSameShape( const ImageBase& a , const ImageBase& b , const ImageBase& c );
 }
 
 #endif
