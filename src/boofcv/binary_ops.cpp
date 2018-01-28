@@ -3,7 +3,7 @@
 
 using namespace boofcv;
 
-void logicAnd(const Gray<U8>& inputA , const Gray<U8>& inputB , Gray<U8>& output )
+void boofcv::logicAnd(const Gray<U8>& inputA , const Gray<U8>& inputB , Gray<U8>& output )
 {
     checkSameShape(inputA, inputB);
     checkSameShape(inputA, output);

@@ -13,8 +13,16 @@ TEST(IndependentMethod, checkSameShape) {
     checkSameShape(imgA,imgB);
 
     try {
+        Gray<U8> imgC(11,20);
+        checkSameShape(imgA,imgC);
+    } catch( invalid_argument &ignore ) {
 
-    } catch( ) {
+    }
+
+    try {
+        Gray<U8> imgC(10,21);
+        checkSameShape(imgA,imgC);
+    } catch( invalid_argument &ignore ) {
 
     }
 }

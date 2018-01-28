@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.9)
 project(BoofCPP)
 
+# Options. Turn on with 'cmake -Dmyvarname=ON'.
+option(test "Build all tests." ON) # Makes boolean 'test' available.
+enable_testing()
+
 set(CMAKE_CXX_STANDARD 11)
 
 file(GLOB BOOFCPP_HDR "src/boofcv/*.h")
@@ -11,7 +15,7 @@ add_library(BoofCPP SHARED ${BOOFCPP_HDR} ${BOOFCPP_SRC})
 add_subdirectory(gtest)
 
 if (test)
-    include_directories(${BOOFCPP_HDR})
+    include_directories("src/boofcv/")
     include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
     ##############
@@ -19,5 +23,5 @@ if (test)
     ##############
     add_executable(test_sanity_checks test/test_sanity_checks.cpp)
     target_link_libraries(test_sanity_checks gtest gtest_main BoofCPP)
-    add_test(test_identify test_identify)
+    add_test(test_sanity_checks test_sanity_checks)
 endif()
