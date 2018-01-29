@@ -45,16 +45,20 @@ namespace boofcv {
     public:
         // NOTE: Decided not to use a vector here since wrapping it around an array isn't trivial
         T* data;
+        // length of the array. This might be larger than the number of elements in the image because of reshaping
         uint32_t data_length;
 
         Gray( uint32_t width , uint32_t height ) {
             this->width = width;
             this->height = height;
-            this->data = new T[width*height];
+            this->data = new T[width*height]();
             this->data_length = width*height;
             this->offset = 0;
             this->stride = width;
             this->subimage = false;
+        }
+
+        Gray() : Gray(0,0) {
         }
 
         ~Gray() {
@@ -70,24 +74,24 @@ namespace boofcv {
         void reshape( uint32_t width , uint32_t height ) override {
             if( this->subimage ) {
                 throw invalid_argument("Can't reshape a subimage");
-            } else if( this->width == width || this->height == height )
+            } else if( this->width == width && this->height == height )
                 return;
 
             uint32_t desired_length = width*height;
             if( desired_length > data_length ) {
                 delete []data;
-                data = new T[desired_length];
+                data = new T[desired_length]();
+                this->data_length = desired_length;
             }
-            this->data_length = desired_length;
             this->width = width;
             this->height = height;
-            this->stride = stride;
+            this->stride = width;
         }
 
         T& at( uint32_t x , uint32_t y ) const {
-            if( x < 0 || y < 0 || x >= width || y >= height )
+            if( x >= width || y >= height )
                 throw invalid_argument("out of range");
-            return data[y*stride + x];
+            return data[offset + y*stride + x];
         }
 
         void setTo( const Gray<T>& src ) {
@@ -125,6 +129,9 @@ namespace boofcv {
             for( uint32_t i = 0; i < number_of_bands; i++ ) {
                 bands[i] = new T(width,height);
             }
+        }
+
+        Planar() : Planar(0,0,0) {
         }
 
         ~Planar() {
@@ -194,6 +201,12 @@ namespace boofcv {
             for( uint32_t i = 0; i < number_of_bands; i++ ) {
                 bands[i]->setTo(src.bands[i]);
             }
+        }
+
+        T& getBand( uint32_t which ) const {
+            if( which >= number_of_bands )
+                throw invalid_argument("Requested an out of bounds band");
+            return *(bands[which]);
         }
     };
 }

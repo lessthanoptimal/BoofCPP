@@ -16,6 +16,15 @@ namespace boofcv
     void logicAnd( const Gray<U8>& inputA , const Gray<U8>& inputB , Gray<U8>& output );
 
     /**
+     * For each pixel it applies the logical 'or' operator between two images.
+     *
+     * @param inputA First input image. Not modified.
+     * @param inputB Second input image. Not modified.
+     * @param output Output image. Can be same as either input.
+     */
+    void logicOr( const Gray<U8>& inputA , const Gray<U8>& inputB , Gray<U8>& output );
+
+    /**
      * Erodes an image according to a 4-neighborhood.  Unless a pixel is connected to all its neighbors its value
      * is set to zero.
      *
