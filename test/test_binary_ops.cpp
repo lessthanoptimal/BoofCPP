@@ -4,7 +4,8 @@
 using namespace std;
 using namespace boofcv;
 
-void set3x3( Gray<U8> image, int* values ) {
+// TODO Add subimage test for all functions
+void set3x3( Gray<U8>& image, int* values ) {
     image.reshape(3,3);
 
     for( int i = 0; i < 9; i++ ) {
@@ -53,4 +54,46 @@ TEST(IndependentMethod, logicOr) {
     EXPECT_EQ(1,output.at(1,1));
     EXPECT_EQ(0,output.at(0,1));
     EXPECT_EQ(1,output.at(2,2));
+}
+
+
+TEST(IndependentMethod, erode4) {
+    Gray<U8> img,out;
+
+    int case0[] = {0,0,0, 0,1,0, 0,0,0};
+    int case1[] = {0,1,0, 1,1,1, 0,1,0};
+    int case2[] = {0,0,0, 1,1,1, 0,1,0};
+    int case3[] = {0,1,0, 0,1,1, 0,1,0};
+    int case4[] = {0,1,0, 1,1,0, 0,1,0};
+    int case5[] = {0,1,0, 1,1,1, 0,0,0};
+    int case6[] = {1,1,1, 1,1,1, 1,1,1};
+
+    set3x3(img,case0); erode4(img,out); EXPECT_EQ(0,out.at(1,1));
+    set3x3(img,case1); erode4(img,out); EXPECT_EQ(1,out.at(1,1));
+    set3x3(img,case2); erode4(img,out); EXPECT_EQ(0,out.at(1,1));
+    set3x3(img,case3); erode4(img,out); EXPECT_EQ(0,out.at(1,1));
+    set3x3(img,case4); erode4(img,out); EXPECT_EQ(0,out.at(1,1));
+    set3x3(img,case5); erode4(img,out); EXPECT_EQ(0,out.at(1,1));
+    set3x3(img,case6); erode4(img,out); EXPECT_EQ(1,out.at(1,1));
+}
+
+
+TEST(IndependentMethod, dilate4) {
+    Gray<U8> img,out;
+
+    int case0[] = {0,0,0, 0,1,0, 0,0,0};
+    int case1[] = {0,1,0, 0,0,0, 0,0,0};
+    int case2[] = {0,0,0, 1,0,0, 0,0,0};
+    int case3[] = {0,0,0, 0,0,1, 0,0,0};
+    int case4[] = {0,0,0, 0,0,0, 0,1,0};
+    int case5[] = {1,0,0, 0,0,0, 0,0,0};
+    int case6[] = {0,0,0, 0,0,0, 1,0,0};
+
+    set3x3(img,case0); dilate4(img,out); EXPECT_EQ(1,out.at(1,1));
+    set3x3(img,case1); dilate4(img,out); EXPECT_EQ(1,out.at(1,1));
+    set3x3(img,case2); dilate4(img,out); EXPECT_EQ(1,out.at(1,1));
+    set3x3(img,case3); dilate4(img,out); EXPECT_EQ(1,out.at(1,1));
+    set3x3(img,case4); dilate4(img,out); EXPECT_EQ(1,out.at(1,1));
+    set3x3(img,case5); dilate4(img,out); EXPECT_EQ(0,out.at(1,1));
+    set3x3(img,case6); dilate4(img,out); EXPECT_EQ(0,out.at(1,1));
 }

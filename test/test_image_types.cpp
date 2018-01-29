@@ -29,7 +29,7 @@ TEST(IndependentMethod, Gray_Constructor_NoArguments) {
     EXPECT_EQ(0,imgA.data_length);
 }
 
-// TODO Test at with a sub-image
+// at in a subimage is tested in the subimage test
 TEST(IndependentMethod, Gray_at) {
     Gray<U8> imgA(10, 20);
 
@@ -75,4 +75,17 @@ TEST(IndependentMethod, Gray_reshape) {
     for( uint32_t i = 0; i < 12*20; i++ ) {
         EXPECT_EQ(0,imgA.data[i]);
     }
+}
+
+TEST(IndependentMethod, Gray_makeSubimage) {
+    Gray<U8> img(10, 20);
+    Gray<U8> sub = img.makeSubimage(2,3,6,10);
+
+    EXPECT_EQ(4,sub.width);
+    EXPECT_EQ(7,sub.height);
+    EXPECT_EQ(10,sub.stride);
+    EXPECT_EQ(3*10+2,sub.offset);
+
+    sub.at(0,0) = 2;
+    EXPECT_EQ(2,img.at(2,3));
 }

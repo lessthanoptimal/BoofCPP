@@ -58,17 +58,32 @@ namespace boofcv {
             this->subimage = false;
         }
 
+        /**
+         * Constructor which creates a sub-image. Memory will not be freed when deconstructor is called
+         */
+        Gray( T* data , uint32_t data_length, uint32_t width , uint32_t height , uint32_t offset , uint32_t stride ) {
+            this->data = data;
+            this->data_length = data_length;
+            this->width = width;
+            this->height = height;
+            this->offset = offset;
+            this->stride = stride;
+            this->subimage = true;
+        }
+
         Gray() : Gray(0,0) {
         }
 
         ~Gray() {
-            this->width = 0;
-            this->height = 0;
-            this->data_length = 0;
-            this->offset = 0;
-            this->stride = 0;
-            delete []data;
-            data= NULL;
+            if( !this->subimage ) {
+                this->width = 0;
+                this->height = 0;
+                this->data_length = 0;
+                this->offset = 0;
+                this->stride = 0;
+                delete[]data;
+                data = NULL;
+            }
         }
 
         void reshape( uint32_t width , uint32_t height ) override {
@@ -104,6 +119,10 @@ namespace boofcv {
             for( uint32_t y = 0; y < height; y++ ) {
                 memcpy(data+offset+y*stride,src.data+src.offset+y*src.stride,src.width);
             }
+        }
+
+        Gray<T> makeSubimage( uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1 ) {
+            return Gray<T>(data,data_length,x1-x0,y1-y0,offset + y0*stride+x0, stride );
         }
     };
 
@@ -185,7 +204,7 @@ namespace boofcv {
         }
 
         T& at( uint32_t x , uint32_t y , uint32_t band ) const {
-            if( band < 0 || band >= number_of_bands )
+            if( band >= number_of_bands )
                 throw invalid_argument("Band out of range");
 
             return bands[band]->at(x,y);
