@@ -97,3 +97,37 @@ TEST(IndependentMethod, dilate4) {
     set3x3(img,case5); dilate4(img,out); EXPECT_EQ(0,out.at(1,1));
     set3x3(img,case6); dilate4(img,out); EXPECT_EQ(0,out.at(1,1));
 }
+
+TEST(IndependentMethod, ThresholdOps_threshold) {
+    Gray<U8> img(4,5);
+    Gray<U8> out(4,5);
+
+    img.at(1,2) = 200;
+    img.at(2,2) = 150;
+    img.at(2,1) = 100;
+    img.at(0,1) = 100;
+
+    ThresholdOps::threshold(img,(U8)100,true,out);
+
+    for( uint32_t y = 0; y < 5; y++ ) {
+        for( uint32_t x = 0; x < 4; x++ ) {
+            if( img.at(x,y) <= 100 ) {
+                EXPECT_EQ(1,out.at(x,y));
+            } else {
+                EXPECT_EQ(0,out.at(x,y));
+            }
+        }
+    }
+
+    ThresholdOps::threshold(img,(U8)100,false,out);
+
+    for( uint32_t y = 0; y < 5; y++ ) {
+        for( uint32_t x = 0; x < 4; x++ ) {
+            if( img.at(x,y) > 100 ) {
+                EXPECT_EQ(1,out.at(x,y));
+            } else {
+                EXPECT_EQ(0,out.at(x,y));
+            }
+        }
+    }
+}
