@@ -1,36 +1,13 @@
-cmake_minimum_required(VERSION 3.9)
-project(BoofCPP)
+cmake_minimum_required(VERSION 3.2.2)
+project(boofcpp_all)
 
 # Options. Turn on with 'cmake -Dmyvarname=ON'.
 option(test "Build all tests." ON) # Makes boolean 'test' available.
 enable_testing()
 
-set(CMAKE_CXX_STANDARD 11)
-
-file(GLOB BOOFCPP_HDR "src/boofcv/*.h")
-file(GLOB BOOFCPP_SRC "src/boofcv/*.cpp")
-
-add_library(BoofCPP SHARED ${BOOFCPP_HDR} ${BOOFCPP_SRC})
+add_subdirectory(boofcpp)
+add_subdirectory(jni)
 
 add_subdirectory(gtest)
 
-if (test)
-    include_directories("src/boofcv/")
-    include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
-    ##############
-    # Unit Tests
-    ##############
-    add_executable(test_binary_ops test/test_binary_ops.cpp)
-    add_executable(test_config_types test/test_config_types.cpp)
-    add_executable(test_image_types test/test_image_types.cpp)
-    add_executable(test_sanity_checks test/test_sanity_checks.cpp)
-    target_link_libraries(test_binary_ops gtest gtest_main BoofCPP)
-    target_link_libraries(test_config_types gtest gtest_main BoofCPP)
-    target_link_libraries(test_image_types gtest gtest_main BoofCPP)
-    target_link_libraries(test_sanity_checks gtest gtest_main BoofCPP)
-    add_test(test_binary_ops test_binary_ops)
-    add_test(test_config_types test_config_types)
-    add_test(test_image_types test_image_types)
-    add_test(test_sanity_checks test_sanity_checks)
-endif()
