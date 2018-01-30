@@ -5,27 +5,27 @@
 using namespace boofcv;
 
 extern "C" {
-JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeGlobalFixed_1U8_nativeinit(
+JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeGlobalFixed_1F32_nativeinit(
     JNIEnv *env, jobject obj, jdouble threshold, jboolean down) {
 
     jclass objClass = env->GetObjectClass(obj);
 
-    GlobalFixedBinaryFilter<U8> *alg = new GlobalFixedBinaryFilter<U8>((U8)threshold,(bool)down);
+    auto *alg = new GlobalFixedBinaryFilter<F32>((F32)threshold,(bool)down);
 
     jfieldID fid = env->GetFieldID(objClass, "nativePtr", "J");
     env->SetLongField(obj, fid, (jlong)alg);
 }
 
-JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeGlobalFixed_1U8_nativedestroy(JNIEnv *env, jobject obj) {
+JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeGlobalFixed_1F32_nativedestroy(JNIEnv *env, jobject obj) {
 
     jclass objClass = env->GetObjectClass(obj);
     jfieldID fid = env->GetFieldID(objClass, "nativePtr", "J");
     jlong nativePtr = env->GetLongField(obj, fid);
 
-    delete (GlobalFixedBinaryFilter<U8> *)nativePtr;
+    delete (GlobalFixedBinaryFilter<F32> *)nativePtr;
 }
 
-JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeGlobalFixed_1U8_nativeprocess
+JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeGlobalFixed_1F32_nativeprocess
     (JNIEnv *env, jobject obj, jobject jinput, jobject joutput) {
 
     // Get the pointer to the thresholding algorithm
@@ -33,14 +33,14 @@ JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeGlobalFixed_1U8_nativepr
     jfieldID fid = env->GetFieldID(objClass, "nativePtr", "J");
     if( env->ExceptionCheck() )
         return;
-    auto * alg = (GlobalFixedBinaryFilter<U8> *)env->GetLongField(obj, fid);
+    auto * alg = (GlobalFixedBinaryFilter<F32> *)env->GetLongField(obj, fid);
     if( env->ExceptionCheck() )
             return;
 
-    JImageInfoU8 inputInfo = extractInfoU8(env,jinput);
+    JImageInfoF32 inputInfo = extractInfoF32(env,jinput);
     JImageInfoU8 outputInfo = extractInfoU8(env,joutput);
 
-    Gray<U8> input((U8*)inputInfo.data,(uint32_t)inputInfo.dataLength,
+    Gray<F32> input((F32*)inputInfo.data,(uint32_t)inputInfo.dataLength,
                    (uint32_t)inputInfo.width,(uint32_t)inputInfo.height,
                    (uint32_t)inputInfo.offset,(uint32_t)inputInfo.stride);
 
@@ -57,7 +57,7 @@ JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeGlobalFixed_1U8_nativepr
     }
 
     // Release the arrays
-    env->ReleaseByteArrayElements((jbyteArray)inputInfo.jdata, inputInfo.data, 0);
+    env->ReleaseFloatArrayElements((jfloatArray)inputInfo.jdata, inputInfo.data, 0);
     env->ReleaseByteArrayElements((jbyteArray)outputInfo.jdata, outputInfo.data, 0);
 }
 

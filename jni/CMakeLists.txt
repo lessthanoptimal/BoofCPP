@@ -11,12 +11,15 @@ endif()
 
 include_directories(
         ${CMAKE_SOURCE_DIR}/boofcpp/src/boofcv
+        src/main/cpp
         ${JNI_INCLUDE_DIRS})
 
 # build application's shared lib
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
 
 add_library(JNIBoofCPP SHARED
-        src/main/cpp/NativeGlobalFixed_U8.cpp)
+        src/main/cpp/JNIBoofCPP.cpp
+        src/main/cpp/NativeGlobalFixed_U8.cpp
+        src/main/cpp/NativeGlobalFixed_F32.cpp)
 
 target_link_libraries(JNIBoofCPP BoofCPP)

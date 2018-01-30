@@ -59,7 +59,7 @@ namespace boofcv
           * @param output Storage for binary thresholded image
           */
         template<class T>
-        static void threshold( const Gray<T> &input , T threshold , bool down , Gray<T> &output ) {
+        static void threshold( const Gray<T> &input , T threshold , bool down , Gray<U8> &output ) {
             output.reshape(input.width,input.height);
 
             if( down ) {
@@ -70,7 +70,7 @@ namespace boofcv
                     int end = indexIn + input.width;
 
                     for( ; indexIn < end; indexIn++ , indexOut++ ) {
-                        output.data[indexOut] = input.data[indexIn] <= threshold;
+                        output.data[indexOut] = (U8)(input.data[indexIn] <= threshold);
                     }
                 }
             } else {
@@ -81,7 +81,7 @@ namespace boofcv
                     int end = indexIn + input.width;
 
                     for( ; indexIn < end; indexIn++ , indexOut++ ) {
-                        output.data[indexOut] = input.data[indexIn] > threshold;
+                        output.data[indexOut] = (U8)(input.data[indexIn] > threshold);
                     }
                 }
             }
