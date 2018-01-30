@@ -1,0 +1,36 @@
+
+apply plugin: 'idea'
+apply plugin: 'eclipse'
+apply plugin: 'maven'
+apply plugin: 'java'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+group = 'org.boofcv'
+version = '0.1-SNAPSHOT'
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+
+    maven {
+        url = "https://oss.sonatype.org/content/repositories/snapshots/"
+    }
+}
+
+// tell it where the .so is
+tasks.withType(Test) {
+    systemProperties System.properties
+    systemProperty "java.library.path", file('../build/evaluation').absolutePath
+}
+
+dependencies {
+    ['ip'].each { String a->
+        compile('org.boofcv:boofcv-'+a+':0.28')
+    }
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '4.3'
+}
