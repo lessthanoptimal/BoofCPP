@@ -44,6 +44,51 @@ namespace boofcv
      */
     void dilate4(const Gray<U8>& input, Gray<U8>& output);
 
+
+    /**
+     * Computes different variants of Otsu. Can be configured to compute the standard version. This allows the user
+     * to better handle textureless regions and can further tune it by scaling the threshold up and down.
+     *
+     * @author Peter Abeles
+     */
+    class ComputeOtsu {
+    public:
+        // computed mean and variance
+        double threshold;
+        double variance;
+        // Is the image being thresholded down or up
+        bool down;
+
+    private:
+        // which Otsu variant to use
+        bool useOtsu2;
+
+        // Tuning parameter. 0 = standard Otsu. Greater than 0 will penalize zero texture.
+        double tuning;
+
+        // scale factor applied to the threshold. 1.0 = unmodified
+        double scale;
+
+    public:
+        /**
+         *
+         * @param useOtsu2 true to use modified otsu. false uses clasical
+         * @param tuning Tuning parameter. 0 = standard Otsu. Greater than 0 will penalize zero texture.
+         * @param down Is otsu being used to threshold the image up or down
+         * @param scale scale factor applied to the threshold. 1.0 = unmodified
+         */
+        ComputeOtsu( bool useOtsu2, double tuning, bool down, double scale);
+
+        ComputeOtsu( bool useOtsu2 , bool down );
+
+        void compute(const uint32_t *histogram , uint32_t length , uint32_t totalPixels);
+
+    protected:
+        void computeOtsu(const uint32_t* histogram , uint32_t length , uint32_t totalPixels );
+        void computeOtsu2(const uint32_t* histogram , uint32_t length , uint32_t totalPixels );
+
+    };
+
     class ThresholdOps
     {
     public:

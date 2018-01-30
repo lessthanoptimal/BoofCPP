@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "binary_ops.h"
 #include "sanity_checks.h"
 
@@ -80,4 +82,112 @@ void boofcv::dilate4(const Gray<U8>& input, Gray<U8>& output) {
                 output.data[indexOut] = 0;
         }
     }
+}
+
+boofcv::ComputeOtsu::ComputeOtsu(bool useOtsu2, double tuning, bool down, double scale) {
+    this->useOtsu2 = useOtsu2;
+    this->tuning = tuning;
+    this->down = down;
+    this->scale = scale;
+}
+
+boofcv::ComputeOtsu::ComputeOtsu( bool useOtsu2 , bool down ) : ComputeOtsu(useOtsu2,0,down,1.0) {
+}
+
+void boofcv::ComputeOtsu::compute(const uint32_t *histogram , uint32_t length , uint32_t totalPixels) {
+    if( useOtsu2 ) {
+        computeOtsu2(histogram,length,totalPixels);
+    } else {
+        computeOtsu(histogram,length,totalPixels);
+    }
+
+    // apply optional penalty to low texture regions
+    variance += 0.001; // avoid divide by zero
+    // multiply by threshold twice in an effort to have the image's scaling not effect the tuning parameter
+    int adjustment =  (int)(tuning*threshold*tuning*threshold/variance+0.5);
+    threshold += down ? -adjustment : adjustment;
+    threshold = (int)(scale*std::max(threshold,0.0)+0.5);
+}
+
+void boofcv::ComputeOtsu::computeOtsu(const uint32_t* histogram , uint32_t length , uint32_t totalPixels ) {
+    double dlength = length;
+    double sum = 0;
+    for (int i = 0; i < length; i++)
+        sum += (i / dlength) * histogram[i];
+
+    double sumB = 0;
+    int wB = 0;
+
+    variance = 0;
+    threshold = 0;
+
+    int i;
+    for (i = 0; i < length; i++) {
+        wB += histogram[i];               // Weight Background
+        if (wB == 0) continue;
+
+        int wF = totalPixels - wB;        // Weight Foreground
+        if (wF == 0) break;
+
+        double f = i / dlength;
+        sumB += f * histogram[i];
+
+        double mB = sumB / wB;            // Mean Background
+        double mF = (sum - sumB) / wF;    // Mean Foreground
+
+        // Calculate Between Class Variance
+        double varBetween = (double) wB * (double) wF * (mB - mF) * (mB - mF);
+
+        // Check if new maximum found
+        if (varBetween > variance) {
+            variance = varBetween;
+            threshold = i;
+        }
+    }
+}
+
+void boofcv::ComputeOtsu::computeOtsu2(const uint32_t* histogram , uint32_t length , uint32_t totalPixels ) {
+    double dlength = length;
+    double sum = 0;
+    for (int i = 0; i < length; i++)
+        sum += (i / dlength) * histogram[i];
+
+    double sumB = 0;
+    int wB = 0;
+
+    variance = 0;
+    threshold = 0;
+
+    double selectedMB=0;
+    double selectedMF=0;
+
+    int i;
+    for (i = 0; i < length; i++) {
+        wB += histogram[i];               // Weight Background
+        if (wB == 0) continue;
+
+        int wF = totalPixels - wB;        // Weight Foreground
+        if (wF == 0) break;
+
+        double f = i / dlength;
+        sumB += f * histogram[i];
+
+        double mB = sumB / wB;            // Mean Background
+        double mF = (sum - sumB) / wF;    // Mean Foreground
+
+        // Calculate Between Class Variance
+        double varBetween = (double) wB * (double) wF * (mB - mF) * (mB - mF);
+
+        // Check if new maximum found
+        if (varBetween > variance) {
+            variance = varBetween;
+            selectedMB = mB;
+            selectedMF = mF;
+        }
+    }
+
+    // select a threshold which maximizes the distance between the two distributions. In pathological
+    // cases there's a dead zone where all the values are equally good and it would select a value with a low index
+    // arbitrarily. Then if you scaled the threshold it would reject everything
+    threshold = length*(selectedMB+selectedMF)/2.0;
 }
