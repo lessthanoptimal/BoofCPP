@@ -22,13 +22,15 @@ repositories {
 // tell it where the .so is
 tasks.withType(Test) {
     systemProperties System.properties
-    systemProperty "java.library.path", file('../build/evaluation').absolutePath
+    systemProperty "java.library.path", file('../build/jni').absolutePath
 }
 
 dependencies {
     ['ip'].each { String a->
         compile('org.boofcv:boofcv-'+a+':0.28')
     }
+
+    testCompile group: 'junit', name: 'junit', version: '4.12'
 }
 
 task wrapper(type: Wrapper) {

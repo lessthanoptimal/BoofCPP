@@ -96,10 +96,11 @@ namespace boofcv {
         }
 
         void reshape( uint32_t width , uint32_t height ) override {
-            if( this->subimage ) {
-                throw invalid_argument("Can't reshape a subimage");
-            } else if( this->width == width && this->height == height )
+            if( this->width == width && this->height == height )
                 return;
+            else if( this->subimage ) {
+                throw invalid_argument("Can't reshape a subimage");
+            }
 
             uint32_t desired_length = width*height;
             if( desired_length > data_length ) {

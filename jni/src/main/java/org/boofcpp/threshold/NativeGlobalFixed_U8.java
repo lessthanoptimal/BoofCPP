@@ -22,7 +22,13 @@ public class NativeGlobalFixed_U8
 
 
     @Override
-    public native void process(GrayU8 grayU8, GrayU8 output);
+    public void process(GrayU8 input, GrayU8 output) {
+        output.reshape(input.width,input.height);
+        nativeprocess(input,output);
+    }
+
+    public native void nativeprocess(GrayU8 input, GrayU8 output);
+
 
     @Override protected void finalize() throws Throwable {
         nativedestroy();
