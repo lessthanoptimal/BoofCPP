@@ -19,7 +19,7 @@ boofcv::ConfigLength boofcv::ConfigLength::relative(double fraction , int minimu
     return ConfigLength(minimum,fraction);
 }
 
-double boofcv::ConfigLength::compute(double totalLength) {
+double boofcv::ConfigLength::compute(double totalLength) const  {
     double size;
     if (fraction >= 0) {
         size = fraction*totalLength;
@@ -31,15 +31,15 @@ double boofcv::ConfigLength::compute(double totalLength) {
     return size;
 }
 
-bool boofcv::ConfigLength::isRelative() {
+bool boofcv::ConfigLength::isRelative() const  {
     return fraction >= 0;
 }
 
-bool boofcv::ConfigLength::isFixed() {
+bool boofcv::ConfigLength::isFixed() const  {
     return fraction < 0;
 }
 
-int boofcv::ConfigLength::computeI( double totalLength ) {
+int boofcv::ConfigLength::computeI( double totalLength ) const {
     double size = compute(totalLength);
     if( size >= 0 )
         return (int)(size+0.5); // size is always more than zero. Ignore incorrect rounding
@@ -47,11 +47,11 @@ int boofcv::ConfigLength::computeI( double totalLength ) {
         return -1;
 }
 
-int boofcv::ConfigLength::getLengthI() {
+int boofcv::ConfigLength::getLengthI() const {
     return (int)(length + 0.5);
 }
 
-void boofcv::ConfigLength::checkValidity() {
+void boofcv::ConfigLength::checkValidity() const  {
     if( length < 0 && fraction < 0 )
         throw std::invalid_argument("length and/or fraction must be >= 0");
 }

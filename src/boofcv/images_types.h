@@ -31,9 +31,18 @@ namespace boofcv {
         virtual void reshape( uint32_t width , uint32_t height ) = 0;
 
         bool isInBounds( uint32_t x , uint32_t y ) const {
-            return x < width && y < height;
+            return x < this->width && y < this->height;
         }
     };
+
+    template<class _PT>
+    class ImageBaseT : public ImageBase
+    {
+    public:
+        // data type of a pixel value
+        typedef _PT pixel_type;
+    };
+
 
     /**
      * Gray scale image
@@ -41,7 +50,7 @@ namespace boofcv {
      * @tparam T primitive type of data array
      */
     template<class T>
-    class Gray : public ImageBase {
+    class Gray : public ImageBaseT<T> {
     public:
         // NOTE: Decided not to use a vector here since wrapping it around an array isn't trivial
         T* data;
@@ -81,8 +90,8 @@ namespace boofcv {
                 this->data_length = 0;
                 this->offset = 0;
                 this->stride = 0;
-                delete[]data;
-                data = NULL;
+                delete[]this->data;
+                this->data = NULL;
             }
         }
 
@@ -104,34 +113,34 @@ namespace boofcv {
         }
 
         T& at( uint32_t x , uint32_t y ) const {
-            if( x >= width || y >= height )
+            if( x >= this->width || y >= this->height )
                 throw invalid_argument("out of range");
-            return data[offset + y*stride + x];
+            return data[this->offset + y*this->stride + x];
         }
 
         void setTo( const Gray<T>& src ) {
-            if (subimage && (width != src.width || height != src.height) ) {
+            if (this->subimage && (this->width != src.width || this->height != src.height) ) {
                 throw invalid_argument("Shapes must match for sub images");
             } else {
                 reshape(src.width, src.height);
             }
             // This will handle the situation where all of some of the images are sub-images
-            for( uint32_t y = 0; y < height; y++ ) {
-                memcpy(data+offset+y*stride,src.data+src.offset+y*src.stride,src.width);
+            for( uint32_t y = 0; y < this->height; y++ ) {
+                memcpy(this->data+this->offset+y*this->stride,src.data+src.offset+y*src.stride,src.width);
             }
         }
 
         Gray<T> makeSubimage( uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1 ) {
-            return Gray<T>(data,data_length,x1-x0,y1-y0,offset + y0*stride+x0, stride );
+            return Gray<T>(this->data,this->data_length,x1-x0,y1-y0,this->offset + y0*this->stride+x0, this->stride );
         }
     };
 
     /**
      * Planar image. Each band in a planar image is a Gray image.
-     * @tparam T
+     * @tparam T A Gray image.
      */
     template<class T>
-    class Planar : public ImageBase {
+    class Planar : public ImageBaseT<typename T::pixel_type> {
     public:
         T** bands;
         uint32_t number_of_bands;
@@ -174,58 +183,58 @@ namespace boofcv {
             }
             this->width = width;
             this->height = height;
-            this->stride = stride;
+            this->stride = width;
         }
 
         void setNumberOfBands( uint32_t desired ) {
             T* new_bands;
             if( desired > this->number_of_bands ) {
                 new_bands = new T*[desired];
-                for( uint32_t i = 0; i < number_of_bands; i++ ) {
+                for( uint32_t i = 0; i < this->number_of_bands; i++ ) {
                     new_bands[i] = this->bands[i];
                 }
                 for( uint32_t i = number_of_bands; i < desired; i++ ) {
-                    new_bands[i] = new T(width,height);
+                    new_bands[i] = new T(this->width,this->height);
                 }
             } else if( desired < this->number_of_bands ) {
                 new_bands = new T*[desired];
                 for( uint32_t i = 0; i < desired; i++ ) {
                     new_bands[i] = this->bands[i];
                 }
-                for( uint32_t i = desired; i < number_of_bands; i++ ) {
-                    delete bands[i];
+                for( uint32_t i = desired; i < this->number_of_bands; i++ ) {
+                    delete this->bands[i];
                 }
             } else {
                 return;
             }
-            delete []bands;
-            bands = new_bands;
-            number_of_bands = desired;
+            delete []this->bands;
+            this->bands = new_bands;
+            this->number_of_bands = desired;
         }
 
         T& at( uint32_t x , uint32_t y , uint32_t band ) const {
-            if( band >= number_of_bands )
+            if( band >= this->number_of_bands )
                 throw invalid_argument("Band out of range");
 
-            return bands[band]->at(x,y);
+            return this->bands[band]->at(x,y);
         }
 
         void setTo( const Planar<T>& src ) {
-            if (subimage && (width != src.width || height != src.height || number_of_bands != src.number_of_bands) ) {
+            if (this->subimage && (this->width != src.width || this->height != src.height || this->number_of_bands != src.number_of_bands) ) {
                 throw invalid_argument("Shapes must match for sub images");
             } else {
                 reshape(src.width, src.height);
             }
             setNumberOfBands(src.number_of_bands);
-            for( uint32_t i = 0; i < number_of_bands; i++ ) {
-                bands[i]->setTo(src.bands[i]);
+            for( uint32_t i = 0; i < this->number_of_bands; i++ ) {
+                this->bands[i]->setTo(src.bands[i]);
             }
         }
 
         T& getBand( uint32_t which ) const {
-            if( which >= number_of_bands )
+            if( which >= this->number_of_bands )
                 throw invalid_argument("Requested an out of bounds band");
-            return *(bands[which]);
+            return *(this->bands[which]);
         }
     };
 }

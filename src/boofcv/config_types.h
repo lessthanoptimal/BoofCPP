@@ -1,5 +1,5 @@
-#ifndef BOOFCPP_BINARY_OPS_H
-#define BOOFCPP_BINARY_OPS_H
+#ifndef BOOFCPP_CONFIG_TYPES_H
+#define BOOFCPP_CONFIG_TYPES_H
 
 #include "base_types.h"
 
@@ -10,7 +10,7 @@ namespace boofcv
      */
     class Configuration {
     public:
-        virtual void checkValidity() = 0;
+        virtual void checkValidity() const = 0;
     };
 
     /**
@@ -44,20 +44,20 @@ namespace boofcv
          */
         static ConfigLength relative(double fraction , int minimum );
 
-        double compute(double totalLength);
+        double compute(double totalLength) const;
 
-        bool isRelative();
+        bool isRelative() const;
 
-        bool isFixed();
+        bool isFixed() const;
 
         /**
          * Computes the length as an integer
          */
-        int computeI( double totalLength );
+        int computeI( double totalLength ) const;
 
-        int getLengthI();
+        int getLengthI() const;
 
-        void checkValidity() override;
+        void checkValidity() const override;
     };
 }
 
