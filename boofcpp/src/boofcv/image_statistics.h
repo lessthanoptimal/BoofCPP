@@ -67,7 +67,7 @@ namespace boofcv {
                 uint32_t end = index + input.width;
 
                 for( ; index < end; index++ ) {
-                    histogram[input.data[index] - minValue ]++;
+                    histogram[static_cast<uint32_t>(input.data[index] - minValue)]++;
                 }
             }
         }

@@ -81,11 +81,11 @@ namespace boofcv
 
         ComputeOtsu( bool useOtsu2 , bool down );
 
-        void compute(const uint32_t *histogram , uint32_t length , uint32_t totalPixels);
+        void compute(const GrowArray<uint32_t>& histogram , uint32_t totalPixels);
 
     protected:
-        void computeOtsu(const uint32_t* histogram , uint32_t length , uint32_t totalPixels );
-        void computeOtsu2(const uint32_t* histogram , uint32_t length , uint32_t totalPixels );
+        void computeOtsu(const GrowArray<uint32_t>& histogram , uint32_t totalPixels );
+        void computeOtsu2(const GrowArray<uint32_t>&  histogram  , uint32_t totalPixels );
 
     };
 

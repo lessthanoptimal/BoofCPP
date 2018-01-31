@@ -94,11 +94,11 @@ boofcv::ComputeOtsu::ComputeOtsu(bool useOtsu2, double tuning, bool down, double
 boofcv::ComputeOtsu::ComputeOtsu( bool useOtsu2 , bool down ) : ComputeOtsu(useOtsu2,0,down,1.0) {
 }
 
-void boofcv::ComputeOtsu::compute(const uint32_t *histogram , uint32_t length , uint32_t totalPixels) {
+void boofcv::ComputeOtsu::compute(const GrowArray<uint32_t>&histogram , uint32_t totalPixels) {
     if( useOtsu2 ) {
-        computeOtsu2(histogram,length,totalPixels);
+        computeOtsu2(histogram,totalPixels);
     } else {
-        computeOtsu(histogram,length,totalPixels);
+        computeOtsu(histogram,totalPixels);
     }
 
     // apply optional penalty to low texture regions
@@ -109,10 +109,10 @@ void boofcv::ComputeOtsu::compute(const uint32_t *histogram , uint32_t length , 
     threshold = (int)(scale*std::max(threshold,0.0)+0.5);
 }
 
-void boofcv::ComputeOtsu::computeOtsu(const uint32_t* histogram , uint32_t length , uint32_t totalPixels ) {
-    double dlength = length;
+void boofcv::ComputeOtsu::computeOtsu(const GrowArray<uint32_t>& histogram , uint32_t totalPixels ) {
+    double dlength = histogram.size;
     double sum = 0;
-    for (int i = 0; i < length; i++)
+    for (int i = 0; i < histogram.size; i++)
         sum += (i / dlength) * histogram[i];
 
     double sumB = 0;
@@ -122,7 +122,7 @@ void boofcv::ComputeOtsu::computeOtsu(const uint32_t* histogram , uint32_t lengt
     threshold = 0;
 
     int i;
-    for (i = 0; i < length; i++) {
+    for (i = 0; i < histogram.size; i++) {
         wB += histogram[i];               // Weight Background
         if (wB == 0) continue;
 
@@ -146,10 +146,10 @@ void boofcv::ComputeOtsu::computeOtsu(const uint32_t* histogram , uint32_t lengt
     }
 }
 
-void boofcv::ComputeOtsu::computeOtsu2(const uint32_t* histogram , uint32_t length , uint32_t totalPixels ) {
-    double dlength = length;
+void boofcv::ComputeOtsu::computeOtsu2(const GrowArray<uint32_t>&histogram , uint32_t totalPixels ) {
+    double dlength = histogram.size;
     double sum = 0;
-    for (int i = 0; i < length; i++)
+    for (int i = 0; i < histogram.size; i++)
         sum += (i / dlength) * histogram[i];
 
     double sumB = 0;
@@ -162,7 +162,7 @@ void boofcv::ComputeOtsu::computeOtsu2(const uint32_t* histogram , uint32_t leng
     double selectedMF=0;
 
     int i;
-    for (i = 0; i < length; i++) {
+    for (i = 0; i < histogram.size; i++) {
         wB += histogram[i];               // Weight Background
         if (wB == 0) continue;
 
@@ -189,5 +189,5 @@ void boofcv::ComputeOtsu::computeOtsu2(const uint32_t* histogram , uint32_t leng
     // select a threshold which maximizes the distance between the two distributions. In pathological
     // cases there's a dead zone where all the values are equally good and it would select a value with a low index
     // arbitrarily. Then if you scaled the threshold it would reject everything
-    threshold = length*(selectedMB+selectedMF)/2.0;
+    threshold = histogram.size*(selectedMB+selectedMF)/2.0;
 }
