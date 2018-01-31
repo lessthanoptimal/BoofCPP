@@ -93,7 +93,7 @@ namespace boofcv {
         }
 
         /**
-         * Increases the array_length. Does not save its current values or change the current size.
+         * Increases the array_length and sets the size to zero. Previous data is not saved.
          * @param new_size
          */
         void grow_array( uint32_t new_size ) {
@@ -105,6 +105,7 @@ namespace boofcv {
                 this->array_length = new_size;
                 memset(data,default_value,new_size);
             }
+            this->size = 0;
         }
 
         /**
@@ -116,9 +117,9 @@ namespace boofcv {
                 throw std::invalid_argument("Can't resize array");
 
             if( new_size > array_length ) {
-                T *tmp = new T[new_size];
-                memmove(tmp,this->data,this->array_length);
-                memset(&tmp[this->array_length],default_value,new_size-this->array_length);
+                auto *tmp = new T[new_size];
+                memmove(tmp,this->data,this->size);
+                memset(&tmp[this->array_length],default_value,sizeof(T)*(new_size-this->size));
                 delete []this->data;
                 this->data = tmp;
                 this->array_length = new_size;

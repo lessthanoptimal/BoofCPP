@@ -5,7 +5,7 @@
 using namespace boofcv;
 using namespace std;
 
-TEST(IndependentMethod, fill) {
+TEST(ImageMiscOps, fill) {
     Gray<U8> image(5,6);
 
     ImageMiscOps::fill(image,(U8)8);
@@ -18,7 +18,7 @@ TEST(IndependentMethod, fill) {
 
 }
 
-TEST(IndependentMethod, fill_uniform_INTEGER) {
+TEST(ImageMiscOps, fill_uniform_INTEGER) {
     Gray<U8> image(30,40);
 
     U8 min_value = 5;
@@ -44,7 +44,7 @@ TEST(IndependentMethod, fill_uniform_INTEGER) {
     }
 }
 
-TEST(IndependentMethod, fill_uniform_FLOAT) {
+TEST(ImageMiscOps, fill_uniform_FLOAT) {
     Gray<F32> image(30,40);
 
     F32 min_value = 5;

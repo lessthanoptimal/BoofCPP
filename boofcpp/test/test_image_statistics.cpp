@@ -6,7 +6,7 @@
 using namespace boofcv;
 using namespace std;
 
-TEST(IndependentMethod, min) {
+TEST(ImageStatistics, min) {
     Gray<U8> image(5,6);
 
     ImageMiscOps::fill(image,(U8)10);
@@ -15,7 +15,7 @@ TEST(IndependentMethod, min) {
     ASSERT_EQ(6,ImageStatistics::min(image));
 }
 
-TEST(IndependentMethod, max) {
+TEST(ImageStatistics, max) {
     Gray<U8> image(5,6);
 
     ImageMiscOps::fill(image,(U8)10);
@@ -24,7 +24,7 @@ TEST(IndependentMethod, max) {
     ASSERT_EQ(12,ImageStatistics::max(image));
 }
 
-TEST(IndependentMethod, sum) {
+TEST(ImageStatistics, sum) {
     Gray<U8> image(5,6);
 
     ImageMiscOps::fill(image,(U8)2);
@@ -32,7 +32,7 @@ TEST(IndependentMethod, sum) {
     ASSERT_EQ(2*5*6,ImageStatistics::sum(image));
 }
 
-TEST(IndependentMethod, mean) {
+TEST(ImageStatistics, mean) {
     Gray<U8> image(5,6);
 
     ImageMiscOps::fill(image,(U8)2);
@@ -40,7 +40,7 @@ TEST(IndependentMethod, mean) {
     ASSERT_EQ(2,ImageStatistics::mean(image));
 }
 
-TEST(IndependentMethod, histogramINTEGER) {
+TEST(ImageStatistics, histogram_INTEGER) {
     Gray<U8> image(5,6);
 
     ImageMiscOps::fill(image,(U8)10);
@@ -66,7 +66,7 @@ TEST(IndependentMethod, histogramINTEGER) {
     }
 }
 
-TEST(IndependentMethod, histogramFLOAT) {
+TEST(ImageStatistics, histogram_FLOAT) {
     Gray<F32> image(5,6);
 
     ImageMiscOps::fill(image,(F32)10);

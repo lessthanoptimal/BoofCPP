@@ -21,7 +21,7 @@ public:
     }
 };
 
-TEST(IndependentMethod, ThresholdBlockCommon_selectBlockSize) {
+TEST(ThresholdBlockCommon, selectBlockSize) {
     uint32_t width = 30;
 
     DummyThresholdBlockCommon alg(width);
@@ -39,6 +39,6 @@ TEST(IndependentMethod, ThresholdBlockCommon_selectBlockSize) {
     ASSERT_EQ(32,alg.blockHeight);
 }
 
-TEST(IndependentMethod, ThresholdBlockMean) {
+TEST(ThresholdBlockMean, ThresholdBlockMean) {
     // TODO implement a generic test for block algorithms a is done in java
 }

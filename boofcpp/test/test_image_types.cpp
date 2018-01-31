@@ -4,7 +4,7 @@
 using namespace std;
 using namespace boofcv;
 
-TEST(IndependentMethod, Gray_Constructor_WH) {
+TEST(Gray, Constructor_WH) {
     Gray<U8> imgA(10, 20);
 
     ASSERT_EQ(10,imgA.width);
@@ -18,7 +18,7 @@ TEST(IndependentMethod, Gray_Constructor_WH) {
     }
 }
 
-TEST(IndependentMethod, Gray_Constructor_NoArguments) {
+TEST(Gray, Constructor_NoArguments) {
     Gray<U8> imgA;
 
     ASSERT_EQ(0,imgA.width);
@@ -30,7 +30,7 @@ TEST(IndependentMethod, Gray_Constructor_NoArguments) {
 }
 
 // at in a subimage is tested in the subimage test
-TEST(IndependentMethod, Gray_at) {
+TEST(Gray, at) {
     Gray<U8> imgA(10, 20);
 
     ASSERT_EQ(0,imgA.at(2,1));
@@ -45,7 +45,7 @@ TEST(IndependentMethod, Gray_at) {
     }
 }
 
-TEST(IndependentMethod, Gray_reshape) {
+TEST(Gray, reshape) {
     Gray<U8> imgA(10, 20);
 
     U8 *orig_pts = imgA.data;
@@ -77,7 +77,7 @@ TEST(IndependentMethod, Gray_reshape) {
     }
 }
 
-TEST(IndependentMethod, Gray_makeSubimage) {
+TEST(Gray, makeSubimage) {
     Gray<U8> img(10, 20);
     Gray<U8> sub = img.makeSubimage(2,3,6,10);
 
@@ -90,35 +90,35 @@ TEST(IndependentMethod, Gray_makeSubimage) {
     ASSERT_EQ(2,img.at(2,3));
 }
 
-TEST(IndependentMethod, Planar_Constructor_WH) {
+TEST(Planar, Constructor_WH) {
 
 }
 
-TEST(IndependentMethod, Planar_Constructor_NoArguments) {
+TEST(Planar, Constructor_NoArguments) {
 
 }
 
-TEST(IndependentMethod, Planar_at) {
+TEST(Planar, at) {
 
 }
 
-TEST(IndependentMethod, Planar_reshape) {
+TEST(Planar, reshape) {
 
 }
 
-TEST(IndependentMethod, Planar_setNumberOfBands) {
+TEST(Planar, setNumberOfBands) {
 
 }
 
-TEST(IndependentMethod, Planar_setTo) {
+TEST(Planar, setTo) {
 
 }
 
-TEST(IndependentMethod, Planar_makeSubimage) {
+TEST(Planar, makeSubimage) {
 
 }
 
-TEST(IndependentMethod, Interleaved_Constructor_WH) {
+TEST(Interleaved, Constructor_WH) {
     Interleaved<U8> imgA(10, 15,2);
 
     ASSERT_EQ(10,imgA.width);
@@ -133,7 +133,7 @@ TEST(IndependentMethod, Interleaved_Constructor_WH) {
     }
 }
 
-TEST(IndependentMethod, Interleaved_Constructor_NoArguments) {
+TEST(Interleaved, Constructor_NoArguments) {
     Interleaved<U8> img;
 
     ASSERT_EQ(0,img.width);
@@ -145,7 +145,7 @@ TEST(IndependentMethod, Interleaved_Constructor_NoArguments) {
     ASSERT_EQ(0,img.data_length);
 }
 
-TEST(IndependentMethod, Interleaved_at) {
+TEST(Interleaved, at) {
     Interleaved<U8> img(10, 15,2);
 
     ASSERT_EQ(0,img.at(2,1,0));
@@ -160,7 +160,7 @@ TEST(IndependentMethod, Interleaved_at) {
     }
 }
 
-TEST(IndependentMethod, Interleaved_reshape) {
+TEST(Interleaved, reshape) {
     Interleaved<U8> img(10, 15,2);
 
     U8 *orig_pts = img.data;
@@ -194,7 +194,7 @@ TEST(IndependentMethod, Interleaved_reshape) {
     }
 }
 
-TEST(IndependentMethod, Interleaved_setNumberOfBands) {
+TEST(Interleaved, setNumberOfBands) {
     Interleaved<U8> img(10, 15, 2);
 
     img.setNumberOfBands(1);
@@ -222,7 +222,7 @@ TEST(IndependentMethod, Interleaved_setNumberOfBands) {
     }
 }
 
-TEST(IndependentMethod, Interleaved_setTo) {
+TEST(Interleaved, setTo) {
     Interleaved<U8> imgA(10, 15, 2);
     Interleaved<U8> imgB(4, 5, 1);
 
@@ -245,7 +245,7 @@ TEST(IndependentMethod, Interleaved_setTo) {
     }
 }
 
-TEST(IndependentMethod, Interleaved_makeSubimage) {
+TEST(Interleaved, makeSubimage) {
     Interleaved<U8> img(10, 15, 2);
 
     Interleaved<U8> subimage = img.makeSubimage(2,3,8,5);

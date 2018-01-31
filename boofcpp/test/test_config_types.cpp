@@ -4,7 +4,7 @@
 using namespace std;
 using namespace boofcv;
 
-TEST(IndependentMethod, ConfigLength_fixed) {
+TEST(ConfigLength, fixed) {
     ConfigLength c = ConfigLength::fixed(2.4);
 
     EXPECT_TRUE(c.isFixed());
@@ -13,7 +13,7 @@ TEST(IndependentMethod, ConfigLength_fixed) {
     EXPECT_EQ(2.4, c.compute(3));
 }
 
-TEST(IndependentMethod, ConfigLength_relative) {
+TEST(ConfigLength, relative) {
     ConfigLength c = ConfigLength::relative(0.5,2);
 
     EXPECT_FALSE(c.isFixed());

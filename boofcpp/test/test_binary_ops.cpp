@@ -13,7 +13,7 @@ void set3x3( Gray<U8>& image, int* values ) {
     }
 }
 
-TEST(IndependentMethod, logicAnd) {
+TEST(BinaryOps, logicAnd) {
     Gray<U8> image0(5,6);
     Gray<U8> image1(5,6);
     Gray<U8> output;
@@ -35,7 +35,7 @@ TEST(IndependentMethod, logicAnd) {
 }
 
 
-TEST(IndependentMethod, logicOr) {
+TEST(BinaryOps, logicOr) {
     Gray<U8> image0(5,6);
     Gray<U8> image1(5,6);
     Gray<U8> output;
@@ -57,7 +57,7 @@ TEST(IndependentMethod, logicOr) {
 }
 
 
-TEST(IndependentMethod, erode4) {
+TEST(BinaryOps, erode4) {
     Gray<U8> img,out;
 
     int case0[] = {0,0,0, 0,1,0, 0,0,0};
@@ -78,7 +78,7 @@ TEST(IndependentMethod, erode4) {
 }
 
 
-TEST(IndependentMethod, dilate4) {
+TEST(BinaryOps, dilate4) {
     Gray<U8> img,out;
 
     int case0[] = {0,0,0, 0,1,0, 0,0,0};
@@ -98,7 +98,7 @@ TEST(IndependentMethod, dilate4) {
     set3x3(img,case6); dilate4(img,out); EXPECT_EQ(0,out.at(1,1));
 }
 
-TEST(IndependentMethod, ThresholdOps_threshold) {
+TEST(ThresholdOps, threshold) {
     Gray<U8> img(4,5);
     Gray<U8> out(4,5);
 
@@ -132,15 +132,15 @@ TEST(IndependentMethod, ThresholdOps_threshold) {
     }
 }
 
-TEST(IndependentMethod, ThresholdOps_computeOtsu) {
+TEST(ThresholdOps, computeOtsu) {
     // This is intentionally omitted and is handled by comparing it to Java
     // a port of the java unit test would be complex
 }
 
-TEST(IndependentMethod, ThresholdOps_localMean) {
+TEST(ThresholdOps, localMean) {
     // TODO Finish this function and write a test
 }
 
-TEST(IndependentMethod, ComputeOtsu) {
+TEST(ComputeOtsu, ComputeOtsu) {
     // Test of the class ComputeOtsu is intentionally omitted. Done by comparing results to Java
 }
