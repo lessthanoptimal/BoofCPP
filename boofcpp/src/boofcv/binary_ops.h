@@ -5,6 +5,7 @@
 #include "images_types.h"
 #include "config_types.h"
 #include "blur_image.h"
+#include "image_statistics.h"
 
 namespace boofcv
 {
@@ -92,6 +93,35 @@ namespace boofcv
     class ThresholdOps
     {
     public:
+
+        /**
+         * <p>
+         * Computes and returns a threshold using Otsu's method from an input image.
+         * </p>
+         *
+         * @param input Input gray-scale image
+         * @param min_value The minimum value of a pixel in the image.  (inclusive)
+         * @param max_value The maximum value of a pixel in the image.  (inclusive)
+         * @param otsu2 False for standard Otsu. True for the variant described in ComputeOtsu
+         * @return Selected threshold.
+         */
+        template<class T>
+        static uint32_t computeOtsu(Gray<T> input , T min_value , T max_value , bool otsu2=false ) {
+
+            auto range = static_cast<uint32_t>(1+max_value - min_value);
+            GrowArray<uint32_t> histogram(range);
+
+            ImageStatistics::histogram(input,min_value,histogram);
+
+            // Total number of pixels
+            int total = input.width*input.height;
+
+            // this should configure so that all the really fancy stuff has been turned off
+            ComputeOtsu otsu(otsu2,0,true,1.0);
+            otsu.compute(histogram, input.total_pixels());
+            return (uint32_t)otsu.threshold;
+        }
+
         /**
           * Applies a global threshold across the whole image.  If 'down' is true, then pixels with values <=
           * to 'threshold' are set to 1 and the others set to 0.  If 'down' is false, then pixels with values >=
@@ -226,6 +256,26 @@ namespace boofcv
         }
 
         void process(const Gray<T>& input , Gray<U8>& output ) override {
+            ThresholdOps::threshold(input,threshold,down,output);
+        }
+    };
+
+    template<class T>
+    class GlobalOtsuBinaryFilter : public InputToBinary<Gray<T>>
+    {
+    public:
+        T min_value;
+        T max_value;
+        bool down;
+
+        GlobalOtsuBinaryFilter( T min_value , T max_value, bool down ) {
+            this->min_value = min_value;
+            this->max_value = max_value;
+            this->down = down;
+        }
+
+        void process(const Gray<T>& input , Gray<U8>& output ) override {
+            T threshold = ThresholdOps::computeOtsu(input,min_value,max_value,false);
             ThresholdOps::threshold(input,threshold,down,output);
         }
     };

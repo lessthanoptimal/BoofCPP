@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <stdexcept>
+#include <cstring>
 
 namespace boofcv {
     typedef uint8_t U8;
@@ -126,7 +127,7 @@ namespace boofcv {
         }
 
         void fill( T value ) {
-            memset(this->data,default_value,this->size*sizeof(T));
+            std::memset(this->data,default_value,this->size*sizeof(T));
         }
 
         T& at( uint32_t index ) const {

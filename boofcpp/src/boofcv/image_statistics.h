@@ -12,7 +12,7 @@ namespace boofcv {
             T min_value = std::numeric_limits<T>::max();
 
             const T* ptr = input.data;
-            const T* end = &ptr[input.numberOfPixels()];
+            const T* end = &ptr[input.total_pixels()];
             while( ptr != end ) {
                 const T& v = *ptr++;
                 if( v < min_value ) {
@@ -28,7 +28,7 @@ namespace boofcv {
             T max_value = std::numeric_limits<T>::min();
 
             const T* ptr = input.data;
-            const T* end = &ptr[input.numberOfPixels()];
+            const T* end = &ptr[input.total_pixels()];
             while( ptr != end ) {
                 const T& v = *ptr++;
                 if( v > max_value ) {

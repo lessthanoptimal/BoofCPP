@@ -10,7 +10,7 @@ namespace boofcv {
         template<class T>
         static void fill( Gray<T>& image , T value ) {
             T* ptr = image.data;
-            T* end = &ptr[image.numberOfPixels()];
+            T* end = &ptr[image.total_pixels()];
             while( ptr != end ) {
                 *ptr++ = value;
             }
@@ -30,7 +30,7 @@ namespace boofcv {
             std::uniform_int_distribution<T> dis(min_value, max_value-1);
 
             T* ptr = image.data;
-            T* end = &ptr[image.numberOfPixels()];
+            T* end = &ptr[image.total_pixels()];
             while( ptr != end ) {
                 *ptr++ = dis(rng);
             }
@@ -41,7 +41,7 @@ namespace boofcv {
             std::uniform_real_distribution<T> dis(min_value, max_value);
 
             T* ptr = image.data;
-            T* end = &ptr[image.numberOfPixels()];
+            T* end = &ptr[image.total_pixels()];
             while( ptr != end ) {
                 *ptr++ = dis(rng);
             }

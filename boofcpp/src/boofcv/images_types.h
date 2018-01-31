@@ -31,7 +31,7 @@ namespace boofcv {
         /**
          * Total number of pixels in the image
          */
-        uint32_t numberOfPixels() const {
+        uint32_t total_pixels() const {
             return this->width*this->height;
         }
 
