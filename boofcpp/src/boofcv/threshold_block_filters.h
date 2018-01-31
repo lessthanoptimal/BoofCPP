@@ -1,6 +1,8 @@
 #ifndef BOOFCPP_THRESHOLD_BLOCK_FILTERS_H
 #define BOOFCPP_THRESHOLD_BLOCK_FILTERS_H
 
+#include <algorithm>
+
 #include "images_types.h"
 #include "config_types.h"
 #include "sanity_checks.h"
@@ -69,7 +71,7 @@ namespace boofcv
 
             selectBlockSize(input.width,input.height,(uint32_t)requestedBlockWidth);
 
-            stats.reshape(input.width/blockWidth,input.height/blockHeight);
+            this->stats.reshape(input.width/blockWidth,input.height/blockHeight);
 
             uint32_t innerWidth = input.width%blockWidth == 0 ?
                                 input.width : input.width-blockWidth-input.width%blockWidth;
@@ -144,7 +146,7 @@ namespace boofcv
          */
         virtual void computeBlockStatistics(uint32_t x0 , uint32_t y0 ,
                                             uint32_t width , uint32_t height ,
-                                            uint32_t indexStats , T input) = 0;
+                                            uint32_t indexStats , const T& input) = 0;
 
         /**
          * Thresholds all the pixels inside the specified block
@@ -161,6 +163,90 @@ namespace boofcv
 
         void setThresholdFromLocalBlocks(bool thresholdFromLocalBlocks) {
             this->thresholdFromLocalBlocks = thresholdFromLocalBlocks;
+        }
+    };
+
+    /**
+     * <p>
+     * Applies a threshold to an image by computing the mean values in a regular grid across
+     * the image.  When thresholding all the pixels inside a box (grid element) the mean values is found
+     * in the surrounding 3x3 grid region.\
+     * </p>
+     *
+     * <p>See {@link ThresholdBlockMinMax} for a more detailed discussion of elements of this strategy</p>
+     *
+     * @author Peter Abeles
+     */
+    template<class T>
+    class ThresholdBlockMean : public ThresholdBlockCommon<Gray<T>,Interleaved<T>>
+    {
+    public:
+        double scale;
+        bool down;
+
+        ThresholdBlockMean(const ConfigLength &requestedBlockWidth, bool thresholdFromLocalBlocks,
+                           double scale , bool down)
+                : ThresholdBlockCommon(requestedBlockWidth, thresholdFromLocalBlocks) {
+            this->stats.setNumberOfBands(1);
+        }
+
+        void thresholdBlock(uint32_t blockX0 , uint32_t blockY0 , const Gray<T>& input, Gray<U8>& output ) override {
+
+            uint32_t x0 = blockX0*blockWidth;
+            uint32_t y0 = blockY0*blockHeight;
+
+            uint32_t x1 = blockX0==stats.width-1 ? input.width : (blockX0+1)*blockWidth;
+            uint32_t y1 = blockY0==stats.height-1 ? input.height: (blockY0+1)*blockHeight;
+
+            // define the local 3x3 region in blocks, taking in account the image border
+            uint32_t blockX1, blockY1;
+            if(thresholdFromLocalBlocks) {
+                blockX1 = std::min(stats.width - 1, blockX0 + 1);
+                blockY1 = std::min(stats.height - 1, blockY0 + 1);
+
+                blockX0 = std::max((uint32_t)0, blockX0 - 1);
+                blockY0 = std::max((uint32_t)0, blockY0 - 1);
+            } else {
+                blockX1 = blockX0;
+                blockY1 = blockY0;
+            }
+
+            // Average the mean across local blocks
+            TypeInfo<T>::sum_type sum = 0;
+
+            for (uint32_t y = blockY0; y <= blockY1; y++) {
+                for (uint32_t x = blockX0; x <= blockX1; x++) {
+                    sum += stats.unsafe_at(x,y,0);
+                }
+            }
+            T mean = sum/((blockY1-blockY0+1)*(blockX1-blockX0+1));
+
+            // apply threshold
+            for (uint32_t y = y0; y < y1; y++) {
+                uint32_t indexInput = input.offset + y*input.stride + x0;
+                uint32_t indexOutput = output.offset + y*output.stride + x0;
+                uint32_t end = indexOutput + (x1-x0);
+                for (; indexOutput < end; indexOutput++, indexInput++ ) {
+                    output.data[indexOutput] = (U8)(down == (input.data[indexInput] <= mean));
+                }
+            }
+        }
+
+        void computeBlockStatistics(uint32_t x0, uint32_t y0, uint32_t width, uint32_t height, uint32_t indexStats,
+                                    const Gray<T>& input) override {
+
+            TypeInfo<T>::sum_type sum = 0;
+
+            for (int y = 0; y < height; y++) {
+                int indexInput = input.offset + (y0+y)*input.stride + x0;
+                for (int x = 0; x < width; x++) {
+                    sum += input.data[indexInput++];
+                }
+            }
+            sum = (TypeInfo<T>::sum_type)(scale*sum/(width*height)+0.5);
+
+
+            stats.data[indexStats]   = (T)sum;
         }
     };
 }

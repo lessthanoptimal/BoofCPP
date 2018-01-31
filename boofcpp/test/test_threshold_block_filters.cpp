@@ -12,7 +12,7 @@ public:
 
     void computeBlockStatistics(uint32_t x0 , uint32_t y0 ,
                                 uint32_t width , uint32_t height ,
-                                uint32_t indexStats , Gray<U8> input) override {
+                                uint32_t indexStats , const Gray<U8>& input) override {
 
     }
 
@@ -37,4 +37,8 @@ TEST(IndependentMethod, ThresholdBlockCommon_selectBlockSize) {
     alg.selectBlockSize(301,329,width);
     ASSERT_EQ(30,alg.blockWidth);
     ASSERT_EQ(32,alg.blockHeight);
+}
+
+TEST(IndependentMethod, ThresholdBlockMean) {
+    // TODO implement a generic test for block algorithms a is done in java
 }

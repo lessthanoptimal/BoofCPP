@@ -338,6 +338,10 @@ namespace boofcv {
             return data[this->offset + y*this->stride + x*this->num_bands + band];
         }
 
+        T& unsafe_at( uint32_t x , uint32_t y , uint32_t band ) const {
+            return data[this->offset + y*this->stride + x*this->num_bands + band];
+        }
+
         void setNumberOfBands( uint32_t desired ) {
             if( this->data_length == desired ) {
                 return;
