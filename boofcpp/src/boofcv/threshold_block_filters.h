@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #include "images_types.h"
+#include "base_types.h"
 #include "config_types.h"
 #include "sanity_checks.h"
 
@@ -186,23 +187,23 @@ namespace boofcv
 
         ThresholdBlockMean(const ConfigLength &requestedBlockWidth, bool thresholdFromLocalBlocks,
                            double scale , bool down)
-                : ThresholdBlockCommon(requestedBlockWidth, thresholdFromLocalBlocks) {
+                : ThresholdBlockCommon<Gray<T>,Interleaved<T>>(requestedBlockWidth, thresholdFromLocalBlocks) {
             this->stats.setNumberOfBands(1);
         }
 
         void thresholdBlock(uint32_t blockX0 , uint32_t blockY0 , const Gray<T>& input, Gray<U8>& output ) override {
 
-            uint32_t x0 = blockX0*blockWidth;
-            uint32_t y0 = blockY0*blockHeight;
+            uint32_t x0 = blockX0*this->blockWidth;
+            uint32_t y0 = blockY0*this->blockHeight;
 
-            uint32_t x1 = blockX0==stats.width-1 ? input.width : (blockX0+1)*blockWidth;
-            uint32_t y1 = blockY0==stats.height-1 ? input.height: (blockY0+1)*blockHeight;
+            uint32_t x1 = blockX0==this->stats.width-1 ? input.width : (blockX0+1)*this->blockWidth;
+            uint32_t y1 = blockY0==this->stats.height-1 ? input.height: (blockY0+1)*this->blockHeight;
 
             // define the local 3x3 region in blocks, taking in account the image border
             uint32_t blockX1, blockY1;
-            if(thresholdFromLocalBlocks) {
-                blockX1 = std::min(stats.width - 1, blockX0 + 1);
-                blockY1 = std::min(stats.height - 1, blockY0 + 1);
+            if(this->thresholdFromLocalBlocks) {
+                blockX1 = std::min(this->stats.width - 1, blockX0 + 1);
+                blockY1 = std::min(this->stats.height - 1, blockY0 + 1);
 
                 blockX0 = std::max((uint32_t)0, blockX0 - 1);
                 blockY0 = std::max((uint32_t)0, blockY0 - 1);
@@ -212,11 +213,11 @@ namespace boofcv
             }
 
             // Average the mean across local blocks
-            TypeInfo<T>::sum_type sum = 0;
+            typename TypeInfo<T>::sum_type sum = 0;
 
             for (uint32_t y = blockY0; y <= blockY1; y++) {
                 for (uint32_t x = blockX0; x <= blockX1; x++) {
-                    sum += stats.unsafe_at(x,y,0);
+                    sum += this->stats.unsafe_at(x,y,0);
                 }
             }
             T mean = sum/((blockY1-blockY0+1)*(blockX1-blockX0+1));
@@ -235,7 +236,7 @@ namespace boofcv
         void computeBlockStatistics(uint32_t x0, uint32_t y0, uint32_t width, uint32_t height, uint32_t indexStats,
                                     const Gray<T>& input) override {
 
-            TypeInfo<T>::sum_type sum = 0;
+            typename TypeInfo<T>::sum_type sum = 0;
 
             for (int y = 0; y < height; y++) {
                 int indexInput = input.offset + (y0+y)*input.stride + x0;
@@ -243,10 +244,10 @@ namespace boofcv
                     sum += input.data[indexInput++];
                 }
             }
-            sum = (TypeInfo<T>::sum_type)(scale*sum/(width*height)+0.5);
+            sum = (typename TypeInfo<T>::sum_type)(scale*sum/(width*height)+0.5);
 
 
-            stats.data[indexStats]   = (T)sum;
+            this->stats.data[indexStats]   = (T)sum;
         }
     };
 }

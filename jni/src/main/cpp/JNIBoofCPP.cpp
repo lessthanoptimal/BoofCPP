@@ -1,5 +1,20 @@
 #include "JNIBoofCPP.h"
 
+jfieldID safe_GetFieldID( JNIEnv *env, jclass& objClass, const char* name , const char* type)
+{
+    jfieldID fid = env->GetFieldID(objClass, name, type);
+    if( env->ExceptionCheck() ) {
+        env->ExceptionDescribe();
+        throw "filed ID failed";
+    }
+    return fid;
+}
+
+jdouble safe_GetDouble( JNIEnv *env, jclass& objClass, jobject& obj, const char* name ) {
+    jfieldID fid = safe_GetFieldID(env,objClass,name,"D");
+    return env->GetDoubleField(obj, fid);
+}
+
 JImageInfoU8 extractInfoU8( JNIEnv *env, jobject& jimage ) {
     JImageInfoU8 ret;
 
@@ -62,6 +77,16 @@ JImageInfoF32 extractInfoF32( JNIEnv *env, jobject& jimage ) {
 
     fid = env->GetFieldID(objClass, "startIndex", "I");
     ret.offset = env->GetIntField(jimage, fid);
+
+    return ret;
+}
+
+boofcv::ConfigLength extractConfigLength( JNIEnv *env, jobject& jconfig ) {
+    boofcv::ConfigLength ret;
+
+    jclass objClass = env->GetObjectClass(jconfig);
+    ret.length = safe_GetDouble(env,objClass,jconfig, "length");
+    ret.fraction = safe_GetDouble(env,objClass,jconfig, "fraction");
 
     return ret;
 }

@@ -2,6 +2,7 @@
 #define BOOFCPP_JNIBOOFCPP_H
 
 #include <jni.h>
+#include <config_types.h>
 
 struct JImageInfo {
     jobject jdata;
@@ -38,5 +39,7 @@ struct JImageInfoF32 : public JImageInfo {
 JImageInfoU8 extractInfoU8( JNIEnv *env, jobject& jimage );
 
 JImageInfoF32 extractInfoF32( JNIEnv *env, jobject& jimage );
+
+boofcv::ConfigLength extractConfigLength( JNIEnv *env, jobject& jconfig );
 
 #endif

@@ -1,16 +1,18 @@
 package org.boofcpp.threshold;
 
 import boofcv.abst.filter.binary.InputToBinary;
-import boofcv.struct.image.GrayF32;
+import boofcv.struct.ConfigLength;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
 import boofcv.struct.image.ImageType;
 
-public class NativeGlobalOtsu<T extends ImageGray<T>> extends NativeThresholdBase<T>
+public class NativeBlockMean<T extends ImageGray<T>> extends NativeThresholdBase<T>
 {
-    public NativeGlobalOtsu(double minValue, double maxValue, boolean down, Class<T> imageType ) {
-        super(imageType);
-        nativeinit(minValue,maxValue,down);
+
+    public NativeBlockMean( ConfigLength regionWidth, double scale , boolean down, boolean thresholdFromLocalBlocks,
+                            Class<T> inputType ) {
+        super(inputType);
+        nativeinit(regionWidth,scale,down,thresholdFromLocalBlocks);
     }
 
     @Override
@@ -27,5 +29,5 @@ public class NativeGlobalOtsu<T extends ImageGray<T>> extends NativeThresholdBas
 
     public native void nativeprocess(T input, GrayU8 output);
     public native void nativedestroy();
-    public native void nativeinit(double minValue, double maxValue, boolean down);
+    public native void nativeinit( ConfigLength regionWidth, double scale , boolean down, boolean thresholdFromLocalBlocks);
 }
