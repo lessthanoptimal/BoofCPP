@@ -59,7 +59,7 @@ namespace boofcv {
         }
 
         template<class T>
-        void histogram( const Gray<T>& input , T minValue , GrowArray<uint32_t>& histogram ) {
+        static void histogram( const Gray<T>& input , T minValue , GrowArray<uint32_t>& histogram ) {
             histogram.fill(0);
 
             for( int y = 0; y < input.height; y++ ) {
