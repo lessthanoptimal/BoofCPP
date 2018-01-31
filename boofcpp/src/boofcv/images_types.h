@@ -28,8 +28,23 @@ namespace boofcv {
             this->subimage = false;
         }
 
+        /**
+         * Total number of pixels in the image
+         */
+        uint32_t numberOfPixels() const {
+            return this->width*this->height;
+        }
+
+        /**
+         * Changes the image's shapes. Value of pixels after this function is called is undefined.
+         * @param width New image width
+         * @param height New image height
+         */
         virtual void reshape( uint32_t width , uint32_t height ) = 0;
 
+        /**
+         * Tests to see if the coordinate is within the image.
+         */
         bool isInBounds( uint32_t x , uint32_t y ) const {
             return x < this->width && y < this->height;
         }
