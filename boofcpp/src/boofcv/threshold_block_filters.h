@@ -57,6 +57,8 @@ namespace boofcv
             this->blockHeight = 0;
         }
 
+        virtual ~ThresholdBlockCommon(){}
+
         /**
          * Converts the gray scale input image into a binary image
          * @param input Input image
@@ -188,8 +190,12 @@ namespace boofcv
         ThresholdBlockMean(const ConfigLength &requestedBlockWidth, bool thresholdFromLocalBlocks,
                            double scale , bool down)
                 : ThresholdBlockCommon<Gray<T>,Interleaved<T>>(requestedBlockWidth, thresholdFromLocalBlocks) {
+            this->scale = scale;
+            this->down = down;
             this->stats.setNumberOfBands(1);
         }
+
+        virtual ~ThresholdBlockMean() = default;
 
         void thresholdBlock(uint32_t blockX0 , uint32_t blockY0 , const Gray<T>& input, Gray<U8>& output ) override {
 
