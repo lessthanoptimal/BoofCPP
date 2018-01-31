@@ -131,3 +131,16 @@ TEST(IndependentMethod, ThresholdOps_threshold) {
         }
     }
 }
+
+TEST(IndependentMethod, ThresholdOps_computeOtsu) {
+    // This is intentionally omitted and is handled by comparing it to Java
+    // a port of the java unit test would be complex
+}
+
+TEST(IndependentMethod, ThresholdOps_localMean) {
+    // TODO Finish this function and write a test
+}
+
+TEST(IndependentMethod, ComputeOtsu) {
+    // Test of the class ComputeOtsu is intentionally omitted. Done by comparing results to Java
+}

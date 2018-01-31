@@ -8,6 +8,9 @@
 
 using namespace std;
 
+// TODO Design issue. What happens if the parent of a subimage is deleted or resized? The subimage will now
+//      point to bad data. Would be nice if this was caught and prevented
+
 namespace boofcv {
 
     /**
@@ -159,18 +162,18 @@ namespace boofcv {
     class Planar : public ImageBaseT<typename T::pixel_type> {
     public:
         T** bands;
-        uint32_t number_of_bands;
+        uint32_t num_bands;
 
-        Planar( uint32_t width , uint32_t height , uint32_t number_of_bands ) {
+        Planar( uint32_t width , uint32_t height , uint32_t num_bands ) {
             this->width = width;
             this->height = height;
             this->offset = 0;
             this->stride = width;
             this->subimage = false;
 
-            this->number_of_bands = number_of_bands;
-            bands = new T*[number_of_bands];
-            for( uint32_t i = 0; i < number_of_bands; i++ ) {
+            this->num_bands = num_bands;
+            bands = new T*[this->num_bands];
+            for( uint32_t i = 0; i < this->num_bands; i++ ) {
                 bands[i] = new T(width,height);
             }
         }
@@ -183,7 +186,7 @@ namespace boofcv {
             this->height = 0;
             this->offset = 0;
             this->stride = 0;
-            for( uint32_t i = 0; i < number_of_bands; i++ ) {
+            for( uint32_t i = 0; i < num_bands; i++ ) {
                 delete bands;
             }
             delete []bands;
@@ -194,7 +197,7 @@ namespace boofcv {
             if( this->subimage ) {
                 throw invalid_argument("Can't reshape a subimage");
             }
-            for( uint32_t i = 0; i < number_of_bands; i++ ) {
+            for( uint32_t i = 0; i < num_bands; i++ ) {
                 bands[i]->reshape(width,height);
             }
             this->width = width;
@@ -204,20 +207,20 @@ namespace boofcv {
 
         void setNumberOfBands( uint32_t desired ) {
             T* new_bands;
-            if( desired > this->number_of_bands ) {
+            if( desired > this->num_bands ) {
                 new_bands = new T*[desired];
-                for( uint32_t i = 0; i < this->number_of_bands; i++ ) {
+                for( uint32_t i = 0; i < this->num_bands; i++ ) {
                     new_bands[i] = this->bands[i];
                 }
-                for( uint32_t i = number_of_bands; i < desired; i++ ) {
+                for( uint32_t i = num_bands; i < desired; i++ ) {
                     new_bands[i] = new T(this->width,this->height);
                 }
-            } else if( desired < this->number_of_bands ) {
+            } else if( desired < this->num_bands ) {
                 new_bands = new T*[desired];
                 for( uint32_t i = 0; i < desired; i++ ) {
                     new_bands[i] = this->bands[i];
                 }
-                for( uint32_t i = desired; i < this->number_of_bands; i++ ) {
+                for( uint32_t i = desired; i < this->num_bands; i++ ) {
                     delete this->bands[i];
                 }
             } else {
@@ -225,32 +228,155 @@ namespace boofcv {
             }
             delete []this->bands;
             this->bands = new_bands;
-            this->number_of_bands = desired;
+            this->num_bands = desired;
         }
 
         T& at( uint32_t x , uint32_t y , uint32_t band ) const {
-            if( band >= this->number_of_bands )
+            if( band >= this->num_bands )
                 throw invalid_argument("Band out of range");
 
             return this->bands[band]->at(x,y);
         }
 
         void setTo( const Planar<T>& src ) {
-            if (this->subimage && (this->width != src.width || this->height != src.height || this->number_of_bands != src.number_of_bands) ) {
+            if (this->subimage && (this->width != src.width || this->height != src.height || this->num_bands != src.num_bands) ) {
                 throw invalid_argument("Shapes must match for sub images");
             } else {
                 reshape(src.width, src.height);
             }
-            setNumberOfBands(src.number_of_bands);
-            for( uint32_t i = 0; i < this->number_of_bands; i++ ) {
+            setNumberOfBands(src.num_bands);
+            for( uint32_t i = 0; i < this->num_bands; i++ ) {
                 this->bands[i]->setTo(src.bands[i]);
             }
         }
 
         T& getBand( uint32_t which ) const {
-            if( which >= this->number_of_bands )
+            if( which >= this->num_bands )
                 throw invalid_argument("Requested an out of bounds band");
             return *(this->bands[which]);
+        }
+    };
+
+    /**
+     * Banded interleaved image
+     *
+     * @tparam T primitive type of data array
+     */
+    template<class T>
+    class Interleaved : public ImageBaseT<T> {
+    public:
+        // NOTE: Decided not to use a vector here since wrapping it around an array isn't trivial
+        T* data;
+        // length of the array. This might be larger than the number of elements in the image because of reshaping
+        uint32_t data_length;
+
+        // number of bands in the image
+        uint32_t num_bands;
+
+        Interleaved( uint32_t width , uint32_t height , uint32_t num_bands ) {
+            this->width = width;
+            this->height = height;
+            this->num_bands = num_bands;
+            this->data_length = width*height*num_bands;
+            this->data = new T[this->data_length]();
+            this->offset = 0;
+            this->stride = width*num_bands;
+            this->subimage = false;
+        }
+
+        /**
+         * Constructor which creates a sub-image. Memory will not be freed when deconstructor is called
+         */
+        Interleaved( T* data , uint32_t data_length, uint32_t width , uint32_t height , uint32_t num_bands, uint32_t offset , uint32_t stride ) {
+            this->data = data;
+            this->data_length = data_length;
+            this->width = width;
+            this->height = height;
+            this->num_bands = num_bands;
+            this->offset = offset;
+            this->stride = stride;
+            this->subimage = true;
+        }
+
+        Interleaved() : Interleaved(0,0,0) {
+        }
+
+        ~Interleaved() {
+            if( !this->subimage ) {
+                this->width = 0;
+                this->height = 0;
+                this->num_bands = 0;
+                this->data_length = 0;
+                this->offset = 0;
+                this->stride = 0;
+                delete[]this->data;
+                this->data = NULL;
+            }
+        }
+
+        void reshape( uint32_t width , uint32_t height ) override {
+            if( this->width == width && this->height == height )
+                return;
+            else if( this->subimage ) {
+                throw invalid_argument("Can't reshape a subimage");
+            }
+
+            uint32_t desired_length = width*height*this->num_bands;
+            if( desired_length > this->data_length ) {
+                delete []data;
+                this->data = new T[desired_length]();
+                this->data_length = desired_length;
+            }
+            this->width = width;
+            this->height = height;
+            this->stride = width*this->num_bands;
+        }
+
+        T& at( uint32_t x , uint32_t y , uint32_t band ) const {
+            if( x >= this->width || y >= this->height )
+                throw invalid_argument("out of range");
+            return data[this->offset + y*this->stride + x*this->num_bands + band];
+        }
+
+        void setNumberOfBands( uint32_t desired ) {
+            if( this->data_length == desired ) {
+                return;
+            }
+
+            uint32_t new_length = this->width*this->height*desired;
+            if( new_length > data_length ) {
+                if( this->subimage ) {
+                    throw invalid_argument("Grow the data array in a subimage");
+                }
+                delete []data;
+                data = new T[new_length]();
+                this->data_length = new_length;
+            }
+            this->num_bands = desired;
+            this->stride = this->width*desired;
+        }
+
+        void setTo( const Interleaved<T>& src ) {
+            if (this->subimage && (this->width != src.width || this->height != src.height || this->num_bands != src.num_bands) ) {
+                throw invalid_argument("Shapes must match for sub images");
+            } else {
+                setNumberOfBands(src.num_bands);
+                reshape(src.width, src.height);
+            }
+            // This will handle the situation where all of some of the images are sub-images
+            for( uint32_t y = 0; y < this->height; y++ ) {
+                memcpy(this->data+this->offset+y*this->stride,src.data+src.offset+y*src.stride,src.width*this->num_bands);
+            }
+        }
+
+        Interleaved<T> makeSubimage( uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1 ) {
+            if( x1 < x0 || y1 < y0 )
+                throw invalid_argument("Upper bounds can't be lower than lower bounds");
+            if( x1 > this->width || y1 > this->height )
+                throw invalid_argument("Subimage must be inside the image");
+
+            return Interleaved<T>(this->data,this->data_length,x1-x0,y1-y0,
+                                  this->num_bands,this->offset + y0*this->stride+x0*num_bands, this->stride );
         }
     };
 }
