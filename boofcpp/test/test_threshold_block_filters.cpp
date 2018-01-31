@@ -2,6 +2,7 @@
 #include <random>
 #include "threshold_block_filters.h"
 #include "image_misc_ops.h"
+#include "testing_utils.h"
 
 using namespace std;
 using namespace boofcv;
@@ -105,16 +106,16 @@ public:
         ImageMiscOps::fill_uniform(input,(E)0,(E)255,gen);
 
         Gray<U8> expected(input.width,input.height);
-//
-//        T sub_input = BoofTesting.createSubImageOf(input);
-//        Gray<U8> sub_output = BoofTesting.createSubImageOf(expected);
-//
-//        create_algorithm(14,1.0,true);
-//
-//        alg->process(input,expected);
-//        alg->process(sub_input,sub_output);
-//
-//        BoofTesting.assertEquals(expected,sub_output,0);
+
+        T sub_input = create_subimage(input);
+        Gray<U8> sub_output = create_subimage(expected);
+
+        create_algorithm(14,1.0,true);
+
+        alg->process(input,expected);
+        alg->process(sub_input,sub_output);
+
+        check_equals(expected,sub_output);
     }
 };
 
