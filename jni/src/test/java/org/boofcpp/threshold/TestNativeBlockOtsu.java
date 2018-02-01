@@ -16,7 +16,7 @@ import java.util.Random;
 /**
  * -ea -Djava.library.path=/Users/pabeles/projects/BoofCPP/build/jni
  */
-public class TestNativeBlockMean {
+public class TestNativeBlockOtsu {
     Random rand = new Random(23423);
 
     Class types[] = new Class[]{GrayU8.class, GrayF32.class};
@@ -27,6 +27,8 @@ public class TestNativeBlockMean {
 
     @Test
     public void compareToBoofCV() {
+        double tuning = 0.05;
+
         for( Class type : types ) {
             // make the image larger to do a more careful test
             ImageGray input = GeneralizedImageOps.createSingleBand(type,400,300);
@@ -40,22 +42,24 @@ public class TestNativeBlockMean {
 
             for( boolean down : new boolean[]{true,false}) {
                 for( boolean useLocal : new boolean[]{true,false}) {
-                    InputToBinary alg = new NativeBlockMean(regionWidth, scale, down, useLocal, type);
-                    InputToBinary check = FactoryThresholdBinary.blockMean(regionWidth, scale, down, useLocal, type);
+                    for (boolean otsu2 : new boolean[]{true, false}) {
+                        InputToBinary alg = new NativeBlockOtsu(otsu2, regionWidth, tuning, scale, down, useLocal, type);
+                        InputToBinary check = FactoryThresholdBinary.blockOtsu(otsu2, regionWidth, tuning, scale, down, useLocal, type);
 
 //                    long time0 = System.currentTimeMillis();
-                    check.process(input, expected);
+                        check.process(input, expected);
 //                    long time1 = System.currentTimeMillis();
-                    alg.process(input, found);
+                        alg.process(input, found);
 //                    long time2 = System.currentTimeMillis();
 
-//                    System.out.println(type.getSimpleName()+" down="+down+" local="+useLocal);
+//                        System.out.println(type.getSimpleName() + " down=" + down + " local=" + useLocal+" otsu2="+otsu2);
 //                    System.out.println("java "+(time1-time0)+" native "+(time2-time1));
 //                    expected.print();
 //                    System.out.println();
 //                    found.print();
 
-                    BoofTesting.assertEquals(expected, found, 0);
+                        BoofTesting.assertEquals(expected, found, 0);
+                    }
                 }
             }
         }

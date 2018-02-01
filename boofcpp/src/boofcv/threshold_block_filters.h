@@ -320,7 +320,7 @@ namespace boofcv
             for (uint32_t y = 0; y < height; y++) {
                 uint32_t indexInput = input.offset + (y0+y)*input.stride + x0;
                 for (uint32_t x = 0; x < width; x++) {
-                    this->stats.data[static_cast<uint32_t>(indexStats+input.data[indexInput++])]++;
+                    this->stats.data[indexStats+static_cast<uint32_t>(input.data[indexInput++])]++;
                 }
             }
         }
@@ -372,7 +372,10 @@ namespace boofcv
                 uint32_t indexOutput = output.offset + y*output.stride + x0;
                 uint32_t end = indexOutput + (x1-x0);
                 for (; indexOutput < end; indexOutput++, indexInput++ ) {
-                    output.data[indexOutput] = (U8)(otsu.down == (input.data[indexInput] <= otsu.threshold));
+                    output.data[indexOutput] = (U8)(otsu.down == ((U8)(input.data[indexInput]) <= otsu.threshold));
+                    // TODO make this more efficient for floats.
+                    //      is it possible to avoid converting it to an int twice? once here and once above
+                    //      java version convert it into a U8 image and doesn't support float directly
                 }
             }
         }

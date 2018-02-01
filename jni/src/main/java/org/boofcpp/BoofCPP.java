@@ -5,9 +5,7 @@ import boofcv.factory.filter.binary.BOverrideFactoryThresholdBinary;
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
-import org.boofcpp.threshold.NativeGlobalFixed_F32;
-import org.boofcpp.threshold.NativeGlobalFixed_U8;
-import org.boofcpp.threshold.NativeGlobalOtsu;
+import org.boofcpp.threshold.*;
 
 public class BoofCPP {
     public static void initialize() {
@@ -25,5 +23,7 @@ public class BoofCPP {
         };
 
         BOverrideFactoryThresholdBinary.globalOtsu = NativeGlobalOtsu::new;
+        BOverrideFactoryThresholdBinary.blockMean = NativeBlockMean::new;
+        BOverrideFactoryThresholdBinary.blockOtsu = NativeBlockOtsu::new;
     }
 }
