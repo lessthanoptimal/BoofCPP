@@ -184,13 +184,13 @@ namespace boofcv
     class ThresholdBlockMean : public ThresholdBlockCommon<Gray<T>,Interleaved<T>>
     {
     public:
-        double scale;
+        float scale; // in the java version U8 uses double and F32 uses float. using double causes slight diff in float results
         bool down;
 
         ThresholdBlockMean(const ConfigLength &requestedBlockWidth, bool thresholdFromLocalBlocks,
                            double scale , bool down)
                 : ThresholdBlockCommon<Gray<T>,Interleaved<T>>(requestedBlockWidth, thresholdFromLocalBlocks) {
-            this->scale = scale;
+            this->scale = (float)scale;
             this->down = down;
             this->stats.setNumberOfBands(1);
         }
@@ -230,19 +230,19 @@ namespace boofcv
 
             // apply threshold
             for (uint32_t y = y0; y < y1; y++) {
-                uint32_t indexInput = input.offset + y*input.stride + x0;
-                uint32_t indexOutput = output.offset + y*output.stride + x0;
-                uint32_t end = indexOutput + (x1-x0);
-                for (; indexOutput < end; indexOutput++, indexInput++ ) {
-                    output.data[indexOutput] = (U8)(down == (input.data[indexInput] <= mean));
-                }
-//                T* inptr = &input.data[input.offset + y*input.stride + x0];
-//                U8* outptr = &output.data[output.offset + y*output.stride + x0];
-//                T* end = inptr + (x1-x0); // *sizeof(T) ?
-//
-//                while( inptr != end ) {
-//                    *outptr++ = (U8)(down == (*inptr++ <= mean));
+//                uint32_t indexInput = input.offset + y*input.stride + x0;
+//                uint32_t indexOutput = output.offset + y*output.stride + x0;
+//                uint32_t end = indexOutput + (x1-x0);
+//                for (; indexOutput < end; indexOutput++, indexInput++ ) {
+//                    output.data[indexOutput] = (U8)(down == (input.data[indexInput] <= mean));
 //                }
+                T* inptr = &input.data[input.offset + y*input.stride + x0];
+                U8* outptr = &output.data[output.offset + y*output.stride + x0];
+                T* end = &inptr[x1-x0];
+
+                while( inptr != end ) {
+                    *outptr++ = (U8)(down == (*inptr++ <= mean));
+                }
             }
         }
 
@@ -252,13 +252,18 @@ namespace boofcv
             sum_type sum = 0;
 
             for (int y = 0; y < height; y++) {
-                int indexInput = input.offset + (y0+y)*input.stride + x0;
-                for (int x = 0; x < width; x++) {
-                    sum += input.data[indexInput++];
+//                int indexInput = input.offset + (y0+y)*input.stride + x0;
+//                for (int x = 0; x < width; x++) {
+//                    sum += input.data[indexInput++];
+//                }
+                T* ptr = &input.data[input.offset + (y0+y)*input.stride + x0];
+                T* end = &ptr[width];
+                while( ptr != end ) {
+                    sum += *ptr++;
                 }
             }
             if( std::numeric_limits<sum_type>::is_integer )
-                sum = static_cast<sum_type>(scale*sum/(width*height)+0.5);
+                sum = static_cast<sum_type>(scale*sum/(width*height)+0.5f);
             else {
                 sum = static_cast<sum_type>(scale*sum/(width*height));
             }
