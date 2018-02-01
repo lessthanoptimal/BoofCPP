@@ -62,7 +62,7 @@ namespace boofcv {
         static void histogram( const Gray<T>& input , T minValue , GrowArray<uint32_t>& histogram ) {
             histogram.fill(0);
 
-            for( int y = 0; y < input.height; y++ ) {
+            for( uint32_t y = 0; y < input.height; y++ ) {
                 uint32_t index = input.offset + y*input.stride;
                 uint32_t end = index + input.width;
 

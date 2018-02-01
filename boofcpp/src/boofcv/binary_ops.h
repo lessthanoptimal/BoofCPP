@@ -113,9 +113,6 @@ namespace boofcv
 
             ImageStatistics::histogram(input,min_value,histogram);
 
-            // Total number of pixels
-            int total = input.width*input.height;
-
             // this should configure so that all the really fancy stuff has been turned off
             ComputeOtsu otsu(otsu2,0,true,1.0);
             otsu.compute(histogram, input.total_pixels());
@@ -138,22 +135,22 @@ namespace boofcv
             output.reshape(input.width,input.height);
 
             if( down ) {
-                for( int y = 0; y < input.height; y++ ) {
-                    int indexIn = input.offset + y*input.stride;
-                    int indexOut = output.offset + y*output.stride;
+                for( uint32_t y = 0; y < input.height; y++ ) {
+                    uint32_t indexIn = input.offset + y*input.stride;
+                    uint32_t indexOut = output.offset + y*output.stride;
 
-                    int end = indexIn + input.width;
+                    uint32_t end = indexIn + input.width;
 
                     for( ; indexIn < end; indexIn++ , indexOut++ ) {
                         output.data[indexOut] = (U8)(input.data[indexIn] <= threshold);
                     }
                 }
             } else {
-                for( int y = 0; y < input.height; y++ ) {
-                    int indexIn = input.offset + y*input.stride;
-                    int indexOut = output.offset + y*output.stride;
+                for( uint32_t y = 0; y < input.height; y++ ) {
+                    uint32_t indexIn = input.offset + y*input.stride;
+                    uint32_t indexOut = output.offset + y*output.stride;
 
-                    int end = indexIn + input.width;
+                    uint32_t end = indexIn + input.width;
 
                     for( ; indexIn < end; indexIn++ , indexOut++ ) {
                         output.data[indexOut] = (U8)(input.data[indexIn] > threshold);
@@ -193,12 +190,12 @@ namespace boofcv
             BlurImage::mean(input,mean,radius,storage2);
 
             if( down ) {
-                for( int y = 0; y < input.height; y++ ) {
-                    int indexIn = input.offset + y*input.stride;
-                    int indexOut = output.offset + y*output.stride;
-                    int indexMean = mean.offset + y*mean.stride;
+                for( uint32_t y = 0; y < input.height; y++ ) {
+                    uint32_t indexIn = input.offset + y*input.stride;
+                    uint32_t indexOut = output.offset + y*output.stride;
+                    uint32_t indexMean = mean.offset + y*mean.stride;
 
-                    int end = indexIn + input.width;
+                    uint32_t end = indexIn + input.width;
 
                     for( ; indexIn < end; indexIn++ , indexOut++, indexMean++ ) {
                         float threshold = mean.data[indexMean]*scale;
@@ -210,12 +207,12 @@ namespace boofcv
                     }
                 }
             } else {
-                for( int y = 0; y < input.height; y++ ) {
-                    int indexIn = input.offset + y*input.stride;
-                    int indexOut = output.offset + y*output.stride;
-                    int indexMean = mean.offset + y*mean.stride;
+                for( uint32_t y = 0; y < input.height; y++ ) {
+                    uint32_t indexIn = input.offset + y*input.stride;
+                    uint32_t indexOut = output.offset + y*output.stride;
+                    uint32_t indexMean = mean.offset + y*mean.stride;
 
-                    int end = indexIn + input.width;
+                    uint32_t end = indexIn + input.width;
 
                     for( ; indexIn < end; indexIn++ , indexOut++, indexMean++ ) {
                         float threshold = mean.data[indexMean];
@@ -239,6 +236,8 @@ namespace boofcv
     class InputToBinary {
     public:
         typedef typename T::pixel_type pixel_type;
+
+        virtual ~InputToBinary() = default;
 
         virtual void process(const T& input , Gray<U8>& output ) = 0;
     };

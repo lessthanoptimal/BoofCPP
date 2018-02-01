@@ -29,7 +29,7 @@ public class TestNativeBlockMean {
     public void compareToBoofCV() {
         for( Class type : types ) {
             // make the image larger to do a more careful test
-            ImageGray input = GeneralizedImageOps.createSingleBand(type,300,240);
+            ImageGray input = GeneralizedImageOps.createSingleBand(type,4000,3000);
             GImageMiscOps.fillUniform(input,rand,0,255);
 
             GrayU8 found = new GrayU8(1,1);
@@ -43,14 +43,14 @@ public class TestNativeBlockMean {
                     InputToBinary alg = new NativeBlockMean(regionWidth, scale, down, useLocal, type);
                     InputToBinary check = FactoryThresholdBinary.blockMean(regionWidth, scale, down, useLocal, type);
 
-//                    long time0 = System.currentTimeMillis();
+                    long time0 = System.currentTimeMillis();
                     check.process(input, expected);
-//                    long time1 = System.currentTimeMillis();
+                    long time1 = System.currentTimeMillis();
                     alg.process(input, found);
-//                    long time2 = System.currentTimeMillis();
+                    long time2 = System.currentTimeMillis();
 
-//                    System.out.println(type.getSimpleName()+" down="+down+" local="+useLocal);
-//                    System.out.println("java "+(time1-time0)+" native "+(time2-time1));
+                    System.out.println(type.getSimpleName()+" down="+down+" local="+useLocal);
+                    System.out.println("java "+(time1-time0)+" native "+(time2-time1));
 //                    expected.print();
 //                    System.out.println();
 //                    found.print();

@@ -10,10 +10,10 @@ void boofcv::logicAnd(const Gray<U8>& inputA , const Gray<U8>& inputB , Gray<U8>
     checkSameShape(inputA, inputB);
     output.reshape(inputA.width,inputA.height);
 
-    for( int y = 0; y < inputA.height; y++ ) {
-        int indexA = inputA.offset + y*inputA.stride;
-        int indexB = inputB.offset + y*inputB.stride;
-        int indexOut = output.offset + y*output.stride;
+    for( uint32_t y = 0; y < inputA.height; y++ ) {
+        uint32_t indexA = inputA.offset + y*inputA.stride;
+        uint32_t indexB = inputB.offset + y*inputB.stride;
+        uint32_t indexOut = output.offset + y*output.stride;
 
         int end = indexA + inputA.width;
         for( ; indexA < end; indexA++,indexB++,indexOut++) {
@@ -27,12 +27,12 @@ void boofcv::logicOr(const Gray<U8>& inputA , const Gray<U8>& inputB , Gray<U8>&
     checkSameShape(inputA, inputB);
     output.reshape(inputA.width,inputA.height);
 
-    for( int y = 0; y < inputA.height; y++ ) {
-        int indexA = inputA.offset + y*inputA.stride;
-        int indexB = inputB.offset + y*inputB.stride;
-        int indexOut = output.offset + y*output.stride;
+    for( uint32_t y = 0; y < inputA.height; y++ ) {
+        uint32_t indexA = inputA.offset + y*inputA.stride;
+        uint32_t indexB = inputB.offset + y*inputB.stride;
+        uint32_t indexOut = output.offset + y*output.stride;
 
-        int end = indexA + inputA.width;
+        uint32_t end = indexA + inputA.width;
         for( ; indexA < end; indexA++,indexB++,indexOut++) {
             output.data[indexOut] = static_cast<U8>(inputA.data[indexA] || inputB.data[indexB]);
         }
@@ -45,11 +45,11 @@ void boofcv::erode4(const Gray<U8>& input, Gray<U8>& output) {
     const int h = input.height - 1;
     const int w = input.width - 2;
 
-    for (int y = 1; y < h; y++) {
-        int indexIn = input.offset + y * input.stride + 1;
-        int indexOut = output.offset + y * output.stride + 1;
+    for (uint32_t y = 1; y < h; y++) {
+        uint32_t indexIn = input.offset + y * input.stride + 1;
+        uint32_t indexOut = output.offset + y * output.stride + 1;
 
-        const int end = indexIn + w;
+        const uint32_t end = indexIn + w;
 
         for (; indexIn < end; indexIn++, indexOut++) {
             if ((input.data[indexIn] + input.data[indexIn - 1] + input.data[indexIn + 1] +
@@ -67,11 +67,11 @@ void boofcv::dilate4(const Gray<U8>& input, Gray<U8>& output) {
     const int h = input.height - 1;
     const int w = input.width - 2;
 
-    for (int y = 1; y < h; y++) {
-        int indexIn = input.offset + y * input.stride + 1;
-        int indexOut = output.offset + y * output.stride + 1;
+    for (uint32_t y = 1; y < h; y++) {
+        uint32_t indexIn = input.offset + y * input.stride + 1;
+        uint32_t indexOut = output.offset + y * output.stride + 1;
 
-        const int end = indexIn + w;
+        const uint32_t end = indexIn + w;
 
         for (; indexIn < end; indexIn++, indexOut++) {
             if ((input.data[indexIn] +
@@ -112,7 +112,7 @@ void boofcv::ComputeOtsu::compute(const GrowArray<uint32_t>&histogram , uint32_t
 void boofcv::ComputeOtsu::computeOtsu(const GrowArray<uint32_t>& histogram , uint32_t totalPixels ) {
     double dlength = histogram.size;
     double sum = 0;
-    for (int i = 0; i < histogram.size; i++)
+    for (uint32_t i = 0; i < histogram.size; i++)
         sum += (i / dlength) * histogram[i];
 
     double sumB = 0;
@@ -121,7 +121,7 @@ void boofcv::ComputeOtsu::computeOtsu(const GrowArray<uint32_t>& histogram , uin
     variance = 0;
     threshold = 0;
 
-    int i;
+    uint32_t i;
     for (i = 0; i < histogram.size; i++) {
         wB += histogram[i];               // Weight Background
         if (wB == 0) continue;

@@ -67,7 +67,7 @@ namespace boofcv
         void process(const T& input , Gray<U8>& output ) {
             checkSameShape(input,output);
 
-            int requestedBlockWidth = this->requestedBlockWidth.computeI( std::min(input.width,input.height));
+            uint32_t requestedBlockWidth = (uint32_t)this->requestedBlockWidth.computeI( std::min(input.width,input.height));
             if( input.width < requestedBlockWidth || input.height < requestedBlockWidth ) {
                 throw invalid_argument("Image is smaller than block size");
             }
@@ -251,7 +251,7 @@ namespace boofcv
             typedef typename TypeInfo<T>::sum_type sum_type;
             sum_type sum = 0;
 
-            for (int y = 0; y < height; y++) {
+            for (uint32_t y = 0; y < height; y++) {
 //                int indexInput = input.offset + (y0+y)*input.stride + x0;
 //                for (int x = 0; x < width; x++) {
 //                    sum += input.data[indexInput++];

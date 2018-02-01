@@ -128,7 +128,7 @@ namespace boofcv {
         }
 
         void fill( T value ) {
-            std::memset(this->data,default_value,this->size*sizeof(T));
+            std::memset(this->data,value,this->size*sizeof(T));
         }
 
         T& at( uint32_t index ) const {
