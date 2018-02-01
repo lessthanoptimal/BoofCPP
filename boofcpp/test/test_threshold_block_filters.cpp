@@ -42,8 +42,6 @@ TEST(ThresholdBlockCommon, selectBlockSize) {
     ASSERT_EQ(32,alg.blockHeight);
 }
 
-
-
 template<class T, class S>
 class ThresholdBlockTest
 {

@@ -57,7 +57,7 @@ namespace boofcv
             this->blockHeight = 0;
         }
 
-        virtual ~ThresholdBlockCommon(){}
+        virtual ~ThresholdBlockCommon() = default;
 
         /**
          * Converts the gray scale input image into a binary image
@@ -211,8 +211,8 @@ namespace boofcv
                 blockX1 = std::min(this->stats.width - 1, blockX0 + 1);
                 blockY1 = std::min(this->stats.height - 1, blockY0 + 1);
 
-                blockX0 = std::max((uint32_t)0, blockX0 - 1);
-                blockY0 = std::max((uint32_t)0, blockY0 - 1);
+                blockX0 = blockX0 > 0 ? blockX0 - 1 : 0;
+                blockY0 = blockY0 > 0 ? blockY0 - 1 : 0;
             } else {
                 blockX1 = blockX0;
                 blockY1 = blockY0;
@@ -241,8 +241,8 @@ namespace boofcv
 
         void computeBlockStatistics(uint32_t x0, uint32_t y0, uint32_t width, uint32_t height, uint32_t indexStats,
                                     const Gray<T>& input) override {
-
-            typename TypeInfo<T>::sum_type sum = 0;
+            typedef typename TypeInfo<T>::sum_type sum_type;
+            sum_type sum = 0;
 
             for (int y = 0; y < height; y++) {
                 int indexInput = input.offset + (y0+y)*input.stride + x0;
@@ -250,10 +250,9 @@ namespace boofcv
                     sum += input.data[indexInput++];
                 }
             }
-            sum = (typename TypeInfo<T>::sum_type)(scale*sum/(width*height)+0.5);
+            sum = static_cast<sum_type>(scale*sum/(width*height)+0.5);
 
-
-            this->stats.data[indexStats]   = (T)sum;
+            this->stats.data[indexStats] = static_cast<T>(sum);
         }
     };
 }

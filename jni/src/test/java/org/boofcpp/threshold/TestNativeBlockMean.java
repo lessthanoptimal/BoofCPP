@@ -45,7 +45,7 @@ public class TestNativeBlockMean {
                     check.process(input, expected);
                     alg.process(input, found);
 
-//                System.out.println(type.getSimpleName()+" "+down);
+                System.out.println(type.getSimpleName()+" down="+down+" local="+useLocal);
 //                expected.print();
 //                System.out.println();
 //                found.print();

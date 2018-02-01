@@ -34,9 +34,9 @@ JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeBlockMean_nativedestroy(
     jlong nativePtr = env->GetLongField(obj, fid);
 
     if( isInteger ) {
-        delete (GlobalOtsuBinaryFilter<U8> *) nativePtr;
+        delete (ThresholdBlockMean<U8> *) nativePtr;
     } else {
-        delete (GlobalOtsuBinaryFilter<F32> *) nativePtr;
+        delete (ThresholdBlockMean<F32> *) nativePtr;
     }
 }
 
@@ -67,14 +67,14 @@ JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeBlockMean_nativeprocess
             Gray<U8> input((U8*)inputInfo.data,(uint32_t)inputInfo.dataLength,
                            (uint32_t)inputInfo.width,(uint32_t)inputInfo.height,
                            (uint32_t)inputInfo.offset,(uint32_t)inputInfo.stride);
-            ((GlobalOtsuBinaryFilter<U8>*)nativePtr)->process(input, output);
+            ((ThresholdBlockMean<U8>*)nativePtr)->process(input, output);
             env->ReleaseByteArrayElements((jbyteArray)inputInfo.jdata, inputInfo.data, 0);
         } else {
             JImageInfoF32 inputInfo = extractInfoF32(env,jinput);
             Gray<F32> input((F32*)inputInfo.data,(uint32_t)inputInfo.dataLength,
                            (uint32_t)inputInfo.width,(uint32_t)inputInfo.height,
                            (uint32_t)inputInfo.offset,(uint32_t)inputInfo.stride);
-            ((GlobalOtsuBinaryFilter<F32> *)nativePtr)->process(input, output);
+            ((ThresholdBlockMean<F32> *)nativePtr)->process(input, output);
             env->ReleaseFloatArrayElements((jfloatArray)inputInfo.jdata, inputInfo.data, 0);
         }
     } catch( ... ) {
