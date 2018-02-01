@@ -7,6 +7,8 @@
 #include "base_types.h"
 #include "config_types.h"
 #include "sanity_checks.h"
+#include "binary_ops.h"
+#include "image_misc_ops.h"
 
 namespace boofcv
 {
@@ -67,7 +69,7 @@ namespace boofcv
         void process(const T& input , Gray<U8>& output ) {
             checkSameShape(input,output);
 
-            uint32_t requestedBlockWidth = (uint32_t)this->requestedBlockWidth.computeI( std::min(input.width,input.height));
+            auto requestedBlockWidth = (uint32_t)this->requestedBlockWidth.computeI( std::min(input.width,input.height));
             if( input.width < requestedBlockWidth || input.height < requestedBlockWidth ) {
                 throw invalid_argument("Image is smaller than block size");
             }
@@ -111,7 +113,7 @@ namespace boofcv
         /**
          * Computes the min-max value for each block in the image
          */
-        void computeStatistics( const T& input, uint32_t innerWidth, uint32_t innerHeight) {
+        virtual void computeStatistics( const T& input, uint32_t innerWidth, uint32_t innerHeight) {
             int statPixelStride = stats.num_bands;
 
             uint32_t indexStats = 0;
@@ -180,8 +182,8 @@ namespace boofcv
      *
      * @author Peter Abeles
      */
-    template<class T>
-    class ThresholdBlockMean : public ThresholdBlockCommon<Gray<T>,Interleaved<T>>
+    template<class E>
+    class ThresholdBlockMean : public ThresholdBlockCommon<Gray<E>,Interleaved<E>>
     {
     public:
         float scale; // in the java version U8 uses double and F32 uses float. using double causes slight diff in float results
@@ -189,7 +191,7 @@ namespace boofcv
 
         ThresholdBlockMean(const ConfigLength &requestedBlockWidth, bool thresholdFromLocalBlocks,
                            double scale , bool down)
-                : ThresholdBlockCommon<Gray<T>,Interleaved<T>>(requestedBlockWidth, thresholdFromLocalBlocks) {
+                : ThresholdBlockCommon<Gray<E>,Interleaved<E>>(requestedBlockWidth, thresholdFromLocalBlocks) {
             this->scale = (float)scale;
             this->down = down;
             this->stats.setNumberOfBands(1);
@@ -197,7 +199,7 @@ namespace boofcv
 
         virtual ~ThresholdBlockMean() = default;
 
-        void thresholdBlock(uint32_t blockX0 , uint32_t blockY0 , const Gray<T>& input, Gray<U8>& output ) override {
+        void thresholdBlock(uint32_t blockX0 , uint32_t blockY0 , const Gray<E>& input, Gray<U8>& output ) override {
 
             uint32_t x0 = blockX0*this->blockWidth;
             uint32_t y0 = blockY0*this->blockHeight;
@@ -219,14 +221,14 @@ namespace boofcv
             }
 
             // Average the mean across local blocks
-            typename TypeInfo<T>::sum_type sum = 0;
+            typename TypeInfo<E>::sum_type sum = 0;
 
             for (uint32_t y = blockY0; y <= blockY1; y++) {
                 for (uint32_t x = blockX0; x <= blockX1; x++) {
                     sum += this->stats.unsafe_at(x,y,0);
                 }
             }
-            T mean = sum/((blockY1-blockY0+1)*(blockX1-blockX0+1));
+            E mean = sum/((blockY1-blockY0+1)*(blockX1-blockX0+1));
 
             // apply threshold
             for (uint32_t y = y0; y < y1; y++) {
@@ -236,9 +238,9 @@ namespace boofcv
 //                for (; indexOutput < end; indexOutput++, indexInput++ ) {
 //                    output.data[indexOutput] = (U8)(down == (input.data[indexInput] <= mean));
 //                }
-                T* inptr = &input.data[input.offset + y*input.stride + x0];
+                E* inptr = &input.data[input.offset + y*input.stride + x0];
                 U8* outptr = &output.data[output.offset + y*output.stride + x0];
-                T* end = &inptr[x1-x0];
+                E* end = &inptr[x1-x0];
 
                 while( inptr != end ) {
                     *outptr++ = (U8)(down == (*inptr++ <= mean));
@@ -247,8 +249,8 @@ namespace boofcv
         }
 
         void computeBlockStatistics(uint32_t x0, uint32_t y0, uint32_t width, uint32_t height, uint32_t indexStats,
-                                    const Gray<T>& input) override {
-            typedef typename TypeInfo<T>::sum_type sum_type;
+                                    const Gray<E>& input) override {
+            typedef typename TypeInfo<E>::sum_type sum_type;
             sum_type sum = 0;
 
             for (uint32_t y = 0; y < height; y++) {
@@ -256,8 +258,8 @@ namespace boofcv
 //                for (int x = 0; x < width; x++) {
 //                    sum += input.data[indexInput++];
 //                }
-                T* ptr = &input.data[input.offset + (y0+y)*input.stride + x0];
-                T* end = &ptr[width];
+                E* ptr = &input.data[input.offset + (y0+y)*input.stride + x0];
+                E* end = &ptr[width];
                 while( ptr != end ) {
                     sum += *ptr++;
                 }
@@ -267,7 +269,112 @@ namespace boofcv
             else {
                 sum = static_cast<sum_type>(scale*sum/(width*height));
             }
-            this->stats.data[indexStats] = static_cast<T>(sum);
+            this->stats.data[indexStats] = static_cast<E>(sum);
+        }
+    };
+
+    /**
+     * Block Otsu threshold implementation based on {@link ThresholdBlockCommon}. Computes a histogram in non-overlapping
+     * square regions. Then thresholds a single region by combining histograms from its neighbors to make it less blocky.
+     *
+     * This implementation includes a modification from the traditional Otsu algorithm. The threshold can optionally
+     * be adjusted in low variance regions. See code for details.
+     *
+     * <p>NOTE: This produces visually different results from {@link ThresholdBlockOtsu} because the block algorithm
+     * combines histograms from its neighboring blocks. That's why it appears to have a wider effective block.</p>
+     *
+     * @see GThresholdImageOps#computeOtsu(ImageGray, double, double)
+     *
+     * @author Peter Abeles
+     */
+    template<class E>
+    class ThresholdBlockOtsu : public ThresholdBlockCommon<Gray<E>,Interleaved<S32>> {
+    public:
+
+        GrowArray<uint32_t> histogram;
+
+        ComputeOtsu otsu;
+
+        /**
+         * Configures the detector
+         *
+         * @param requestedBlockWidth About how wide and tall you wish a block to be in pixels.
+         * @param tuning Tuning parameter. 0 = standard Otsu. Greater than 0 will penalize zero texture.
+         */
+         ThresholdBlockOtsu(bool otsu2, ConfigLength requestedBlockWidth, double tuning, double scale, bool down,
+                            bool thresholdFromLocalBlocks )
+                 : ThresholdBlockCommon<Gray<E>,Interleaved<S32>>(requestedBlockWidth, thresholdFromLocalBlocks),
+                   histogram(256) , otsu(otsu2,tuning,down,scale)
+        {
+            this->stats.setNumberOfBands(256);
+        }
+
+        void computeStatistics( const Gray<E>& input, uint32_t innerWidth, uint32_t innerHeight) override {
+            ImageMiscOps::fill(this->stats,0);
+            ThresholdBlockCommon<Gray<E>,Interleaved<S32>>::computeStatistics(input,innerWidth,innerHeight);
+        }
+
+        void computeBlockStatistics(uint32_t x0, uint32_t y0, uint32_t width, uint32_t height, uint32_t indexStats,
+                                    const Gray<E>& input) override
+        {
+            for (uint32_t y = 0; y < height; y++) {
+                uint32_t indexInput = input.offset + (y0+y)*input.stride + x0;
+                for (uint32_t x = 0; x < width; x++) {
+                    this->stats.data[static_cast<uint32_t>(indexStats+input.data[indexInput++])]++;
+                }
+            }
+        }
+
+        void thresholdBlock(uint32_t blockX0 , uint32_t blockY0 , const Gray<E>& input, Gray<U8>& output ) override
+        {
+            uint32_t x0 = blockX0*this->blockWidth;
+            uint32_t y0 = blockY0*this->blockHeight;
+
+            uint32_t x1 = blockX0 == this->stats.width-1  ? input.width : (blockX0+1)*this->blockWidth;
+            uint32_t y1 = blockY0 == this->stats.height-1 ? input.height: (blockY0+1)*this->blockHeight;
+
+            // define the local 3x3 region in blocks, taking in account the image border
+            uint32_t blockX1, blockY1;
+            if(this->thresholdFromLocalBlocks) {
+                blockX1 = std::min(this->stats.width  - 1, blockX0 + 1);
+                blockY1 = std::min(this->stats.height - 1, blockY0 + 1);
+
+                blockX0 = blockX0 > 0 ? blockX0 - 1 : 0;
+                blockY0 = blockY0 > 0 ? blockY0 - 1 : 0;
+            } else {
+                blockX1 = blockX0;
+                blockY1 = blockY0;
+            }
+
+            // sum up histogram in local region
+            histogram.fill(0);
+
+            for (uint32_t y = blockY0; y <= blockY1; y++) {
+                for (uint32_t x = blockX0; x <= blockX1; x++) {
+                    int indexStats = this->stats.index_of(x,y,0);
+                    for (int i = 0; i < histogram.size; i++) {
+                        histogram[i] += this->stats.data[indexStats+i];
+                    }
+                }
+            }
+
+            // this can vary across the image at the borders
+            uint32_t total = 0;
+            for (int i = 0; i < histogram.size; i++) {
+                total += histogram[i];
+            }
+
+            // compute threshold
+            otsu.compute(histogram,total);
+
+            for (uint32_t y = y0; y < y1; y++) {
+                uint32_t indexInput = input.offset + y*input.stride + x0;
+                uint32_t indexOutput = output.offset + y*output.stride + x0;
+                uint32_t end = indexOutput + (x1-x0);
+                for (; indexOutput < end; indexOutput++, indexInput++ ) {
+                    output.data[indexOutput] = (U8)(otsu.down == (input.data[indexInput] <= otsu.threshold));
+                }
+            }
         }
     };
 }

@@ -138,3 +138,25 @@ TEST(ThresholdBlockMean, standard_tests_U8) {
     standard_tests.widthLargerThanImage();
     standard_tests.subimage();
 }
+
+template<class E>
+class ThresholdBlockOtsuTest : public ThresholdBlockTest<Gray<E>,Interleaved<S32>>
+{
+public:
+    bool thresholdFromLocalBlocks=true;
+
+    void create_algorithm(uint32_t requestedBlockWidth, double scale , bool down ) override {
+        if( this->alg != nullptr )
+            delete  this->alg;
+        ConfigLength c = ConfigLength::fixed(requestedBlockWidth);
+        this->alg = new ThresholdBlockOtsu<E>(false,c,0.0,scale,down,thresholdFromLocalBlocks);
+    }
+};
+
+TEST(ThresholdBlockOtsu, standard_tests_U8) {
+    ThresholdBlockOtsuTest<U8> standard_tests;
+
+    standard_tests.toggle_down();
+    standard_tests.widthLargerThanImage();
+    standard_tests.subimage();
+}

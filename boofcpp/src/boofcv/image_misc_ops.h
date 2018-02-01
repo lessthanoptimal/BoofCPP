@@ -16,6 +16,15 @@ namespace boofcv {
             }
         }
 
+        template<class T>
+        static void fill( Interleaved<T>& image , T value ) {
+            T* ptr = image.data;
+            T* end = &ptr[image.total_pixels()*image.num_bands];
+            while( ptr != end ) {
+                *ptr++ = value;
+            }
+        }
+
         /**
          * Fills an integer gray image using a uniform distribution.
          *

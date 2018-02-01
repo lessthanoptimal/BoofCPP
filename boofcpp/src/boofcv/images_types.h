@@ -152,6 +152,10 @@ namespace boofcv {
         Gray<T> makeSubimage( uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1 ) {
             return Gray<T>(this->data,this->data_length,x1-x0,y1-y0,this->offset + y0*this->stride+x0, this->stride );
         }
+
+        uint32_t index_of( uint32_t x , uint32_t y ) const {
+            return this->offset + y*this->stride + x;
+        }
     };
 
     /**
@@ -381,6 +385,10 @@ namespace boofcv {
 
             return Interleaved<T>(this->data,this->data_length,x1-x0,y1-y0,
                                   this->num_bands,this->offset + y0*this->stride+x0*num_bands, this->stride );
+        }
+
+        uint32_t index_of( uint32_t x , uint32_t y , uint32_t band) const {
+            return this->offset + y*this->stride + x*this->num_bands + band;
         }
     };
 }
