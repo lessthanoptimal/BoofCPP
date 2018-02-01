@@ -77,9 +77,9 @@ namespace boofcv
             this->stats.reshape(input.width/blockWidth,input.height/blockHeight);
 
             uint32_t innerWidth = input.width%blockWidth == 0 ?
-                                input.width : input.width-blockWidth-input.width%blockWidth;
+                                input.width : input.width-blockWidth-(input.width%blockWidth);
             uint32_t innerHeight = input.height%blockHeight == 0 ?
-                                input.height : input.height-blockHeight-input.height%blockHeight;
+                                input.height : input.height-blockHeight-(input.height%blockHeight);
 
             computeStatistics(input, innerWidth, innerHeight);
             applyThreshold(input,output);
@@ -236,6 +236,13 @@ namespace boofcv
                 for (; indexOutput < end; indexOutput++, indexInput++ ) {
                     output.data[indexOutput] = (U8)(down == (input.data[indexInput] <= mean));
                 }
+//                T* inptr = &input.data[input.offset + y*input.stride + x0];
+//                U8* outptr = &output.data[output.offset + y*output.stride + x0];
+//                T* end = inptr + (x1-x0); // *sizeof(T) ?
+//
+//                while( inptr != end ) {
+//                    *outptr++ = (U8)(down == (*inptr++ <= mean));
+//                }
             }
         }
 
@@ -250,8 +257,11 @@ namespace boofcv
                     sum += input.data[indexInput++];
                 }
             }
-            sum = static_cast<sum_type>(scale*sum/(width*height)+0.5);
-
+            if( std::numeric_limits<sum_type>::is_integer )
+                sum = static_cast<sum_type>(scale*sum/(width*height)+0.5);
+            else {
+                sum = static_cast<sum_type>(scale*sum/(width*height));
+            }
             this->stats.data[indexStats] = static_cast<T>(sum);
         }
     };
