@@ -31,7 +31,7 @@ public class TestNativeBlockOtsu {
 
         for( Class type : types ) {
             // make the image larger to do a more careful test
-            ImageGray input = GeneralizedImageOps.createSingleBand(type,4000,3000);
+            ImageGray input = GeneralizedImageOps.createSingleBand(type,400,300);
             GImageMiscOps.fillUniform(input,rand,0,255);
 
             GrayU8 found = new GrayU8(1,1);
@@ -46,14 +46,14 @@ public class TestNativeBlockOtsu {
                         InputToBinary alg = new NativeBlockOtsu(otsu2, regionWidth, tuning, scale, down, useLocal, type);
                         InputToBinary check = FactoryThresholdBinary.blockOtsu(otsu2, regionWidth, tuning, scale, down, useLocal, type);
 
-                        long time0 = System.currentTimeMillis();
+//                        long time0 = System.currentTimeMillis();
                         check.process(input, expected);
-                        long time1 = System.currentTimeMillis();
+//                        long time1 = System.currentTimeMillis();
                         alg.process(input, found);
-                        long time2 = System.currentTimeMillis();
+//                        long time2 = System.currentTimeMillis();
 
-                        System.out.println(type.getSimpleName() + " down=" + down + " local=" + useLocal+" otsu2="+otsu2);
-                        System.out.println("java "+(time1-time0)+" native "+(time2-time1));
+//                        System.out.println(type.getSimpleName() + " down=" + down + " local=" + useLocal+" otsu2="+otsu2);
+//                        System.out.println("java "+(time1-time0)+" native "+(time2-time1));
 //                        expected.print();
 //                        System.out.println();
 //                      found.print();

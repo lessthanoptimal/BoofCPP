@@ -21,6 +21,7 @@ add_library(JNIBoofCPP SHARED
         src/main/cpp/JNIBoofCPP.cpp
         src/main/cpp/NativeBlockMean.cpp
         src/main/cpp/NativeBlockOtsu.cpp
+        src/main/cpp/NativeGlobalFixed.cpp
         src/main/cpp/NativeGlobalFixed_U8.cpp
         src/main/cpp/NativeGlobalFixed_F32.cpp
         src/main/cpp/NativeGlobalOtsu.cpp)
