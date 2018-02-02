@@ -8,6 +8,7 @@ import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
 import boofcv.testing.BoofTesting;
+import org.boofcpp.BoofCPP;
 import org.junit.Test;
 
 import java.util.Random;
@@ -21,7 +22,7 @@ public class TestNativeGlobalOtsu {
     Class types[] = new Class[]{GrayU8.class, GrayF32.class};
 
     static {
-        System.loadLibrary("JNIBoofCPP");
+        BoofCPP.loadlib();
     }
 
     @Test

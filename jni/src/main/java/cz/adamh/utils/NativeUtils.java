@@ -88,7 +88,7 @@ public class NativeUtils {
 
         // Prepare temporary file
         if (temporaryDir == null) {
-            temporaryDir = createTempDirectory("nativeutils");
+            temporaryDir = createTempDirectory("boofcpplibs");
             temporaryDir.deleteOnExit();
         }
 
