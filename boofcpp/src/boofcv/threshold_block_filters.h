@@ -317,10 +317,17 @@ namespace boofcv
         void computeBlockStatistics(uint32_t x0, uint32_t y0, uint32_t width, uint32_t height, uint32_t indexStats,
                                     const Gray<E>& input) override
         {
+            S32* stats_ptr = &this->stats.data[indexStats];
             for (uint32_t y = 0; y < height; y++) {
-                uint32_t indexInput = input.offset + (y0+y)*input.stride + x0;
-                for (uint32_t x = 0; x < width; x++) {
-                    this->stats.data[indexStats+static_cast<uint32_t>(input.data[indexInput++])]++;
+//                uint32_t indexInput = input.offset + (y0+y)*input.stride + x0;
+//                for (uint32_t x = 0; x < width; x++) {
+//                    this->stats.data[indexStats+static_cast<int>(input.data[indexInput++])]++;
+//                }
+
+                E* input_ptr = &input.data[input.offset + (y0+y)*input.stride + x0];
+                E* end = &input_ptr[width];
+                while( input_ptr != end ) {
+                    stats_ptr[U8(*input_ptr++)]++;
                 }
             }
         }
@@ -350,17 +357,23 @@ namespace boofcv
             histogram.fill(0);
 
             for (uint32_t y = blockY0; y <= blockY1; y++) {
+//                for (uint32_t x = blockX0; x <= blockX1; x++) {
+//                    int indexStats = this->stats.index_of(x,y,0);
+//                    for (int i = 0; i < histogram.size; i++) {
+//                        histogram[i] += this->stats.data[indexStats+i];
+//                    }
+//                }
+                S32* stats_ptr = &this->stats.data[this->stats.index_of(blockX0,y,0)];
                 for (uint32_t x = blockX0; x <= blockX1; x++) {
-                    int indexStats = this->stats.index_of(x,y,0);
-                    for (int i = 0; i < histogram.size; i++) {
-                        histogram[i] += this->stats.data[indexStats+i];
+                    for (uint32_t i = 0; i < histogram.size; i++) {
+                        histogram[i] += *stats_ptr++;
                     }
                 }
             }
 
             // this can vary across the image at the borders
             uint32_t total = 0;
-            for (int i = 0; i < histogram.size; i++) {
+            for (uint32_t i = 0; i < histogram.size; i++) {
                 total += histogram[i];
             }
 

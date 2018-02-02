@@ -13,7 +13,7 @@ void set3x3( Gray<U8>& image, int* values ) {
     }
 }
 
-TEST(BinaryOps, logicAnd) {
+TEST(BinaryImageOps, logicAnd) {
     Gray<U8> image0(5,6);
     Gray<U8> image1(5,6);
     Gray<U8> output;
@@ -26,7 +26,7 @@ TEST(BinaryOps, logicAnd) {
     image1.at(1,1)=1;
     image1.at(2,2)=1;
 
-    logicAnd(image0,image1,output);
+    BinaryImageOps::logicAnd(image0,image1,output);
 
     EXPECT_EQ(0,output.at(0,0));
     EXPECT_EQ(1,output.at(1,1));
@@ -35,7 +35,7 @@ TEST(BinaryOps, logicAnd) {
 }
 
 
-TEST(BinaryOps, logicOr) {
+TEST(BinaryImageOps, logicOr) {
     Gray<U8> image0(5,6);
     Gray<U8> image1(5,6);
     Gray<U8> output;
@@ -48,7 +48,7 @@ TEST(BinaryOps, logicOr) {
     image1.at(1,1)=1;
     image1.at(2,2)=1;
 
-    logicOr(image0,image1,output);
+    BinaryImageOps::logicOr(image0,image1,output);
 
     EXPECT_EQ(1,output.at(0,0));
     EXPECT_EQ(1,output.at(1,1));
@@ -57,7 +57,7 @@ TEST(BinaryOps, logicOr) {
 }
 
 
-TEST(BinaryOps, erode4) {
+TEST(BinaryImageOps, erode4) {
     Gray<U8> img,out;
 
     int case0[] = {0,0,0, 0,1,0, 0,0,0};
@@ -68,17 +68,17 @@ TEST(BinaryOps, erode4) {
     int case5[] = {0,1,0, 1,1,1, 0,0,0};
     int case6[] = {1,1,1, 1,1,1, 1,1,1};
 
-    set3x3(img,case0); erode4(img,out); EXPECT_EQ(0,out.at(1,1));
-    set3x3(img,case1); erode4(img,out); EXPECT_EQ(1,out.at(1,1));
-    set3x3(img,case2); erode4(img,out); EXPECT_EQ(0,out.at(1,1));
-    set3x3(img,case3); erode4(img,out); EXPECT_EQ(0,out.at(1,1));
-    set3x3(img,case4); erode4(img,out); EXPECT_EQ(0,out.at(1,1));
-    set3x3(img,case5); erode4(img,out); EXPECT_EQ(0,out.at(1,1));
-    set3x3(img,case6); erode4(img,out); EXPECT_EQ(1,out.at(1,1));
+    set3x3(img,case0); BinaryImageOps::erode4(img,out); EXPECT_EQ(0,out.at(1,1));
+    set3x3(img,case1); BinaryImageOps::erode4(img,out); EXPECT_EQ(1,out.at(1,1));
+    set3x3(img,case2); BinaryImageOps::erode4(img,out); EXPECT_EQ(0,out.at(1,1));
+    set3x3(img,case3); BinaryImageOps::erode4(img,out); EXPECT_EQ(0,out.at(1,1));
+    set3x3(img,case4); BinaryImageOps::erode4(img,out); EXPECT_EQ(0,out.at(1,1));
+    set3x3(img,case5); BinaryImageOps::erode4(img,out); EXPECT_EQ(0,out.at(1,1));
+    set3x3(img,case6); BinaryImageOps::erode4(img,out); EXPECT_EQ(1,out.at(1,1));
 }
 
 
-TEST(BinaryOps, dilate4) {
+TEST(BinaryImageOps, dilate4) {
     Gray<U8> img,out;
 
     int case0[] = {0,0,0, 0,1,0, 0,0,0};
@@ -89,13 +89,13 @@ TEST(BinaryOps, dilate4) {
     int case5[] = {1,0,0, 0,0,0, 0,0,0};
     int case6[] = {0,0,0, 0,0,0, 1,0,0};
 
-    set3x3(img,case0); dilate4(img,out); EXPECT_EQ(1,out.at(1,1));
-    set3x3(img,case1); dilate4(img,out); EXPECT_EQ(1,out.at(1,1));
-    set3x3(img,case2); dilate4(img,out); EXPECT_EQ(1,out.at(1,1));
-    set3x3(img,case3); dilate4(img,out); EXPECT_EQ(1,out.at(1,1));
-    set3x3(img,case4); dilate4(img,out); EXPECT_EQ(1,out.at(1,1));
-    set3x3(img,case5); dilate4(img,out); EXPECT_EQ(0,out.at(1,1));
-    set3x3(img,case6); dilate4(img,out); EXPECT_EQ(0,out.at(1,1));
+    set3x3(img,case0); BinaryImageOps::dilate4(img,out); EXPECT_EQ(1,out.at(1,1));
+    set3x3(img,case1); BinaryImageOps::dilate4(img,out); EXPECT_EQ(1,out.at(1,1));
+    set3x3(img,case2); BinaryImageOps::dilate4(img,out); EXPECT_EQ(1,out.at(1,1));
+    set3x3(img,case3); BinaryImageOps::dilate4(img,out); EXPECT_EQ(1,out.at(1,1));
+    set3x3(img,case4); BinaryImageOps::dilate4(img,out); EXPECT_EQ(1,out.at(1,1));
+    set3x3(img,case5); BinaryImageOps::dilate4(img,out); EXPECT_EQ(0,out.at(1,1));
+    set3x3(img,case6); BinaryImageOps::dilate4(img,out); EXPECT_EQ(0,out.at(1,1));
 }
 
 TEST(ThresholdOps, threshold) {

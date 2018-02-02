@@ -5,7 +5,7 @@
 
 using namespace boofcv;
 
-void boofcv::logicAnd(const Gray<U8>& inputA , const Gray<U8>& inputB , Gray<U8>& output )
+void boofcv::BinaryImageOps::logicAnd(const Gray<U8>& inputA , const Gray<U8>& inputB , Gray<U8>& output )
 {
     checkSameShape(inputA, inputB);
     output.reshape(inputA.width,inputA.height);
@@ -22,7 +22,7 @@ void boofcv::logicAnd(const Gray<U8>& inputA , const Gray<U8>& inputB , Gray<U8>
     }
 }
 
-void boofcv::logicOr(const Gray<U8>& inputA , const Gray<U8>& inputB , Gray<U8>& output )
+void boofcv::BinaryImageOps::logicOr(const Gray<U8>& inputA , const Gray<U8>& inputB , Gray<U8>& output )
 {
     checkSameShape(inputA, inputB);
     output.reshape(inputA.width,inputA.height);
@@ -39,7 +39,7 @@ void boofcv::logicOr(const Gray<U8>& inputA , const Gray<U8>& inputB , Gray<U8>&
     }
 }
 
-void boofcv::erode4(const Gray<U8>& input, Gray<U8>& output) {
+void boofcv::BinaryImageOps::erode4(const Gray<U8>& input, Gray<U8>& output) {
     output.reshape(input.width,input.height);
 
     const int h = input.height - 1;
@@ -61,7 +61,7 @@ void boofcv::erode4(const Gray<U8>& input, Gray<U8>& output) {
     }
 }
 
-void boofcv::dilate4(const Gray<U8>& input, Gray<U8>& output) {
+void boofcv::BinaryImageOps::dilate4(const Gray<U8>& input, Gray<U8>& output) {
     output.reshape(input.width,input.height);
 
     const int h = input.height - 1;
@@ -116,7 +116,7 @@ void boofcv::ComputeOtsu::computeOtsu(const GrowArray<uint32_t>& histogram , uin
         sum += (i / dlength) * histogram[i];
 
     double sumB = 0;
-    int wB = 0;
+    uint32_t wB = 0;
 
     variance = 0;
     threshold = 0;
@@ -126,7 +126,7 @@ void boofcv::ComputeOtsu::computeOtsu(const GrowArray<uint32_t>& histogram , uin
         wB += histogram[i];               // Weight Background
         if (wB == 0) continue;
 
-        int wF = totalPixels - wB;        // Weight Foreground
+        uint32_t wF = totalPixels - wB;        // Weight Foreground
         if (wF == 0) break;
 
         double f = i / dlength;
@@ -153,7 +153,7 @@ void boofcv::ComputeOtsu::computeOtsu2(const GrowArray<uint32_t>&histogram , uin
         sum += (i / dlength) * histogram[i];
 
     double sumB = 0;
-    int wB = 0;
+    uint32_t wB = 0;
 
     variance = 0;
     threshold = 0;
@@ -161,12 +161,12 @@ void boofcv::ComputeOtsu::computeOtsu2(const GrowArray<uint32_t>&histogram , uin
     double selectedMB=0;
     double selectedMF=0;
 
-    int i;
+    uint32_t i;
     for (i = 0; i < histogram.size; i++) {
         wB += histogram[i];               // Weight Background
         if (wB == 0) continue;
 
-        int wF = totalPixels - wB;        // Weight Foreground
+        uint32_t wF = totalPixels - wB;        // Weight Foreground
         if (wF == 0) break;
 
         double f = i / dlength;
