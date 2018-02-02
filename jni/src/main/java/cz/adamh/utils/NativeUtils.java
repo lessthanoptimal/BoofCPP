@@ -35,11 +35,13 @@ import java.nio.file.StandardCopyOption;
  * JAR archive. These libraries usualy contain implementation of some methods in
  * native code (using JNI - Java Native Interface).
  *
- * @see http://adamheinrich.com/blog/2012/how-to-load-native-jni-library-from-jar
- * @see https://github.com/adamheinrich/native-utils
+ * @see <a href="http://adamheinrich.com/blog/2012/how-to-load-native-jni-library-from-jar"/>
+ * @see <a href="https://github.com/adamheinrich/native-utils"/>
  *
  */
 public class NativeUtils {
+
+    private static String LIBRARY_NAME;
 
     /**
      * The minimum length a prefix for a file has to have according to {@link File#createTempFile(String, String)}}.
@@ -57,6 +59,41 @@ public class NativeUtils {
     private NativeUtils() {
     }
 
+    public static void setLibraryName( String name ) {
+        LIBRARY_NAME = name;
+    }
+
+    private static String[] getFullNames() {
+        return new String[]{"lib"+LIBRARY_NAME+".so","lib"+LIBRARY_NAME+".dll","lib"+LIBRARY_NAME+".dylib"};
+    }
+
+    public static boolean loadLocalPath( File path ) {
+        for( String n : getFullNames() ) {
+            File f = new File(path,n);
+            if( f.exists() ) {
+                System.load(f.getAbsolutePath());
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean loadLibraryFromJar( String path ) {
+        if( path.charAt(path.length()-1) != '/') {
+            path += "/";
+        }
+
+        String[] names = getFullNames();
+
+        for( String n : names ) {
+            try {
+                _loadLibraryFromJar(path+n);
+                return true;
+            } catch( IOException ignore ){}
+        }
+        return false;
+    }
+
     /**
      * Loads library from current JAR archive
      *
@@ -71,7 +108,7 @@ public class NativeUtils {
      * (restriction of {@link File#createTempFile(java.lang.String, java.lang.String)}).
      * @throws FileNotFoundException If the file could not be found inside the JAR.
      */
-    public static void loadLibraryFromJar(String path) throws IOException {
+    private static void _loadLibraryFromJar(String path) throws IOException {
 
         if (!path.startsWith("/")) {
             throw new IllegalArgumentException("The path has to be absolute (start with '/').");

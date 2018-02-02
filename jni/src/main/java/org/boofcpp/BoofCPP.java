@@ -13,43 +13,18 @@ import java.io.IOException;
 
 public class BoofCPP {
 
-    public static final String LIB="JNIBoofCPP";
-
     static {
-        String names[] = new String[]{LIB+".so",LIB+".dll","lib"+LIB+".dylib"};
+        NativeUtils.setLibraryName("JNIBoofCPP");
 
-        if( !loadDevelopmental(names) ) {
-            try {
-                System.loadLibrary(LIB); // only checks the class path
-            } catch (UnsatisfiedLinkError e) {
-                boolean success = false;
-                for (String s : names) {
-                    try {
-                        NativeUtils.loadLibraryFromJar("/natives/" + s);
-                        success = true;
-                    } catch (IOException ignore) {
-                    }
+        // First try loading it locally from the devepmental patj
+        if( !NativeUtils.loadLocalPath(new File("build/jni"))) {
+            if( !NativeUtils.loadLocalPath(new File("../build/jni"))) {
+                // Now try loading it from the jar
+                if( !NativeUtils.loadLibraryFromJar("/natives/") ) {
+                    throw new RuntimeException("Can't load native libraries");
                 }
-                if (!success)
-                    throw new RuntimeException("Can't load native library");
             }
         }
-    }
-
-    private static boolean loadDevelopmental( String[] names ) {
-        for( String n : names ) {
-            File f = new File("build/jni/"+n);
-            if( f.exists() ) {
-                System.load(f.getAbsolutePath());
-                return true;
-            }
-            f = new File("../build/jni/"+n);
-            if( f.exists() ) {
-                System.load(f.getAbsolutePath());
-                return true;
-            }
-        }
-        return false;
     }
 
     /**
