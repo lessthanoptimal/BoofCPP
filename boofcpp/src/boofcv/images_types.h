@@ -137,6 +137,10 @@ namespace boofcv {
             return data[this->offset + y*this->stride + x];
         }
 
+        T& unsafe_at( uint32_t x , uint32_t y ) const {
+            return data[this->offset + y*this->stride + x];
+        }
+
         void setTo( const Gray<T>& src ) {
             if (this->subimage && (this->width != src.width || this->height != src.height) ) {
                 throw invalid_argument("Shapes must match for sub images");

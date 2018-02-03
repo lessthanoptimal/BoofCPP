@@ -393,5 +393,112 @@ namespace boofcv
             }
         }
     };
+
+    template<class E>
+    class ThresholdBlockMinMax : public ThresholdBlockCommon<Gray<E>,Interleaved<E>> {
+    public:
+        // if the min and max value's difference is <= to this value then it is considered
+        // to be textureless and a default value is used
+        float minimumSpread;
+        float scale;
+        bool down;
+
+        /**
+         * Configures the detector
+         * @param minimumSpread If the difference between min max is less than or equal to this
+         *                         value then it is considered textureless.  Set to &le; -1 to disable.
+         * @param requestedBlockWidth About how wide and tall you wish a block to be in pixels.
+         */
+        ThresholdBlockMinMax(float minimumSpread, const ConfigLength& requestedBlockWidth, bool thresholdFromLocalBlocks,
+                             float scale , bool down )
+        : ThresholdBlockCommon<Gray<E>,Interleaved<E>>(requestedBlockWidth, thresholdFromLocalBlocks)
+        {
+            this->minimumSpread = minimumSpread;
+            this->scale = scale;
+            this->down = down;
+            this->stats.setNumberOfBands(2);
+        }
+
+        void thresholdBlock(uint32_t blockX0 , uint32_t blockY0 , const Gray<E>& input, Gray<U8>& output ) override
+        {
+            uint32_t x0 = blockX0*this->blockWidth;
+            uint32_t y0 = blockY0*this->blockHeight;
+
+            uint32_t x1 = blockX0== this->stats.width-1 ? input.width : (blockX0+1)*this->blockWidth;
+            uint32_t y1 = blockY0== this->stats.height-1 ? input.height: (blockY0+1)*this->blockHeight;
+
+            // define the local 3x3 region in blocks, taking in account the image border
+            int blockX1, blockY1;
+            if(this->thresholdFromLocalBlocks) {
+                blockX1 = std::min(this->stats.width  - 1, blockX0 + 1);
+                blockY1 = std::min(this->stats.height - 1, blockY0 + 1);
+
+                blockX0 = blockX0 > 0 ? blockX0 - 1 : 0;
+                blockY0 = blockY0 > 0 ? blockY0 - 1 : 0;
+            } else {
+                blockX1 = blockX0;
+                blockY1 = blockY0;
+            }
+
+
+            // find the min and max pixel values inside this block region
+            E min = std::numeric_limits<E>::max();
+            E max = std::numeric_limits<E>::min();
+
+            for (uint32_t y = blockY0; y <= blockY1; y++) {
+                for (uint32_t x = blockX0; x <= blockX1; x++) {
+                    E localMin = this->stats.at(x,y,0);
+                    E localMax = this->stats.at(x,y,1);
+
+                    if( localMin < min )
+                        min = localMin;
+                    if( localMax > max )
+                        max = localMax;
+                }
+            }
+
+            // apply threshold
+            E textureThreshold = (E)this->minimumSpread;
+            for (uint32_t y = y0; y < y1; y++) {
+                uint32_t indexInput = input.offset + y*input.stride + x0;
+                uint32_t indexOutput = output.offset + y*output.stride + x0;
+                for (uint32_t x = x0; x < x1; x++, indexOutput++, indexInput++ ) {
+
+                    if( max-min <= textureThreshold ) {
+                        output.data[indexOutput] = 1;
+                    } else {
+                        float average = scale*(max+min)/2.0f;
+                        if( down == input.data[indexInput] <= average ) {
+                            output.data[indexOutput] = 1;
+                        } else {
+                            output.data[indexOutput] = 0;
+                        }
+                    }
+                }
+            }
+        }
+
+        void computeBlockStatistics(uint32_t x0, uint32_t y0, uint32_t width, uint32_t height, uint32_t indexStats,
+                                    const Gray<E>& input) override
+        {
+
+            E min,max;
+            min = max = input.at(x0,y0);
+
+            for (uint32_t y = 0; y < height; y++) {
+                uint32_t indexInput = input.offset + (y0+y)*input.stride + x0;
+                for (uint32_t x = 0; x < width; x++) {
+                    E value = input.data[indexInput++];
+                    if( value < min )
+                        min = value;
+                    else if( value > max )
+                        max = value;
+                }
+            }
+
+            this->stats.data[indexStats]   = min;
+            this->stats.data[indexStats+1] = max;
+        }
+    };
 }
 #endif

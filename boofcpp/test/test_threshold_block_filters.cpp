@@ -160,3 +160,26 @@ TEST(ThresholdBlockOtsu, standard_tests_U8) {
     standard_tests.widthLargerThanImage();
     standard_tests.subimage();
 }
+
+template<class E>
+class ThresholdBlocMinMaxTest : public ThresholdBlockTest<Gray<E>,Interleaved<E>>
+{
+public:
+    float minimumSpread = 1;
+    bool thresholdFromLocalBlocks=true;
+
+    void create_algorithm(uint32_t requestedBlockWidth, double scale , bool down ) override {
+        if( this->alg != nullptr )
+            delete  this->alg;
+        ConfigLength c = ConfigLength::fixed(requestedBlockWidth);
+        this->alg = new ThresholdBlockMinMax<E>(minimumSpread,c,thresholdFromLocalBlocks,(float)scale,down);
+    }
+};
+
+TEST(ThresholdBlocMinMaxTest, standard_tests_U8) {
+    ThresholdBlocMinMaxTest<U8> standard_tests;
+
+    standard_tests.toggle_down();
+    standard_tests.widthLargerThanImage();
+    standard_tests.subimage();
+}

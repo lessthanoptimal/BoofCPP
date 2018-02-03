@@ -16,33 +16,43 @@ namespace boofcv {
 
     template<class _T> class TypeInfo;
 
+    // variables follow what is done in java
+    // sum_type is an int for all 32-bit integers or smaller. otherwise it matches the type
+    // signed_type is a type that can be used to store the difference of two numbers
     template<> class TypeInfo<U8> {
     public:
         typedef uint32_t sum_type;
+        typedef int32_t signed_type;
     };
     template<> class TypeInfo<S16> {
     public:
         typedef int32_t sum_type;
+        typedef int32_t signed_type;
     };
     template<> class TypeInfo<U16> {
     public:
         typedef uint32_t sum_type;
+        typedef int32_t signed_type;
     };
     template<> class TypeInfo<S32> {
     public:
         typedef int32_t sum_type;
+        typedef int32_t signed_type;
     };
     template<> class TypeInfo<S64> {
     public:
         typedef int64_t sum_type;
+        typedef int64_t signed_type;
     };
     template<> class TypeInfo<F32> {
     public:
         typedef float sum_type;
+        typedef float signed_type;
     };
     template<> class TypeInfo<F64> {
     public:
         typedef double sum_type;
+        typedef double signed_type;
     };
 
     /**
