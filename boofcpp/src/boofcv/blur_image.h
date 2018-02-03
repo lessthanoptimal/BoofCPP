@@ -1,7 +1,7 @@
 #ifndef BOOFCPP_BLUR_IMAGE_H
 #define BOOFCPP_BLUR_IMAGE_H
 
-#include "images_types.h"
+#include "image_types.h"
 
 namespace boofcv {
 

@@ -3,7 +3,7 @@
 
 #include "gtest/gtest.h"
 #include "base_types.h"
-#include "images_types.h"
+#include "image_types.h"
 
 namespace boofcv {
 

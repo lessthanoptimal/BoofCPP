@@ -2,7 +2,7 @@
 #define BOOFCPP_BINARY_OPS_H
 
 #include "base_types.h"
-#include "images_types.h"
+#include "image_types.h"
 #include "config_types.h"
 #include "blur_image.h"
 #include "image_statistics.h"

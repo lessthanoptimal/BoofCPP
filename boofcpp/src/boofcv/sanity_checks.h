@@ -2,7 +2,7 @@
 #define BOOFCPP_SANITY_CHECKS_H
 
 #include "base_types.h"
-#include "images_types.h"
+#include "image_types.h"
 
 namespace boofcv
 {

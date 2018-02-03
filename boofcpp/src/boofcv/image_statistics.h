@@ -1,7 +1,7 @@
 #ifndef BOOFCPP_IMAGE_STATISTICS_H
 #define BOOFCPP_IMAGE_STATISTICS_H
 
-#include "images_types.h"
+#include "image_types.h"
 #include "base_types.h"
 
 namespace boofcv {

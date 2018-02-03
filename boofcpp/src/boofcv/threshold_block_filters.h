@@ -3,7 +3,7 @@
 
 #include <algorithm>
 
-#include "images_types.h"
+#include "image_types.h"
 #include "base_types.h"
 #include "config_types.h"
 #include "sanity_checks.h"

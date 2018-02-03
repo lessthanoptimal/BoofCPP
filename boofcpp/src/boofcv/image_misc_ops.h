@@ -2,7 +2,7 @@
 #define BOOFCPP_IMAGE_MISC_OPS_H
 
 #include <random>
-#include "images_types.h"
+#include "image_types.h"
 
 namespace boofcv {
     class ImageMiscOps {
