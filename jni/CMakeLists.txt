@@ -17,12 +17,8 @@ include_directories(
 # build application's shared lib
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
 
-add_library(JNIBoofCPP SHARED
-        src/main/cpp/JNIBoofCPP.cpp
-        src/main/cpp/NativeBlockMean.cpp
-        src/main/cpp/NativeBlockMinMax.cpp
-        src/main/cpp/NativeBlockOtsu.cpp
-        src/main/cpp/NativeGlobalFixed.cpp
-        src/main/cpp/NativeGlobalOtsu.cpp)
+file(GLOB JNI_SRC "src/main/cpp/*.cpp")
+
+add_library(JNIBoofCPP SHARED ${JNI_SRC})
 
 target_link_libraries(JNIBoofCPP BoofCPP)
