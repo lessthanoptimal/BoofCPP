@@ -15,9 +15,13 @@ if (test)
     ##############
     # Unit Tests
     ##############
+#    file(GLOB TestList "test/*.cpp")
+        # then go through the list and remove test/ and .cpp
+
     list(APPEND TestList test_base_types)
     list(APPEND TestList test_binary_ops)
     list(APPEND TestList test_config_types)
+    list(APPEND TestList test_convolve)
     list(APPEND TestList test_geometry_types)
     list(APPEND TestList test_image_statistics)
     list(APPEND TestList test_image_misc_ops)
