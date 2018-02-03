@@ -46,14 +46,14 @@ public class TestNativeBlockMinMax {
                     InputToBinary alg = new NativeBlockMinMax(regionWidth, scale, down,minSpread, useLocal, type);
                     InputToBinary check = FactoryThresholdBinary.blockMinMax(regionWidth, scale, down,minSpread, useLocal, type);
 
-//                        long time0 = System.currentTimeMillis();
+//                    long time0 = System.currentTimeMillis();
                     check.process(input, expected);
-//                        long time1 = System.currentTimeMillis();
+//                    long time1 = System.currentTimeMillis();
                     alg.process(input, found);
-//                        long time2 = System.currentTimeMillis();
+//                    long time2 = System.currentTimeMillis();
 
-                        System.out.println(type.getSimpleName() + " down=" + down + " local=" + useLocal);
-//                        System.out.println("java "+(time1-time0)+" native "+(time2-time1));
+//                    System.out.println(type.getSimpleName() + " down=" + down + " local=" + useLocal);
+//                    System.out.println("java "+(time1-time0)+" native "+(time2-time1));
 //                    expected.print();
 //                    System.out.println();
 //                    found.print();
