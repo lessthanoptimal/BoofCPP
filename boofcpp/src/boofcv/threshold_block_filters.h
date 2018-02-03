@@ -397,6 +397,8 @@ namespace boofcv
     template<class E>
     class ThresholdBlockMinMax : public ThresholdBlockCommon<Gray<E>,Interleaved<E>> {
     public:
+        typedef typename TypeInfo<E>::sum_type sum_type;
+
         // if the min and max value's difference is <= to this value then it is considered
         // to be textureless and a default value is used
         float minimumSpread;
@@ -440,7 +442,6 @@ namespace boofcv
                 blockY1 = blockY0;
             }
 
-
             // find the min and max pixel values inside this block region
             E min = std::numeric_limits<E>::max();
             E max = std::numeric_limits<E>::min();
@@ -458,7 +459,7 @@ namespace boofcv
             }
 
             // apply threshold
-            E textureThreshold = (E)this->minimumSpread;
+            sum_type textureThreshold = (sum_type)this->minimumSpread;
             for (uint32_t y = y0; y < y1; y++) {
                 uint32_t indexInput = input.offset + y*input.stride + x0;
                 uint32_t indexOutput = output.offset + y*output.stride + x0;
@@ -467,7 +468,7 @@ namespace boofcv
                     if( max-min <= textureThreshold ) {
                         output.data[indexOutput] = 1;
                     } else {
-                        float average = scale*(max+min)/2.0f;
+                        sum_type average = static_cast<sum_type>(scale*((max+min)/2));
                         if( down == input.data[indexInput] <= average ) {
                             output.data[indexOutput] = 1;
                         } else {
