@@ -7,19 +7,51 @@
 namespace boofcv {
     class ImageMiscOps {
     public:
-        template<class T>
-        static void fill( Gray<T>& image , T value ) {
-            T* ptr = image.data;
-            T* end = &ptr[image.total_pixels()];
+        template<class E>
+        static void fill( Gray<E>& image , E value ) {
+            E* ptr = image.data;
+            E* end = &ptr[image.total_pixels()];
             while( ptr != end ) {
                 *ptr++ = value;
             }
         }
 
-        template<class T>
-        static void fill( Interleaved<T>& image , T value ) {
-            T* ptr = image.data;
-            T* end = &ptr[image.total_pixels()*image.num_bands];
+        template<class E>
+        static void fill_border( Gray<E>& input , E value , uint32_t radius  ) {
+            if( radius >= input.width || radius >= input.height ) {
+                fill(input,value);
+                return;
+            }
+            // top and bottom
+            for (uint32_t y = 0; y < radius; y++) {
+                uint32_t indexTop = input.offset + y * input.stride;
+                uint32_t indexBottom = input.offset + (input.height-y-1) * input.stride;
+                for (uint32_t x = 0; x < input.width; x++) {
+                    input.data[indexTop++] = value;
+                    input.data[indexBottom++] = value;
+                }
+            }
+
+            // left and right
+            uint32_t h = input.height-radius;
+            uint32_t indexStart = input.offset + radius*input.stride;
+            for (uint32_t x = 0; x < radius; x++) {
+                uint32_t indexLeft = indexStart + x;
+                uint32_t indexRight = indexStart + input.width-1-x;
+                for (uint32_t y = radius; y < h; y++) {
+                    input.data[indexLeft] = value;
+                    input.data[indexRight] = value;
+
+                    indexLeft += input.stride;
+                    indexRight += input.stride;
+                }
+            }
+        }
+
+        template<class E>
+        static void fill( Interleaved<E>& image , E value ) {
+            E* ptr = image.data;
+            E* end = &ptr[image.total_pixels()*image.num_bands];
             while( ptr != end ) {
                 *ptr++ = value;
             }
@@ -33,24 +65,24 @@ namespace boofcv {
          * @param max_value  maximum value (exclusive)
          * @param rng The random number generator, e.g. std::mt19937
          */
-        template<class T, class RNG>
-        static void fill_uniform( Gray<T>& image , T min_value , T max_value , RNG& rng, typename std::enable_if<std::is_integral<T>::value >::type* = 0) {
+        template<class E, class RNG>
+        static void fill_uniform( Gray<E>& image , E min_value , E max_value , RNG& rng, typename std::enable_if<std::is_integral<E>::value >::type* = 0) {
 
-            std::uniform_int_distribution<T> dis(min_value, max_value-1);
+            std::uniform_int_distribution<E> dis(min_value, max_value-1);
 
-            T* ptr = image.data;
-            T* end = &ptr[image.total_pixels()];
+            E* ptr = image.data;
+            E* end = &ptr[image.total_pixels()];
             while( ptr != end ) {
                 *ptr++ = dis(rng);
             }
         }
 
-        template<class T, class RNG>
-        static void fill_uniform( Gray<T>& image , T min_value , T max_value , RNG& rng, typename std::enable_if<std::is_floating_point<T>::value >::type* = 0) {
-            std::uniform_real_distribution<T> dis(min_value, max_value);
+        template<class E, class RNG>
+        static void fill_uniform( Gray<E>& image , E min_value , E max_value , RNG& rng, typename std::enable_if<std::is_floating_point<E>::value >::type* = 0) {
+            std::uniform_real_distribution<E> dis(min_value, max_value);
 
-            T* ptr = image.data;
-            T* end = &ptr[image.total_pixels()];
+            E* ptr = image.data;
+            E* end = &ptr[image.total_pixels()];
             while( ptr != end ) {
                 *ptr++ = dis(rng);
             }

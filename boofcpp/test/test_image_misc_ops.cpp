@@ -18,6 +18,33 @@ TEST(ImageMiscOps, fill) {
 
 }
 
+TEST(ImageMiscOps, fill_border) {
+    Gray<U8> image(5,6);
+
+    ImageMiscOps::fill_border(image,(U8)8,2);
+
+    for( uint32_t y = 0; y < image.height; y++ ) {
+        for( uint32_t x = 0; x < image.width; x++ ) {
+            if( y < 2 || y >= 4 || x < 2 || x >= 3)
+                ASSERT_EQ(8, image.at(x,y));
+            else
+                ASSERT_EQ(0, image.at(x,y));
+        }
+    }
+}
+
+TEST(ImageMiscOps, fill_border_LargeRadius) {
+    Gray<U8> image(5,6);
+
+    ImageMiscOps::fill_border(image,(U8)8,6);
+
+    for( uint32_t y = 0; y < image.height; y++ ) {
+        for( uint32_t x = 0; x < image.width; x++ ) {
+            ASSERT_EQ(8, image.at(x,y));
+        }
+    }
+}
+
 TEST(ImageMiscOps, fill_uniform_INTEGER) {
     Gray<U8> image(30,40);
 
