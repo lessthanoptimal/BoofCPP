@@ -37,6 +37,7 @@ public class BoofCPP {
     public static void initialize() {
         BOverrideFactoryThresholdBinary.globalFixed = NativeGlobalFixed::new;
         BOverrideFactoryThresholdBinary.globalOtsu = NativeGlobalOtsu::new;
+        BOverrideFactoryThresholdBinary.blockMinMax = NativeBlockMinMax::new;
         BOverrideFactoryThresholdBinary.blockMean = NativeBlockMean::new;
         BOverrideFactoryThresholdBinary.blockOtsu = NativeBlockOtsu::new;
     }
