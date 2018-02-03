@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <stdexcept>
 #include <cstring>
+#include <initializer_list>
 
 namespace boofcv {
     typedef uint8_t U8;
@@ -94,6 +95,17 @@ namespace boofcv {
 
         }
 
+        GrowArray(std::initializer_list<T> l ){
+            this->size = this->array_length = (uint32_t)l.size();
+            this->can_resize = true;
+            this->data = new T[this->size];
+
+            T* ptr = this->data;
+            for (auto& x : l ) {
+                *ptr++ = x;
+            }
+        }
+
         ~GrowArray() {
             if( !can_resize )
                 return;
@@ -149,6 +161,15 @@ namespace boofcv {
 
         T& operator[] (uint32_t index) const {
             return this->data[index];
+        }
+
+        void setTo(std::initializer_list<T> l ){
+            resize((uint32_t)l.size());
+
+            T* ptr = this->data;
+            for (auto& x : l ) {
+                *ptr++ = x;
+            }
         }
     };
 

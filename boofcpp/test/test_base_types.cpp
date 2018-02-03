@@ -12,6 +12,17 @@ TEST(GrowArray, initial_zero) {
     }
 }
 
+TEST(GrowArray, constructor_list) {
+    GrowArray<U8> array({1,2,3,4});
+
+    ASSERT_EQ(4,array.size);
+    ASSERT_EQ(4,array.array_length);
+
+    for( uint32_t i = 0; i < array.size; i++ ) {
+        ASSERT_EQ(i+1,array.data[i]);
+    }
+}
+
 
 TEST(GrowArray, at) {
     GrowArray<U8> array(5);
@@ -78,5 +89,16 @@ TEST(GrowArray, grow) {
     ASSERT_EQ(N+2,array.array_length);
     for( uint32_t i = 0; i < N+2; i++ ){
         ASSERT_EQ(0,array[i]);
+    }
+}
+
+TEST(GrowArray, setTo_initializer_list) {
+    GrowArray<U8> array(10);
+
+    array.setTo({1,2,3,4,5,6});
+    ASSERT_EQ(6,array.size);
+    ASSERT_EQ(10,array.array_length);
+    for( uint32_t i = 0; i < 6; i++ ){
+        ASSERT_EQ(1+i,array[i]);
     }
 }

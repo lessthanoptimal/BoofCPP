@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <stdexcept>
 #include <cstring>
+#include <initializer_list>
 
 #include "base_types.h"
 #include "image_types.h"
@@ -49,6 +50,10 @@ namespace boofcv {
         Kernel1D( uint32_t width ) : Kernel1D(width,width/2) {
         }
 
+        Kernel1D( uint32_t offset, std::initializer_list<E> l ) : KernelBase((uint32_t)l.size(),offset) {
+            data.setTo(l);
+        }
+
         E& at( uint32_t index ) const {
             return data.at(index);
         }
@@ -90,18 +95,19 @@ namespace boofcv {
 
             for (uint32_t y = 0; y < input.height; y++) {
                 for( uint32_t x = 0; x < input.width; x++ ) {
-                    signed_type total = 0;
-                    signed_type weight = 0;
-
-                    uint32_t startX;
-
-                    if( x < kernel.offset )
+                    uint32_t startX,endX;
+                    if( x < kernel.offset ) {
                         startX = 0;
-                    else
-                        startX = x - kernel.offset;;
-                    uint32_t endX = startX+kernel.width;
+                        endX = kernel.width-(kernel.offset-x);
+                    } else {
+                        startX = x - kernel.offset;
+                        endX = startX + kernel.width;
+                    }
 
                     if( endX > input.width ) endX = input.width;
+
+                    signed_type total = 0;
+                    signed_type weight = 0;
 
                     for( uint32_t j = startX; j < endX; j++ ) {
                         signed_type v = kernel[j-x+kernel.offset];
@@ -121,22 +127,87 @@ namespace boofcv {
 
             for (uint32_t y = 0; y < input.height; y++) {
                 for( uint32_t x = 0; x < input.width; x++ ) {
-                    signed_type total = 0;
-                    signed_type weight = 0;
-
-                    uint32_t startX;
-
-                    if( x < kernel.offset )
+                    uint32_t startX,endX;
+                    if( x < kernel.offset ) {
                         startX = 0;
-                    else
-                        startX = x - kernel.offset;;
-                    uint32_t endX = startX+kernel.width;
+                        endX = kernel.width-(kernel.offset-x);
+                    } else {
+                        startX = x - kernel.offset;
+                        endX = startX + kernel.width;
+                    }
 
                     if( endX > input.width ) endX = input.width;
+
+                    signed_type total = 0;
+                    signed_type weight = 0;
 
                     for( uint32_t j = startX; j < endX; j++ ) {
                         signed_type v = kernel[j-x+kernel.offset];
                         total += input.unsafe_at(j,y)*v;
+                        weight += v;
+                    }
+                    output.unsafe_at(x,y) = total/weight;
+                }
+            }
+        }
+
+        template<class E>
+        static void vertical( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel, const Gray<E>& input, Gray<E>& output ,
+                                typename std::enable_if<std::is_integral<E>::value >::type* = 0) {
+
+            typedef typename TypeInfo<E>::signed_type signed_type;
+
+            for (uint32_t y = 0; y < input.height; y++) {
+                for( uint32_t x = 0; x < input.width; x++ ) {
+                    uint32_t startY,endY;
+                    if( y < kernel.offset ) {
+                        startY = 0;
+                        endY = kernel.width-(kernel.offset-y);
+                    } else {
+                        startY = y - kernel.offset;
+                        endY = startY + kernel.width;
+                    }
+
+                    if( endY > input.height ) endY = input.height;
+
+                    signed_type total = 0;
+                    signed_type weight = 0;
+
+                    for( int32_t i = startY; i < endY; i++ ) {
+                        E v = kernel.at(i-y+kernel.offset);
+                        total += input.unsafe_at(x,i)*v;
+                        weight += v;
+                    }
+                    output.unsafe_at(x,y) = (total+weight/2)/weight;
+                }
+            }
+        }
+
+        template<class E>
+        static void vertical( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel, const Gray<E>& input, Gray<E>& output ,
+                              typename std::enable_if<std::is_floating_point<E>::value >::type* = 0) {
+
+            typedef typename TypeInfo<E>::signed_type signed_type;
+
+            for (uint32_t y = 0; y < input.height; y++) {
+                for( uint32_t x = 0; x < input.width; x++ ) {
+                    uint32_t startY,endY;
+                    if( y < kernel.offset ) {
+                        startY = 0;
+                        endY = kernel.width-(kernel.offset-y);
+                    } else {
+                        startY = y - kernel.offset;
+                        endY = startY + kernel.width;
+                    }
+
+                    if( endY > input.height ) endY = input.height;
+
+                    signed_type total = 0;
+                    signed_type weight = 0;
+
+                    for( int32_t i = startY; i < endY; i++ ) {
+                        E v = kernel.at(i-y+kernel.offset);
+                        total += input.unsafe_at(x,i)*v;
                         weight += v;
                     }
                     output.unsafe_at(x,y) = total/weight;
