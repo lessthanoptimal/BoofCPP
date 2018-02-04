@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <cstring>
 #include <initializer_list>
+#include <random>
 
 #include "base_types.h"
 #include "image_types.h"
@@ -54,6 +55,15 @@ namespace boofcv {
             data.setTo(l);
         }
 
+        Kernel1D() {
+        }
+
+        void reshape( uint32_t width , uint32_t offset ) {
+            this->width = width;
+            this->offset = offset;
+            this->data.resize(width);
+        }
+
         E& at( uint32_t index ) const {
             return data.at(index);
         }
@@ -81,6 +91,38 @@ namespace boofcv {
 
         uint32_t dimension() const override  {
             return 2;
+        }
+    };
+
+    class KernelOps
+    {
+    public:
+        /**
+         * Fills an integer gray image using a uniform distribution.
+         *
+         * @param image Image that's to be filled
+         * @param min_value minimum value (inclusive)
+         * @param max_value  maximum value (exclusive)
+         * @param rng The random number generator, e.g. std::mt19937
+         */
+        template<class E, class RNG>
+        static void fill_uniform( Kernel1D<E>& kernel , E min_value , E max_value , RNG& rng, typename std::enable_if<std::is_integral<E>::value >::type* = 0) {
+
+            std::uniform_int_distribution<E> dis(min_value, max_value-1);
+
+            for( uint32_t i = 0; i < kernel.width; i++ ) {
+                kernel.data[i] = dis(rng);
+            }
+        }
+
+        template<class E, class RNG>
+        static void fill_uniform( Kernel1D<E>& kernel , E min_value , E max_value , RNG& rng, typename std::enable_if<std::is_floating_point<E>::value >::type* = 0) {
+
+            std::uniform_real_distribution<E> dis(min_value, max_value);
+
+            for( uint32_t i = 0; i < kernel.width; i++ ) {
+                kernel.data[i] = dis(rng);
+            }
         }
     };
 
@@ -215,6 +257,103 @@ namespace boofcv {
             }
         }
 
+    };
+
+    class ConvolveNormalized_JustBorder {
+    public:
+        template<class E>
+        static void horizontal( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel, const Gray<E>& input, Gray<E>& output ,
+                                typename std::enable_if<std::is_integral<E>::value >::type* = 0)
+        {
+            typedef typename TypeInfo<E>::signed_type signed_type;
+
+            uint32_t offsetL = kernel.offset;
+            uint32_t offsetR = kernel.width-offsetL-1;
+
+            for (uint32_t i = 0; i < input.height; i++) {
+                uint32_t indexDest = output.offset + i * output.stride;
+                uint32_t j = input.offset + i * input.stride;
+                uint32_t jStart = j;
+                uint32_t jEnd = j + offsetL;
+
+                for (; j < jEnd; j++) {
+                    signed_type total = 0;
+                    signed_type weight = 0;
+                    uint32_t indexSrc = jStart;
+                    for (uint32_t k = kernel.width - (offsetR + 1 + j - jStart); k < kernel.width; k++) {
+                        signed_type w = kernel.data[k];
+                        weight += w;
+                        total += input.data[indexSrc++] * w;
+                    }
+                    output.data[indexDest++] = (E)((total+weight/2)/weight);
+                }
+
+                j += input.width - (offsetL+offsetR);
+                indexDest += input.width - (offsetL+offsetR);
+
+                jEnd = jStart + input.width;
+                for (; j < jEnd; j++) {
+                    signed_type total = 0;
+                    signed_type weight = 0;
+                    uint32_t indexSrc = j - offsetL;
+                    uint32_t kEnd = jEnd - indexSrc;
+
+                    for (uint32_t k = 0; k < kEnd; k++) {
+                        signed_type w = kernel.data[k];
+                        weight += w;
+                        total += input.data[indexSrc++] * w;
+                    }
+                    output.data[indexDest++] = (E)((total+weight/2)/weight);
+                }
+            }
+        }
+
+        template<class E>
+        static void horizontal( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel, const Gray<E>& input, Gray<E>& output ,
+                                typename std::enable_if<std::is_floating_point<E>::value >::type* = 0)
+        {
+            typedef typename TypeInfo<E>::signed_type signed_type;
+
+            uint32_t offsetL = kernel.offset;
+            uint32_t offsetR = kernel.width-offsetL-1;
+
+            for (uint32_t i = 0; i < input.height; i++) {
+                uint32_t indexDest = output.offset + i * output.stride;
+                uint32_t j = input.offset + i * input.stride;
+                uint32_t jStart = j;
+                uint32_t jEnd = j + offsetL;
+
+                for (; j < jEnd; j++) {
+                    signed_type total = 0;
+                    signed_type weight = 0;
+                    uint32_t indexSrc = jStart;
+                    for (uint32_t k = kernel.width - (offsetR + 1 + j - jStart); k < kernel.width; k++) {
+                        signed_type w = kernel.data[k];
+                        weight += w;
+                        total += input.data[indexSrc++] * w;
+                    }
+                    output.data[indexDest++] = (E)(total/weight);
+                }
+
+                j += input.width - (offsetL+offsetR);
+                indexDest += input.width - (offsetL+offsetR);
+
+                jEnd = jStart + input.width;
+                for (; j < jEnd; j++) {
+                    signed_type total = 0;
+                    signed_type weight = 0;
+                    uint32_t indexSrc = j - offsetL;
+                    uint32_t kEnd = jEnd - indexSrc;
+
+                    for (uint32_t k = 0; k < kEnd; k++) {
+                        signed_type w = kernel.data[k];
+                        weight += w;
+                        total += input.data[indexSrc++] * w;
+                    }
+                    output.data[indexDest++] = (E)(total/weight);
+                }
+            }
+        }
     };
 
     class ConvolveNormalized {
