@@ -354,6 +354,118 @@ namespace boofcv {
                 }
             }
         }
+
+        template<class E>
+        static void vertical( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel, const Gray<E>& input, Gray<E>& output ,
+                              typename std::enable_if<std::is_integral<E>::value >::type* = 0 )
+        {
+            typedef typename TypeInfo<E>::signed_type signed_type;
+
+            int offsetL = kernel.offset;
+            int offsetR = kernel.width-offsetL-1;
+
+            int yEnd = input.height - offsetR;
+
+            for (uint32_t y = 0; y < offsetL; y++) {
+                uint32_t indexDst = output.offset + y * output.stride;
+                uint32_t i = input.offset + y * input.stride;
+                uint32_t iEnd = i + input.width;
+
+                uint32_t kStart = offsetL - y;
+
+                signed_type weight = 0;
+                for (uint32_t k = kStart; k < kernel.width; k++) {
+                    weight += kernel.data[k];
+                }
+
+                for ( ; i < iEnd; i++) {
+                    signed_type total = 0;
+                    uint32_t indexSrc = i - y * input.stride;
+                    for (uint32_t k = kStart; k < kernel.width; k++, indexSrc += input.stride) {
+                        total += input.data[indexSrc] * kernel.data[k];
+                    }
+                    output.data[indexDst++] = (E)((total+weight/2)/weight);
+                }
+            }
+
+            for (uint32_t y = yEnd; y < input.height; y++) {
+                uint32_t indexDst = output.offset + y * output.stride;
+                uint32_t i = input.offset + y * input.stride;
+                uint32_t iEnd = i + input.width;
+
+                uint32_t kEnd = input.height - (y - offsetL);
+
+                signed_type weight = 0;
+                for (uint32_t k = 0; k < kEnd; k++) {
+                    weight += kernel.data[k];
+                }
+
+                for ( ; i < iEnd; i++) {
+                    signed_type total = 0;
+                    uint32_t indexSrc = i - offsetL * input.stride;
+                    for (uint32_t k = 0; k < kEnd; k++, indexSrc += input.stride) {
+                        total += input.data[indexSrc] * kernel.data[k];
+                    }
+                    output.data[indexDst++] = (E)((total+weight/2)/weight);
+                }
+            }
+        }
+
+        template<class E>
+        static void vertical( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel, const Gray<E>& input, Gray<E>& output ,
+                              typename std::enable_if<std::is_floating_point<E>::value >::type* = 0 )
+        {
+            typedef typename TypeInfo<E>::signed_type signed_type;
+
+            int offsetL = kernel.offset;
+            int offsetR = kernel.width-offsetL-1;
+
+            int yEnd = input.height - offsetR;
+
+            for (uint32_t y = 0; y < offsetL; y++) {
+                uint32_t indexDst = output.offset + y * output.stride;
+                uint32_t i = input.offset + y * input.stride;
+                uint32_t iEnd = i + input.width;
+
+                uint32_t kStart = offsetL - y;
+
+                signed_type weight = 0;
+                for (uint32_t k = kStart; k < kernel.width; k++) {
+                    weight += kernel.data[k];
+                }
+
+                for ( ; i < iEnd; i++) {
+                    signed_type total = 0;
+                    uint32_t indexSrc = i - y * input.stride;
+                    for (uint32_t k = kStart; k < kernel.width; k++, indexSrc += input.stride) {
+                        total += input.data[indexSrc] * kernel.data[k];
+                    }
+                    output.data[indexDst++] = (E)(total/weight);
+                }
+            }
+
+            for (uint32_t y = yEnd; y < input.height; y++) {
+                uint32_t indexDst = output.offset + y * output.stride;
+                uint32_t i = input.offset + y * input.stride;
+                uint32_t iEnd = i + input.width;
+
+                uint32_t kEnd = input.height - (y - offsetL);
+
+                signed_type weight = 0;
+                for (uint32_t k = 0; k < kEnd; k++) {
+                    weight += kernel.data[k];
+                }
+
+                for ( ; i < iEnd; i++) {
+                    signed_type total = 0;
+                    uint32_t indexSrc = i - offsetL * input.stride;
+                    for (uint32_t k = 0; k < kEnd; k++, indexSrc += input.stride) {
+                        total += input.data[indexSrc] * kernel.data[k];
+                    }
+                    output.data[indexDst++] = (E)(total/weight);
+                }
+            }
+        }
     };
 
     class ConvolveNormalized {
