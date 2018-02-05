@@ -188,7 +188,7 @@ public:
             KernelOps::fill_uniform(kernel,(signed_type)0,(signed_type)10,gen);
     }
 
-    void horizontal_border() {
+    void horizontal_norm_border() {
         ConvolveNormalizedNaive::horizontal(kernel,input,expected);
         ConvolveNormalized_JustBorder::horizontal(kernel,input,found);
 
@@ -199,7 +199,7 @@ public:
         checkResults_border();
     }
 
-    void vertical_border() {
+    void vertical_norm_border() {
         ConvolveNormalizedNaive::vertical(kernel,input,expected);
         ConvolveNormalized_JustBorder::vertical(kernel,input,found);
 
@@ -210,7 +210,7 @@ public:
         checkResults_border();
     }
 
-    void horizontal_inner() {
+    void horizontal_div_inner() {
         ImageBorderValue<E> border(0);
         border.setImage(input);
 
@@ -225,13 +225,41 @@ public:
         checkResults_inner();
     }
 
-    void vertical_inner() {
+    void vertical_div_inner() {
         ImageBorderValue<E> border(0);
         border.setImage(input);
 
         signed_type kernel_sum = kernel.sum();
         ConvolveNaive::vertical(kernel,border,expected,kernel_sum);
         ConvolveImage_Inner::vertical(kernel,input,found,kernel_sum);
+
+        borderX0=borderX1=0;
+        borderY0 = kernel.offset;
+        borderY1 = kernel.width-1-kernel.offset;
+
+        checkResults_inner();
+    }
+
+    void horizontal_inner() {
+        ImageBorderValue<E> border(0);
+        border.setImage(input);
+
+        ConvolveNaive::horizontal(kernel,border,expected);
+        ConvolveImage_Inner::horizontal(kernel,input,found);
+
+        borderY0=borderY1=0;
+        borderX0 = kernel.offset;
+        borderX1 = kernel.width-1-kernel.offset;
+
+        checkResults_inner();
+    }
+
+    void vertical_inner() {
+        ImageBorderValue<E> border(0);
+        border.setImage(input);
+
+        ConvolveNaive::vertical(kernel,border,expected);
+        ConvolveImage_Inner::vertical(kernel,input,found);
 
         borderX0=borderX1=0;
         borderY0 = kernel.offset;
@@ -273,15 +301,15 @@ TEST(ConvolveNormalized_JustBorder, horizontal_U8) {
 
         compare.setImageSize(w,h);
         compare.setKernel(3,1);
-        compare.horizontal_border();
+        compare.horizontal_norm_border();
         compare.setKernel(5,2);
-        compare.horizontal_border();
+        compare.horizontal_norm_border();
         compare.setKernel(7,3);
-        compare.horizontal_border();
+        compare.horizontal_norm_border();
         compare.setKernel(7,1);
-        compare.horizontal_border();
+        compare.horizontal_norm_border();
         compare.setKernel(7,4);
-        compare.horizontal_border();
+        compare.horizontal_norm_border();
     }
 }
 
@@ -294,15 +322,15 @@ TEST(ConvolveNormalized_JustBorder, horizontal_F32) {
 
         compare.setImageSize(w,h);
         compare.setKernel(3,1);
-        compare.horizontal_border();
+        compare.horizontal_norm_border();
         compare.setKernel(5,2);
-        compare.horizontal_border();
+        compare.horizontal_norm_border();
         compare.setKernel(7,3);
-        compare.horizontal_border();
+        compare.horizontal_norm_border();
         compare.setKernel(7,1);
-        compare.horizontal_border();
+        compare.horizontal_norm_border();
         compare.setKernel(7,4);
-        compare.horizontal_border();
+        compare.horizontal_norm_border();
     }
 }
 
@@ -315,15 +343,15 @@ TEST(ConvolveNormalized_JustBorder, vertical_U8) {
 
         compare.setImageSize(w,h);
         compare.setKernel(3,1);
-        compare.vertical_border();
+        compare.vertical_norm_border();
         compare.setKernel(5,2);
-        compare.vertical_border();
+        compare.vertical_norm_border();
         compare.setKernel(7,3);
-        compare.vertical_border();
+        compare.vertical_norm_border();
         compare.setKernel(7,1);
-        compare.vertical_border();
+        compare.vertical_norm_border();
         compare.setKernel(7,4);
-        compare.vertical_border();
+        compare.vertical_norm_border();
     }
 }
 
@@ -336,15 +364,99 @@ TEST(ConvolveNormalized_JustBorder, vertical_F32) {
 
         compare.setImageSize(w,h);
         compare.setKernel(3,1);
-        compare.vertical_border();
+        compare.vertical_norm_border();
         compare.setKernel(5,2);
-        compare.vertical_border();
+        compare.vertical_norm_border();
         compare.setKernel(7,3);
-        compare.vertical_border();
+        compare.vertical_norm_border();
         compare.setKernel(7,1);
-        compare.vertical_border();
+        compare.vertical_norm_border();
         compare.setKernel(7,4);
-        compare.vertical_border();
+        compare.vertical_norm_border();
+    }
+}
+
+TEST(ConvolveImage_Inner, horizontal_div_U8) {
+    CompareToNaive<U8> compare;
+
+    for( uint32_t i = 0; i < 2; i++ ) {
+        uint32_t w = 15+i;
+        uint32_t h = 20+i;
+
+        compare.setImageSize(w,h);
+        compare.setKernel(3,1);
+        compare.horizontal_div_inner();
+        compare.setKernel(5,2);
+        compare.horizontal_div_inner();
+        compare.setKernel(7,3);
+        compare.horizontal_div_inner();
+        compare.setKernel(7,1);
+        compare.horizontal_div_inner();
+        compare.setKernel(7,4);
+        compare.horizontal_div_inner();
+    }
+}
+
+TEST(ConvolveImage_Inner, horizontal_div_F32) {
+    CompareToNaive<F32> compare;
+
+    for( uint32_t i = 0; i < 2; i++ ) {
+        uint32_t w = 15+i;
+        uint32_t h = 20+i;
+
+        compare.setImageSize(w,h);
+        compare.setKernel(3,1);
+        compare.horizontal_div_inner();
+        compare.setKernel(5,2);
+        compare.horizontal_div_inner();
+        compare.setKernel(7,3);
+        compare.horizontal_div_inner();
+        compare.setKernel(7,1);
+        compare.horizontal_div_inner();
+        compare.setKernel(7,4);
+        compare.horizontal_div_inner();
+    }
+}
+
+TEST(ConvolveImage_Inner, vertical_div_U8) {
+    CompareToNaive<U8> compare;
+
+    for( uint32_t i = 0; i < 2; i++ ) {
+        uint32_t w = 15+i;
+        uint32_t h = 20+i;
+
+        compare.setImageSize(w,h);
+        compare.setKernel(3,1);
+        compare.vertical_div_inner();
+        compare.setKernel(5,2);
+        compare.vertical_div_inner();
+        compare.setKernel(7,3);
+        compare.vertical_div_inner();
+        compare.setKernel(7,1);
+        compare.vertical_div_inner();
+        compare.setKernel(7,4);
+        compare.vertical_div_inner();
+    }
+}
+
+TEST(ConvolveImage_Inner, vertical_div_F32) {
+    CompareToNaive<F32> compare;
+
+    for( uint32_t i = 0; i < 2; i++ ) {
+        uint32_t w = 15+i;
+        uint32_t h = 20+i;
+
+        compare.setImageSize(w,h);
+        compare.setKernel(3,1);
+        compare.vertical_div_inner();
+        compare.setKernel(5,2);
+        compare.vertical_div_inner();
+        compare.setKernel(7,3);
+        compare.vertical_div_inner();
+        compare.setKernel(7,1);
+        compare.vertical_div_inner();
+        compare.setKernel(7,4);
+        compare.vertical_div_inner();
     }
 }
 
@@ -430,4 +542,20 @@ TEST(ConvolveImage_Inner, vertical_F32) {
         compare.setKernel(7,4);
         compare.vertical_inner();
     }
+}
+
+TEST(ConvolveNormalized, horizontal_U8) {
+
+}
+
+TEST(ConvolveNormalized, horizontal_F32) {
+
+}
+
+TEST(ConvolveNormalized, vertical_U8) {
+
+}
+
+TEST(ConvolveNormalized, vertical_F32) {
+
 }

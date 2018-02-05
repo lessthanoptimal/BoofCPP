@@ -9,6 +9,7 @@
 
 #include "base_types.h"
 #include "image_types.h"
+#include "sanity_checks.h"
 
 namespace boofcv {
 
@@ -77,7 +78,7 @@ namespace boofcv {
             return 1;
         }
 
-        sum_type sum() {
+        sum_type sum() const {
             sum_type total = 0;
             for( uint32_t i = 0; i < width; i++ ) {
                 total += data[i];
@@ -625,10 +626,10 @@ namespace boofcv {
         {
             typedef typename TypeInfo<E>::signed_type signed_type;
 
-            int offsetL = kernel.offset;
-            int offsetR = kernel.width-offsetL-1;
+            uint32_t offsetL = kernel.offset;
+            uint32_t offsetR = kernel.width-offsetL-1;
 
-            int yEnd = input.height - offsetR;
+            uint32_t yEnd = input.height - offsetR;
 
             for (uint32_t y = 0; y < offsetL; y++) {
                 uint32_t indexDst = output.offset + y * output.stride;
@@ -731,6 +732,54 @@ namespace boofcv {
             }
         }
 
+        template<typename E, typename R>
+        static void horizontal( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
+                                const Gray<E>& input, const Gray<R>& output ,
+                                typename std::enable_if<std::is_integral<E>::value >::type* = 0 )
+        {
+            typedef typename TypeInfo<E>::signed_type signed_type;
+            typedef typename TypeInfo<E>::sum_type sum_type;
+
+            for( uint32_t i = 0; i < input.height; i++ ) {
+                uint32_t indexDst = output.offset + i*output.stride + kernel.offset;
+                uint32_t j = input.offset + i*input.stride;
+                uint32_t jEnd = j+input.width-(kernel.width-1);
+
+                for( ; j < jEnd; j++ ) {
+                    signed_type total = 0;
+                    uint32_t indexSrc = j;
+                    for( uint32_t k = 0; k < kernel.width; k++ ) {
+                        total += input.data[indexSrc++] * kernel.data[k];
+                    }
+                    output.data[indexDst++] = (R)total;
+                }
+            }
+        }
+
+        template<typename E, typename R>
+        static void horizontal( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
+                                const Gray<E>& input, const Gray<R>& output ,
+                                typename std::enable_if<std::is_floating_point<E>::value >::type* = 0 )
+        {
+            typedef typename TypeInfo<E>::signed_type signed_type;
+            typedef typename TypeInfo<E>::sum_type sum_type;
+
+            for( uint32_t i = 0; i < input.height; i++ ) {
+                uint32_t indexDst = output.offset + i*output.stride + kernel.offset;
+                uint32_t j = input.offset + i*input.stride;
+                uint32_t jEnd = j+input.width-(kernel.width-1);
+
+                for( ; j < jEnd; j++ ) {
+                    signed_type total = 0;
+                    uint32_t indexSrc = j;
+                    for( uint32_t k = 0; k < kernel.width; k++ ) {
+                        total += input.data[indexSrc++] * kernel.data[k];
+                    }
+                    output.data[indexDst++] = (R)total;
+                }
+            }
+        }
+
         template<class E>
         static void vertical( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
                                 const Gray<E>& input, const Gray<E>& output ,
@@ -787,11 +836,131 @@ namespace boofcv {
                 }
             }
         }
+
+        template<typename E, typename R>
+        static void vertical( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
+                              const Gray<E>& input, const Gray<R>& output ,
+                              typename std::enable_if<std::is_integral<E>::value >::type* = 0 )
+        {
+            typedef typename TypeInfo<E>::signed_type signed_type;
+            typedef typename TypeInfo<E>::sum_type sum_type;
+
+            uint32_t yEnd = input.height-(kernel.width-kernel.offset-1);
+
+            for( uint32_t y = kernel.offset; y < yEnd; y++ ) {
+                uint32_t indexDst = output.offset+y*output.stride;
+                uint32_t i = input.offset + (y-kernel.offset)*input.stride;
+                uint32_t iEnd = i+input.width;
+
+                for( ; i < iEnd; i++ ) {
+                    signed_type total = 0;
+                    uint32_t indexSrc = i;
+                    for( uint32_t k = 0; k < kernel.width; k++ ) {
+                        total += input.data[indexSrc]* kernel.data[k];
+                        indexSrc += input.stride;
+                    }
+                    output.data[indexDst++] = (R)total;
+                }
+            }
+        }
+
+        template<typename E, typename R>
+        static void vertical( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
+                              const Gray<E>& input, const Gray<R>& output ,
+                              typename std::enable_if<std::is_floating_point<E>::value >::type* = 0 )
+        {
+            typedef typename TypeInfo<E>::signed_type signed_type;
+            typedef typename TypeInfo<E>::sum_type sum_type;
+
+            uint32_t yEnd = input.height-(kernel.width-kernel.offset-1);
+
+            for( uint32_t y = kernel.offset; y < yEnd; y++ ) {
+                uint32_t indexDst = output.offset+y*output.stride;
+                uint32_t i = input.offset + (y-kernel.offset)*input.stride;
+                uint32_t iEnd = i+input.width;
+
+                for( ; i < iEnd; i++ ) {
+                    signed_type total = 0;
+                    uint32_t indexSrc = i;
+                    for( uint32_t k = 0; k < kernel.width; k++ ) {
+                        total += input.data[indexSrc]* kernel.data[k];
+                        indexSrc += input.stride;
+                    }
+                    output.data[indexDst++] = (R)total;
+                }
+            }
+        }
     };
 
     class ConvolveNormalized {
     public:
+        template<class E>
+        static void horizontal( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel, const Gray<E>& input, Gray<E>& output ,
+                                typename std::enable_if<std::is_integral<E>::value >::type* = 0)
+        {
+            boofcv::checkSameShape(input, output);
 
+            if( kernel.width >= input.width ) {
+                ConvolveNormalizedNaive::horizontal(kernel, input, output);
+            } else {
+                ConvolveImage_Inner::horizontal(kernel, input, output, kernel.sum());
+                ConvolveNormalized_JustBorder::horizontal(kernel, input, output);
+            }
+        }
+
+        template<class E>
+        static void horizontal( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel, const Gray<E>& input, Gray<E>& output ,
+                                typename std::enable_if<std::is_floating_point<E>::value >::type* = 0)
+        {
+            typedef typename TypeInfo<E>::signed_type signed_type;
+            boofcv::checkSameShape(input, output);
+
+            if( kernel.width >= input.width ) {
+                ConvolveNormalizedNaive::horizontal(kernel, input, output);
+            } else {
+                signed_type sum = kernel.sum();
+                if( sum == (signed_type)1) {
+                    ConvolveImage_Inner::horizontal(kernel, input, output);
+                } else {
+                    ConvolveImage_Inner::horizontal(kernel, input, output, sum);
+                }
+                ConvolveNormalized_JustBorder::horizontal(kernel, input, output);
+            }
+        }
+
+        template<class E>
+        static void vertical( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel, const Gray<E>& input, Gray<E>& output ,
+                                typename std::enable_if<std::is_integral<E>::value >::type* = 0)
+        {
+            boofcv::checkSameShape(input, output);
+
+            if( kernel.width >= input.height ) {
+                ConvolveNormalizedNaive::vertical(kernel, input, output);
+            } else {
+                ConvolveImage_Inner::vertical(kernel, input, output, kernel.sum());
+                ConvolveNormalized_JustBorder::vertical(kernel, input, output);
+            }
+        }
+
+        template<class E>
+        static void vertical( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel, const Gray<E>& input, Gray<E>& output ,
+                                typename std::enable_if<std::is_floating_point<E>::value >::type* = 0)
+        {
+            typedef typename TypeInfo<E>::signed_type signed_type;
+            boofcv::checkSameShape(input, output);
+
+            if( kernel.width >= input.height ) {
+                ConvolveNormalizedNaive::vertical(kernel, input, output);
+            } else {
+                signed_type sum = kernel.sum();
+                if( sum == (signed_type)1) {
+                    ConvolveImage_Inner::vertical(kernel, input, output);
+                } else {
+                    ConvolveImage_Inner::vertical(kernel, input, output, sum);
+                }
+                ConvolveNormalized_JustBorder::vertical(kernel, input, output);
+            }
+        }
     };
 
     class ConvolveImageMean {
