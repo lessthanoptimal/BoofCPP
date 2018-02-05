@@ -42,6 +42,7 @@ namespace boofcv {
     template< class E>
     class Kernel1D : public KernelBase {
     public:
+        typedef typename TypeInfo<E>::sum_type sum_type;
         GrowArray<E> data;
 
         Kernel1D( uint32_t width , uint32_t offset) : KernelBase(width,offset) {
@@ -75,6 +76,14 @@ namespace boofcv {
         uint32_t dimension() const override  {
             return 1;
         }
+
+        sum_type sum() {
+            sum_type total = 0;
+            for( uint32_t i = 0; i < width; i++ ) {
+                total += data[i];
+            }
+            return total;
+        }
     };
 
     template< class E>
@@ -91,6 +100,39 @@ namespace boofcv {
 
         uint32_t dimension() const override  {
             return 2;
+        }
+    };
+
+    template< class E>
+    class ImageBorder {
+    public:
+        const Gray<E>* image;
+
+        void setImage( const Gray<E>& image ) {
+            this->image = &image;
+        }
+
+        E get( int32_t x , int32_t y) const {
+            if( image->isInBounds(x,y)) {
+                return image->at(x,y);
+            }
+            return outside_get(x,y);
+        }
+
+        virtual E outside_get( int32_t x , int32_t y ) const = 0;
+    };
+
+    template< class E>
+    class ImageBorderValue : public ImageBorder<E> {
+    public:
+        E value;
+
+        ImageBorderValue( E value ) {
+            this->value = value;
+        }
+
+        E outside_get( int32_t x , int32_t y ) const override {
+            return this->value;
         }
     };
 
@@ -126,6 +168,172 @@ namespace boofcv {
         }
     };
 
+    class ConvolveNaive {
+    public:
+        template<typename E, typename R>
+        static void horizontal( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel, const ImageBorder<E>& input,
+                                Gray<R>& output ,
+                                typename std::enable_if<std::is_integral<E>::value >::type* = 0) {
+
+            typedef typename TypeInfo<E>::signed_type signed_type;
+
+            for (int32_t y = 0; y < input.image->height; y++) {
+                for (int32_t x = 0; x < input.image->width; x++) {
+
+                    signed_type sum = 0;
+                    for (int32_t k = 0; k < kernel.width; k++) {
+                        int32_t xx = x - kernel.offset + k;
+                        sum += kernel.at(k) * input.get(xx, y);
+                    }
+                    output.at(x, y) = (R)sum;
+
+                }
+            }
+        }
+
+        template<typename E>
+        static void horizontal( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel, const ImageBorder<E>& input,
+                                Gray<E>& output , typename TypeInfo<E>::signed_type divisor,
+                                typename std::enable_if<std::is_integral<E>::value >::type* = 0) {
+
+            typedef typename TypeInfo<E>::signed_type signed_type;
+
+            for (int32_t y = 0; y < input.image->height; y++) {
+                for (int32_t x = 0; x < input.image->width; x++) {
+
+                    signed_type sum = 0;
+                    for (int32_t k = 0; k < kernel.width; k++) {
+                        int32_t xx = x - kernel.offset + k;
+                        sum += kernel.at(k) * input.get(xx, y);
+                    }
+                    output.at(x, y) = (E)((sum + divisor/2)/divisor);
+                }
+            }
+        }
+
+        template<typename E, typename R>
+        static void horizontal( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel, const ImageBorder<E>& input,
+                                Gray<R>& output ,
+                                typename std::enable_if<std::is_floating_point<E>::value >::type* = 0) {
+
+            typedef typename TypeInfo<E>::signed_type signed_type;
+
+            for (int32_t y = 0; y < input.image->height; y++) {
+                for (int32_t x = 0; x < input.image->width; x++) {
+
+                    signed_type sum = 0;
+                    for (int32_t k = 0; k < kernel.width; k++) {
+                        int32_t xx = x - kernel.offset + k;
+                        sum += kernel.at(k) * input.get(xx, y);
+                    }
+                    output.at(x, y) = (R)sum;
+
+                }
+            }
+        }
+
+        template<typename E>
+        static void horizontal( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel, const ImageBorder<E>& input,
+                                Gray<E>& output , typename TypeInfo<E>::signed_type divisor,
+                                typename std::enable_if<std::is_floating_point<E>::value >::type* = 0) {
+
+            typedef typename TypeInfo<E>::signed_type signed_type;
+
+            for (int32_t y = 0; y < input.image->height; y++) {
+                for (int32_t x = 0; x < input.image->width; x++) {
+
+                    signed_type sum = 0;
+                    for (int32_t k = 0; k < kernel.width; k++) {
+                        int32_t xx = x - kernel.offset + k;
+                        sum += kernel.at(k) * input.get(xx, y);
+                    }
+                    output.at(x, y) = (E)(sum/divisor);
+                }
+            }
+        }
+
+        template<typename E, typename R>
+        static void vertical( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel, const ImageBorder<E>& input,
+                                Gray<R>& output ,
+                                typename std::enable_if<std::is_integral<E>::value >::type* = 0) {
+
+            typedef typename TypeInfo<E>::signed_type signed_type;
+
+            for (int32_t y = 0; y < input.image->height; y++) {
+                for (int32_t x = 0; x < input.image->width; x++) {
+
+                    signed_type sum = 0;
+                    for (int32_t k = 0; k < kernel.width; k++) {
+                        int32_t yy = y - kernel.offset + k;
+                        sum += kernel.at(k) * input.get(x, yy);
+                    }
+                    output.at(x, y) = (R)sum;
+
+                }
+            }
+        }
+
+        template<typename E>
+        static void vertical( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel, const ImageBorder<E>& input,
+                                Gray<E>& output , typename TypeInfo<E>::signed_type divisor,
+                                typename std::enable_if<std::is_integral<E>::value >::type* = 0) {
+
+            typedef typename TypeInfo<E>::signed_type signed_type;
+
+            for (int32_t y = 0; y < input.image->height; y++) {
+                for (int32_t x = 0; x < input.image->width; x++) {
+
+                    signed_type sum = 0;
+                    for (int32_t k = 0; k < kernel.width; k++) {
+                        int32_t yy = y - kernel.offset + k;
+                        sum += kernel.at(k) * input.get(x, yy);
+                    }
+                    output.at(x, y) = (E)((sum + divisor/2)/divisor);
+                }
+            }
+        }
+
+        template<typename E, typename R>
+        static void vertical( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel, const ImageBorder<E>& input,
+                                Gray<R>& output ,
+                                typename std::enable_if<std::is_floating_point<E>::value >::type* = 0) {
+
+            typedef typename TypeInfo<E>::signed_type signed_type;
+
+            for (int32_t y = 0; y < input.image->height; y++) {
+                for (int32_t x = 0; x < input.image->width; x++) {
+
+                    signed_type sum = 0;
+                    for (int32_t k = 0; k < kernel.width; k++) {
+                        int32_t yy = y - kernel.offset + k;
+                        sum += kernel.at(k) * input.get(x, yy);
+                    }
+                    output.at(x, y) = (R)sum;
+
+                }
+            }
+        }
+
+        template<typename E>
+        static void vertical( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel, const ImageBorder<E>& input,
+                                Gray<E>& output , typename TypeInfo<E>::signed_type divisor,
+                                typename std::enable_if<std::is_floating_point<E>::value >::type* = 0) {
+
+            typedef typename TypeInfo<E>::signed_type signed_type;
+
+            for (int32_t y = 0; y < input.image->height; y++) {
+                for (int32_t x = 0; x < input.image->width; x++) {
+
+                    signed_type sum = 0;
+                    for (int32_t k = 0; k < kernel.width; k++) {
+                        int32_t yy = y - kernel.offset + k;
+                        sum += kernel.at(k) * input.get(x, yy);
+                    }
+                    output.at(x, y) = (E)(sum/divisor);
+                }
+            }
+        }
+    };
 
     class ConvolveNormalizedNaive {
     public:
@@ -361,10 +569,10 @@ namespace boofcv {
         {
             typedef typename TypeInfo<E>::signed_type signed_type;
 
-            int offsetL = kernel.offset;
-            int offsetR = kernel.width-offsetL-1;
+            uint32_t offsetL = kernel.offset;
+            uint32_t offsetR = kernel.width-offsetL-1;
 
-            int yEnd = input.height - offsetR;
+            uint32_t yEnd = input.height - offsetR;
 
             for (uint32_t y = 0; y < offsetL; y++) {
                 uint32_t indexDst = output.offset + y * output.stride;
@@ -463,6 +671,119 @@ namespace boofcv {
                         total += input.data[indexSrc] * kernel.data[k];
                     }
                     output.data[indexDst++] = (E)(total/weight);
+                }
+            }
+        }
+    };
+
+
+    class ConvolveImage_Inner {
+    public:
+
+        template<class E>
+        static void horizontal( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
+                                const Gray<E>& input, const Gray<E>& output ,
+                                typename TypeInfo<E>::signed_type divisor ,
+                                typename std::enable_if<std::is_integral<E>::value >::type* = 0 )
+        {
+            typedef typename TypeInfo<E>::signed_type signed_type;
+            typedef typename TypeInfo<E>::sum_type sum_type;
+            signed_type halfDivisor = divisor/2;
+
+            for( uint32_t i = 0; i < input.height; i++ ) {
+                uint32_t indexDst = output.offset + i*output.stride + kernel.offset;
+                uint32_t j = input.offset + i*input.stride;
+                uint32_t jEnd = j+input.width-(kernel.width-1);
+
+                for( ; j < jEnd; j++ ) {
+                    signed_type total = 0;
+                    uint32_t indexSrc = j;
+                    for( uint32_t k = 0; k < kernel.width; k++ ) {
+                        total += input.data[indexSrc++] * kernel.data[k];
+                    }
+                    output.data[indexDst++] = (E)((total+halfDivisor)/divisor);
+                }
+            }
+        }
+
+        template<class E>
+        static void horizontal( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
+                                const Gray<E>& input, const Gray<E>& output ,
+                                typename TypeInfo<E>::signed_type divisor ,
+                                typename std::enable_if<std::is_floating_point<E>::value >::type* = 0 )
+        {
+            typedef typename TypeInfo<E>::signed_type signed_type;
+            typedef typename TypeInfo<E>::sum_type sum_type;
+
+            for( uint32_t i = 0; i < input.height; i++ ) {
+                uint32_t indexDst = output.offset + i*output.stride + kernel.offset;
+                uint32_t j = input.offset + i*input.stride;
+                uint32_t jEnd = j+input.width-(kernel.width-1);
+
+                for( ; j < jEnd; j++ ) {
+                    signed_type total = 0;
+                    uint32_t indexSrc = j;
+                    for( uint32_t k = 0; k < kernel.width; k++ ) {
+                        total += input.data[indexSrc++] * kernel.data[k];
+                    }
+                    output.data[indexDst++] = (E)(total/divisor);
+                }
+            }
+        }
+
+        template<class E>
+        static void vertical( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
+                                const Gray<E>& input, const Gray<E>& output ,
+                                typename TypeInfo<E>::signed_type divisor ,
+                                typename std::enable_if<std::is_integral<E>::value >::type* = 0 )
+        {
+            typedef typename TypeInfo<E>::signed_type signed_type;
+            typedef typename TypeInfo<E>::sum_type sum_type;
+            signed_type halfDivisor = divisor/2;
+
+            uint32_t yEnd = input.height-(kernel.width-kernel.offset-1);
+
+            for( uint32_t y = kernel.offset; y < yEnd; y++ ) {
+                uint32_t indexDst = output.offset+y*output.stride;
+                uint32_t i = input.offset + (y-kernel.offset)*input.stride;
+                uint32_t iEnd = i+input.width;
+
+                for( ; i < iEnd; i++ ) {
+                    signed_type total = 0;
+                    uint32_t indexSrc = i;
+                    for( uint32_t k = 0; k < kernel.width; k++ ) {
+                        total += input.data[indexSrc]* kernel.data[k];
+                        indexSrc += input.stride;
+                    }
+                    output.data[indexDst++] = (E)((total+halfDivisor)/divisor);
+                }
+            }
+        }
+
+        template<class E>
+        static void vertical( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
+                                const Gray<E>& input, const Gray<E>& output ,
+                                typename TypeInfo<E>::signed_type divisor ,
+                                typename std::enable_if<std::is_floating_point<E>::value >::type* = 0 )
+        {
+            typedef typename TypeInfo<E>::signed_type signed_type;
+            typedef typename TypeInfo<E>::sum_type sum_type;
+
+            uint32_t yEnd = input.height-(kernel.width-kernel.offset-1);
+
+            for( uint32_t y = kernel.offset; y < yEnd; y++ ) {
+                uint32_t indexDst = output.offset+y*output.stride;
+                uint32_t i = input.offset + (y-kernel.offset)*input.stride;
+                uint32_t iEnd = i+input.width;
+
+                for( ; i < iEnd; i++ ) {
+                    signed_type total = 0;
+                    uint32_t indexSrc = i;
+                    for( uint32_t k = 0; k < kernel.width; k++ ) {
+                        total += input.data[indexSrc]* kernel.data[k];
+                        indexSrc += input.stride;
+                    }
+                    output.data[indexDst++] = (E)(total/divisor);
                 }
             }
         }
