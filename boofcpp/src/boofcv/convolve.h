@@ -962,19 +962,6 @@ namespace boofcv {
             }
         }
     };
-
-    class ConvolveImageMean {
-    public:
-        template< class E>
-        static void horizontal(const Gray<E>& input, Gray<E>& output, uint32_t radius) {
-
-        }
-
-        template< class E>
-        static void vertical(const Gray<E>& input, Gray<E>& output, uint32_t radius) {
-
-        }
-    };
 }
 
 #endif

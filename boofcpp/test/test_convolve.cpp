@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include "convolve.h"
 #include "image_misc_ops.h"
+#include "testing_utils.h"
 
 using namespace std;
 using namespace boofcv;
@@ -272,52 +273,22 @@ public:
         ConvolveNormalizedNaive::horizontal(kernel,input,expected);
         ConvolveNormalized::horizontal(kernel,input,found);
 
-        borderY0=borderY1=0;
-        borderX0 = kernel.offset;
-        borderX1 = kernel.width-1-kernel.offset;
-
-        checkResults();
+        check_equals(expected,found);
     }
 
     void normalized_vertical() {
         ConvolveNormalizedNaive::vertical(kernel,input,expected);
         ConvolveNormalized::vertical(kernel,input,found);
 
-        borderX0=borderX1=0;
-        borderY0 = kernel.offset;
-        borderY1 = kernel.width-1-kernel.offset;
-
-        checkResults();
+        check_equals(expected,found);
     }
 
     void checkResults_border() {
-        for( int y = 0; y < input.height; y++ ) {
-            for( int x = 0; x < input.width; x++ ) {
-                if( x < borderX0 || y < borderY0 || x >= input.width - borderX1 || y >= input.height - borderY1 )
-                {
-                    ASSERT_EQ( expected.at(x,y) , found.at(x,y) );
-                }
-            }
-        }
+        check_equals_border(expected,found,borderX0,borderX1,borderY0,borderY1);
     }
 
     void checkResults_inner() {
-        for( int y = 0; y < input.height; y++ ) {
-            for( int x = 0; x < input.width; x++ ) {
-                if( x >= borderX0 && y >= borderY0 && x < input.width - borderX1 && y < input.height - borderY1 )
-                {
-                    ASSERT_EQ( expected.at(x,y) , found.at(x,y) );
-                }
-            }
-        }
-    }
-
-    void checkResults() {
-        for( int y = 0; y < input.height; y++ ) {
-            for( int x = 0; x < input.width; x++ ) {
-                ASSERT_EQ( expected.at(x,y) , found.at(x,y) );
-            }
-        }
+        check_equals_inner(expected,found,borderX0,borderX1,borderY0,borderY1);
     }
 
 };
