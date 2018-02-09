@@ -182,6 +182,12 @@ namespace boofcv {
                 *ptr++ = x;
             }
         }
+
+        void set( const T* src , uint32_t length ) {
+            grow_array(length);
+            this->size = length;
+            memmove(this->data,src,sizeof(T)*length);
+        }
     };
 
 }

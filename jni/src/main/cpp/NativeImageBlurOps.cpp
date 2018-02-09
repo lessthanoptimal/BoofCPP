@@ -5,7 +5,7 @@
 using namespace boofcv;
 
 extern "C" {
-JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeImageBlurMean_nativeprocess(
+JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeImageBlurOps_nativeMean(
     JNIEnv *env, jobject obj, jobject jinput, jobject joutput, jint radius, jobject jstorage) {
 
     jclass objClass = env->GetObjectClass(obj);

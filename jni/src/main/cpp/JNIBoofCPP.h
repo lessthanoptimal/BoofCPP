@@ -5,6 +5,7 @@
 #include <config_types.h>
 #include "image_types.h"
 #include "base_types.h"
+#include "convolve.h"
 
 struct JImageInfo {
     jobject jdata;
@@ -52,5 +53,9 @@ ImageAndInfo<boofcv::Gray<boofcv::U8>,JImageInfoU8> wrapGrayU8( JNIEnv *env, job
 ImageAndInfo<boofcv::Gray<boofcv::F32>,JImageInfoF32> wrapGrayF32( JNIEnv *env, jobject& jimage );
 
 boofcv::ConfigLength extractConfigLength( JNIEnv *env, jobject& jconfig );
+
+// Returns a convolution corner from a java object. The kernel needs to be deleted when finished
+boofcv::Kernel1D<boofcv::S32>* extractKernel1D_S32( JNIEnv *env, jobject& jkernel );
+boofcv::Kernel1D<boofcv::F32>* extractKernel1D_F32( JNIEnv *env, jobject& jkernel );
 
 #endif

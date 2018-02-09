@@ -1,6 +1,5 @@
 package org.boofcpp.convolve;
 
-import boofcv.alg.filter.blur.BlurImageOps;
 import boofcv.alg.filter.blur.GBlurImageOps;
 import boofcv.alg.misc.GImageMiscOps;
 import boofcv.core.image.GeneralizedImageOps;
@@ -14,7 +13,7 @@ import org.junit.Test;
 
 import java.util.Random;
 
-public class TestNativeImageBlurMean {
+public class TestNativeImageBlurOps {
     Random rand = new Random(23423);
 
     Class types[] = new Class[]{GrayU8.class, GrayF32.class};
@@ -26,8 +25,8 @@ public class TestNativeImageBlurMean {
     }
 
     @Test
-    public void compareToBoofCV() {
-        NativeImageBlurMean nativeBlur = new NativeImageBlurMean();
+    public void compareMeanToBoof() {
+        NativeImageBlurOps nativeBlur = new NativeImageBlurOps();
 
         for( Class type : types ) {
             ImageGray input = GeneralizedImageOps.createSingleBand(type,width,height);
@@ -38,7 +37,7 @@ public class TestNativeImageBlurMean {
             GImageMiscOps.fillUniform(input,rand,0,255);
 
             for( int radius : new int[]{1,2,5} ) {
-                nativeBlur.process(input,found,radius,storage);
+                nativeBlur.processMean(input,found,radius,storage);
                 GBlurImageOps.mean(input,expected,radius,storage);
 
                 BoofTesting.assertEquals(expected, found, GrlConstants.TEST_F32);

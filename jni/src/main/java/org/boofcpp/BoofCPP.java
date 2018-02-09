@@ -1,17 +1,14 @@
 package org.boofcpp;
 
-import boofcv.abst.filter.binary.InputToBinary;
 import boofcv.alg.filter.blur.BOverrideBlurImageOps;
+import boofcv.alg.filter.convolve.BOverrideConvolveNormalized;
 import boofcv.factory.filter.binary.BOverrideFactoryThresholdBinary;
-import boofcv.struct.image.GrayF32;
-import boofcv.struct.image.GrayU8;
-import boofcv.struct.image.ImageGray;
 import cz.adamh.utils.NativeUtils;
-import org.boofcpp.convolve.NativeImageBlurMean;
+import org.boofcpp.convolve.NativeImageBlurOps;
+import org.boofcpp.convolve.NativeImageConvolveNormalized;
 import org.boofcpp.threshold.*;
 
 import java.io.File;
-import java.io.IOException;
 
 public class BoofCPP {
 
@@ -44,7 +41,10 @@ public class BoofCPP {
         BOverrideFactoryThresholdBinary.blockOtsu = NativeBlockOtsu::new;
         BOverrideFactoryThresholdBinary.localMean = NativeLocalMean::new;
 
-        BOverrideBlurImageOps.mean = new NativeImageBlurMean();
+        BOverrideBlurImageOps.mean = new NativeImageBlurOps();
+
+        BOverrideConvolveNormalized.horizontal = new NativeImageConvolveNormalized();
+        BOverrideConvolveNormalized.vertical = new NativeImageConvolveNormalized();
 
     }
 }
