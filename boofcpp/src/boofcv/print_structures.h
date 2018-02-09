@@ -3,15 +3,16 @@
 
 #include <stdio.h>
 #include "sanity_checks.h"
+#include "testing_utils.h"
 
 namespace boofcv {
     template<typename E>
-    void print_difference( const Gray<E>& a , const Gray<E>& b ) {
+    void print_difference( const Gray<E>& a , const Gray<E>& b , E tol = test_tolerance<E>() ) {
         checkSameShape(a,b);
 
         for( uint32_t y = 0; y < a.height; y++ ) {
             for( uint32_t x = 0; x < a.width; x++ ) {
-                if( a.at(x,y) != b.at(x,y)) {
+                if( std::abs(a.at(x,y) - b.at(x,y)) > tol ) {
                     printf("X");
                 } else {
                     printf("-");

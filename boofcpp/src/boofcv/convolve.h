@@ -126,6 +126,13 @@ namespace boofcv {
         }
 
         template<class E>
+        static Kernel1D<E> mean1D( uint32_t width ) {
+            Kernel1D<E> mean = table1D<E>(width);
+            normalize(mean);
+            return mean;
+        }
+
+        template<class E>
         static void normalize( Kernel1D<E>& kernel , typename std::enable_if<std::is_integral<E>::value>::type* = 0 ) {
             // do nothing. Work around for template
         }
@@ -403,7 +410,7 @@ namespace boofcv {
                         total += input.unsafe_at(j,y)*v;
                         weight += v;
                     }
-                    output.unsafe_at(x,y) = (total+weight/2)/weight;
+                    output.unsafe_at(x,y) = static_cast<E>((total+weight/2)/weight);
                 }
             }
         }
@@ -435,7 +442,7 @@ namespace boofcv {
                         total += input.unsafe_at(j,y)*v;
                         weight += v;
                     }
-                    output.unsafe_at(x,y) = total/weight;
+                    output.unsafe_at(x,y) = static_cast<E>(total/weight);
                 }
             }
         }
@@ -467,7 +474,7 @@ namespace boofcv {
                         total += input.unsafe_at(x,i)*v;
                         weight += v;
                     }
-                    output.unsafe_at(x,y) = (total+weight/2)/weight;
+                    output.unsafe_at(x,y) = static_cast<E>((total+weight/2)/weight);
                 }
             }
         }
@@ -499,7 +506,7 @@ namespace boofcv {
                         total += input.unsafe_at(x,i)*v;
                         weight += v;
                     }
-                    output.unsafe_at(x,y) = total/weight;
+                    output.unsafe_at(x,y) = static_cast<E>(total/weight);
                 }
             }
         }

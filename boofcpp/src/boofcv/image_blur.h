@@ -2,8 +2,13 @@
 #define BOOFCPP_IMAGE_BLUR_H
 
 #include "convolve.h"
+#include "sanity_checks.h"
 
 namespace boofcv {
+    /**
+     * Functions for applying a mean convolution kernel across the image. Speeds up the operation by performing
+     * a horizontal and vertical 1D convolution.
+     */
     class ConvolveImageMean {
     public:
         template< class E>
@@ -148,6 +153,61 @@ namespace boofcv {
                     output.data[indexOut] = static_cast<E>(total/divisor);
                 }
             }
+        }
+
+        template< class E>
+        static void horizontal(const Gray<E>& input, Gray<E>& output, uint32_t radius )
+        {
+            checkSameShape(input,output);
+
+            typedef typename TypeInfo<E>::signed_type signed_type;
+
+            Kernel1D<signed_type> kernel = FactoryKernel::mean1D<signed_type>(radius*2+1);
+            if( kernel.width > input.width ) {
+                ConvolveNormalized::horizontal(kernel,input,output);
+            } else {
+                ConvolveNormalized_JustBorder::horizontal(kernel, input ,output );
+                inner_horizontal(input, output, radius);
+            }
+        }
+
+        template< class E>
+        static void vertical(const Gray<E>& input, Gray<E>& output, uint32_t radius )
+        {
+            checkSameShape(input,output);
+
+            typedef typename TypeInfo<E>::signed_type signed_type;
+
+            Kernel1D<signed_type> kernel = FactoryKernel::mean1D<signed_type>(radius*2+1);
+            if( kernel.width > input.width ) {
+                ConvolveNormalized::vertical(kernel,input,output);
+            } else {
+                ConvolveNormalized_JustBorder::vertical(kernel, input ,output );
+                inner_vertical(input, output, radius);
+            }
+        }
+
+
+        /**
+         * Applies a mean box filter.
+         *
+         * @param input Input image.  Not modified.
+         * @param output Storage for output image.
+         * @param radius Radius of the box blur function.
+         * @param storage Storage for intermediate results.
+         * @return Output blurred image.
+         */
+        template< class E>
+        static void mean(const Gray<E>& input, Gray<E>& output, uint32_t radius, Gray<E>& storage ) {
+
+            if( radius <= 0 )
+                throw invalid_argument("Radius must be > 0");
+
+            output.reshape(input.width,input.height);
+            storage.reshape(input.width,input.height);
+
+            ConvolveImageMean::horizontal(input, storage, radius);
+            ConvolveImageMean::vertical(storage, output, radius);
         }
     };
 }
