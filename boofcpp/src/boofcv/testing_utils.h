@@ -8,6 +8,20 @@
 namespace boofcv {
 
     /**
+     * Selects a reasonable tolerance for equality
+     * @tparam E
+     * @return tolerance for equality
+     */
+    template<typename E>
+    E test_tolerance() {
+        if( std::numeric_limits<E>::is_exact ) {
+            return (E)0;
+        } else {
+            return std::sqrt(std::numeric_limits<E>::epsilon());
+        }
+    }
+
+    /**
      * Returns a subimage which is equivalent to the input image. There will be a memory leak unless you
      * set "subimage" to false in the returned subimage
      */
@@ -24,7 +38,7 @@ namespace boofcv {
     }
 
     template<class E>
-    void check_equals( const Gray<E>& imgA , const Gray<E>& imgB , E tol = 0 ) {
+    void check_equals( const Gray<E>& imgA , const Gray<E>& imgB , E tol = test_tolerance<E>() ) {
         ASSERT_EQ(imgA.width , imgB.width);
         ASSERT_EQ(imgA.height , imgB.height);
 
@@ -38,7 +52,8 @@ namespace boofcv {
 
     template<class E>
     void check_equals_border( const Gray<E>& expected , const Gray<E>& found ,
-                             uint32_t borderX0 , uint32_t borderX1 , uint32_t borderY0, uint32_t borderY1 ) {
+                              uint32_t borderX0 , uint32_t borderX1 , uint32_t borderY0, uint32_t borderY1 ,
+                              E tol = test_tolerance<E>() ) {
         ASSERT_EQ(expected.width , found.width);
         ASSERT_EQ(expected.height , found.height);
 
@@ -46,7 +61,7 @@ namespace boofcv {
             for( int x = 0; x < expected.width; x++ ) {
                 if( x < borderX0 || y < borderY0 || x >= expected.width - borderX1 || y >= expected.height - borderY1 )
                 {
-                    ASSERT_EQ( expected.at(x,y) , found.at(x,y) );
+                    ASSERT_TRUE( std::abs(expected.at(x,y)-found.at(x,y)) <= tol );
                 }
             }
         }
@@ -54,7 +69,9 @@ namespace boofcv {
 
     template<class E>
     void check_equals_inner( const Gray<E>& expected , const Gray<E>& found ,
-                             uint32_t borderX0 , uint32_t borderX1 , uint32_t borderY0, uint32_t borderY1 ) {
+                             uint32_t borderX0 , uint32_t borderX1 , uint32_t borderY0, uint32_t borderY1 ,
+                             E tol = test_tolerance<E>() )
+    {
         ASSERT_EQ(expected.width , found.width);
         ASSERT_EQ(expected.height , found.height);
 
@@ -62,7 +79,7 @@ namespace boofcv {
             for( int x = 0; x < expected.width; x++ ) {
                 if( x >= borderX0 && y >= borderY0 && x < expected.width - borderX1 && y < expected.height - borderY1 )
                 {
-                    ASSERT_EQ( expected.at(x,y) , found.at(x,y) );
+                    ASSERT_TRUE( std::abs(expected.at(x,y)-found.at(x,y)) <= tol );
                 }
             }
         }

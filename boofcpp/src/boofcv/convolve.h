@@ -85,6 +85,16 @@ namespace boofcv {
             }
             return total;
         }
+
+        Kernel1D<E>& operator=(const Kernel1D<E>& other) // copy assignment
+        {
+            if (this != &other) { // self-assignment check expected
+                this->width = other.width;
+                this->offset = other.offset;
+                this->data = other.data;
+            }
+            return *this;
+        }
     };
 
     template< class E>
@@ -101,6 +111,34 @@ namespace boofcv {
 
         uint32_t dimension() const override  {
             return 2;
+        }
+    };
+
+    class FactoryKernel {
+    public:
+        template<class E>
+        static Kernel1D<E> table1D( uint32_t width ) {
+            Kernel1D<E> k(width);
+            for( uint32_t i = 0; i < width; i++ ) {
+                k.data[i] = 1;
+            }
+            return k;
+        }
+
+        template<class E>
+        static void normalize( Kernel1D<E>& kernel , typename std::enable_if<std::is_integral<E>::value>::type* = 0 ) {
+            // do nothing. Work around for template
+        }
+
+        template<class E>
+        static void normalize( Kernel1D<E>& kernel , typename std::enable_if<std::is_floating_point<E>::value>::type* = 0 ) {
+
+            typename Kernel1D<E>::sum_type sum = kernel.sum();
+
+
+            for( uint32_t i = 0; i < kernel.width; i++ ) {
+                kernel.data[i] /= sum;
+            }
         }
     };
 

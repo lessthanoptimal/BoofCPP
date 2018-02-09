@@ -140,8 +140,8 @@ namespace boofcv {
 
             if( new_size > array_length ) {
                 auto *tmp = new T[new_size];
-                memmove(tmp,this->data,this->size);
-                memset(&tmp[this->array_length],default_value,sizeof(T)*(new_size-this->size));
+                memmove(tmp,this->data,sizeof(T)*this->size);
+                memset(&tmp[this->size],default_value,sizeof(T)*(new_size-this->size));
                 delete []this->data;
                 this->data = tmp;
                 this->array_length = new_size;
@@ -161,6 +161,17 @@ namespace boofcv {
 
         T& operator[] (uint32_t index) const {
             return this->data[index];
+        }
+
+        GrowArray<T>& operator=(const GrowArray<T>& other) // copy assignment
+        {
+            if (this != &other) { // self-assignment check expected
+                this->default_value = other.default_value;
+                this->grow_array(other.size);
+                this->size = other.size;
+                std::memcpy(this->data,other.data,sizeof(T)*other.size);
+            }
+            return *this;
         }
 
         void setTo(std::initializer_list<T> l ){
