@@ -3,6 +3,8 @@
 
 #include <jni.h>
 #include <config_types.h>
+#include "image_types.h"
+#include "base_types.h"
 
 struct JImageInfo {
     jobject jdata;
@@ -36,9 +38,18 @@ struct JImageInfoF32 : public JImageInfo {
     }
 };
 
-JImageInfoU8 extractInfoU8( JNIEnv *env, jobject& jimage );
+template<class Image,class Info>
+struct ImageAndInfo {
+    Image image;
+    Info info;
+};
 
+JImageInfoU8 extractInfoU8( JNIEnv *env, jobject& jimage );
 JImageInfoF32 extractInfoF32( JNIEnv *env, jobject& jimage );
+
+
+ImageAndInfo<boofcv::Gray<boofcv::U8>,JImageInfoU8> wrapGrayU8( JNIEnv *env, jobject& jimage );
+ImageAndInfo<boofcv::Gray<boofcv::F32>,JImageInfoF32> wrapGrayF32( JNIEnv *env, jobject& jimage );
 
 boofcv::ConfigLength extractConfigLength( JNIEnv *env, jobject& jconfig );
 

@@ -1,5 +1,7 @@
 #include "JNIBoofCPP.h"
 
+using namespace boofcv;
+
 jfieldID safe_GetFieldID( JNIEnv *env, jclass& objClass, const char* name , const char* type)
 {
     jfieldID fid = env->GetFieldID(objClass, name, type);
@@ -70,6 +72,31 @@ JImageInfoF32 extractInfoF32( JNIEnv *env, jobject& jimage ) {
     ret.offset = safe_GetInt(env,objClass,jimage, "startIndex");
 
     return ret;
+}
+
+ImageAndInfo<boofcv::Gray<boofcv::U8>,JImageInfoU8> wrapGrayU8( JNIEnv *env, jobject& jimage ) {
+    ImageAndInfo<boofcv::Gray<boofcv::U8>,JImageInfoU8> output;
+
+    JImageInfoU8 inputInfo = extractInfoU8(env,jimage);
+
+    output.info = inputInfo;
+    output.image = Gray<U8>((U8*)inputInfo.data,(uint32_t)inputInfo.dataLength,
+                            (uint32_t)inputInfo.width,(uint32_t)inputInfo.height,
+                            (uint32_t)inputInfo.offset,(uint32_t)inputInfo.stride);
+
+    return output;
+}
+
+ImageAndInfo<boofcv::Gray<boofcv::F32>,JImageInfoF32> wrapGrayF32( JNIEnv *env, jobject& jimage ) {
+    ImageAndInfo<boofcv::Gray<boofcv::F32>,JImageInfoF32> output;
+    JImageInfoF32 inputInfo = extractInfoF32(env,jimage);
+
+    output.info = inputInfo;
+    output.image = Gray<F32>((F32*)inputInfo.data,(uint32_t)inputInfo.dataLength,
+                             (uint32_t)inputInfo.width,(uint32_t)inputInfo.height,
+                             (uint32_t)inputInfo.offset,(uint32_t)inputInfo.stride);
+
+    return output;
 }
 
 boofcv::ConfigLength extractConfigLength( JNIEnv *env, jobject& jconfig ) {

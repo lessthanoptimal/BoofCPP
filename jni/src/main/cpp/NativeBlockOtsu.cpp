@@ -64,19 +64,13 @@ JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeBlockOtsu_nativeprocess
     try {
 //        printf("   alg.threshold %d\n",alg->threshold);
         if( isInteger ) {
-            JImageInfoU8 inputInfo = extractInfoU8(env,jinput);
-            Gray<U8> input((U8*)inputInfo.data,(uint32_t)inputInfo.dataLength,
-                           (uint32_t)inputInfo.width,(uint32_t)inputInfo.height,
-                           (uint32_t)inputInfo.offset,(uint32_t)inputInfo.stride);
-            ((ThresholdBlockOtsu<U8>*)nativePtr)->process(input, output);
-            env->ReleaseByteArrayElements((jbyteArray)inputInfo.jdata, inputInfo.data, 0);
+            ImageAndInfo<Gray<U8>,JImageInfoU8> input = wrapGrayU8(env,jinput);
+            ((ThresholdBlockOtsu<U8>*)nativePtr)->process(input.image, output);
+            env->ReleaseByteArrayElements((jbyteArray)input.info.jdata, input.info.data, 0);
         } else {
-            JImageInfoF32 inputInfo = extractInfoF32(env,jinput);
-            Gray<F32> input((F32*)inputInfo.data,(uint32_t)inputInfo.dataLength,
-                           (uint32_t)inputInfo.width,(uint32_t)inputInfo.height,
-                           (uint32_t)inputInfo.offset,(uint32_t)inputInfo.stride);
-            ((ThresholdBlockOtsu<F32> *)nativePtr)->process(input, output);
-            env->ReleaseFloatArrayElements((jfloatArray)inputInfo.jdata, inputInfo.data, 0);
+            ImageAndInfo<Gray<F32>,JImageInfoF32> input = wrapGrayF32(env,jinput);
+            ((ThresholdBlockOtsu<F32> *)nativePtr)->process(input.image, output);
+            env->ReleaseFloatArrayElements((jfloatArray)input.info.jdata, input.info.data, 0);
         }
     } catch( ... ) {
         printf("Exception!!\n");

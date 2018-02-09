@@ -27,7 +27,7 @@ tasks.withType(Test) {
 
 dependencies {
     ['ip'].each { String a->
-        compile('org.boofcv:boofcv-'+a+':0.28')
+        compile('org.boofcv:boofcv-'+a+':0.29-SNAPSHOT')
     }
 
     testCompile group: 'junit', name: 'junit', version: '4.12'
