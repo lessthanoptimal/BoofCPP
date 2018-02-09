@@ -42,18 +42,15 @@ public class TestNativeLocalMean {
             for( boolean down : new boolean[]{true,false}) {
                 InputToBinary alg = new NativeLocalMean(regionWidth, scale, down, type);
                 InputToBinary check = FactoryThresholdBinary.localMean(regionWidth, scale, down, type);
-
-//                    long time0 = System.currentTimeMillis();
+                
+//                long time0 = System.currentTimeMillis();
                 check.process(input, expected);
-//                    long time1 = System.currentTimeMillis();
+//                long time1 = System.currentTimeMillis();
                 alg.process(input, found);
-//                    long time2 = System.currentTimeMillis();
+//                long time2 = System.currentTimeMillis();
 
-//                    System.out.println(type.getSimpleName()+" down="+down+" local="+useLocal);
-//                    System.out.println("java "+(time1-time0)+" native "+(time2-time1));
-//                    expected.print();
-//                    System.out.println();
-//                    found.print();
+//                System.out.println(type.getSimpleName()+" down="+down);
+//                System.out.println("java "+(time1-time0)+" native "+(time2-time1));
 
                 BoofTesting.assertEquals(expected, found, 0);
             }
