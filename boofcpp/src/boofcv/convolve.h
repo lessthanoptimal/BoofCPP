@@ -1006,6 +1006,25 @@ namespace boofcv {
                 ConvolveNormalized_JustBorder::vertical(kernel, input, output);
             }
         }
+
+        /**
+         * Applies a 1D kernel horizontally then vertically.
+         * @tparam E Data type
+         * @param kernel 1D kernel
+         * @param input Input image that convolution is applied to
+         * @param output Where the output is written to. resised
+         * @param workspace Used to store intermediate results. Is resized
+         */
+        template<class E>
+        static void convolve( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel,
+                              const Gray<E>& input, Gray<E>& output, Gray<E>& workspace )
+        {
+            output.reshape(input.width,input.height);
+            workspace.reshape(input.width,input.height);
+
+            horizontal(kernel,input,workspace);
+            vertical(kernel,workspace,output);
+        }
     };
 }
 

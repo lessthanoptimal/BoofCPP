@@ -33,7 +33,7 @@ public:
         expected.reshape(width,height);
     }
 
-    void setBlurRadius( uint32_t radius ) {
+    void setMeanRadius(uint32_t radius) {
         kernel = FactoryKernel::mean1D<signed_type>(radius*2+1);
     }
 
@@ -77,7 +77,7 @@ public:
         Gray<E> tmp(input.width,input.height);
         ConvolveNormalizedNaive::horizontal(kernel,input,tmp);
         ConvolveNormalizedNaive::vertical(kernel,tmp,expected);
-        ConvolveImageMean::mean(input,found,kernel.width/2,tmp);
+        BlurImageOps::mean(input,found,kernel.width/2,tmp);
 
         check_equals(expected,found);
     }
@@ -95,11 +95,11 @@ TEST(ConvolveImageMean, inner_horizontal_U8) {
         uint32_t h = 20+i;
 
         compare.setImageSize(w,h);
-        compare.setBlurRadius(1);
+        compare.setMeanRadius(1);
         compare.horizontal_mean_inner();
-        compare.setBlurRadius(2);
+        compare.setMeanRadius(2);
         compare.horizontal_mean_inner();
-        compare.setBlurRadius(5);
+        compare.setMeanRadius(5);
         compare.horizontal_mean_inner();
     }
 }
@@ -112,11 +112,11 @@ TEST(ConvolveImageMean, inner_horizontal_F32) {
         uint32_t h = 20+i;
 
         compare.setImageSize(w,h);
-        compare.setBlurRadius(1);
+        compare.setMeanRadius(1);
         compare.horizontal_mean_inner();
-        compare.setBlurRadius(2);
+        compare.setMeanRadius(2);
         compare.horizontal_mean_inner();
-        compare.setBlurRadius(5);
+        compare.setMeanRadius(5);
         compare.horizontal_mean_inner();
     }
 }
@@ -129,11 +129,11 @@ TEST(ConvolveImageMean, inner_vertical_U8) {
         uint32_t h = 20+i;
 
         compare.setImageSize(w,h);
-        compare.setBlurRadius(1);
+        compare.setMeanRadius(1);
         compare.vertical_mean_inner();
-        compare.setBlurRadius(2);
+        compare.setMeanRadius(2);
         compare.vertical_mean_inner();
-        compare.setBlurRadius(5);
+        compare.setMeanRadius(5);
         compare.vertical_mean_inner();
     }
 }
@@ -146,11 +146,11 @@ TEST(ConvolveImageMean, inner_vertical_F32) {
         uint32_t h = 20+i;
 
         compare.setImageSize(w,h);
-        compare.setBlurRadius(1);
+        compare.setMeanRadius(1);
         compare.vertical_mean_inner();
-        compare.setBlurRadius(2);
+        compare.setMeanRadius(2);
         compare.vertical_mean_inner();
-        compare.setBlurRadius(5);
+        compare.setMeanRadius(5);
         compare.vertical_mean_inner();
     }
 }
@@ -163,11 +163,11 @@ TEST(ConvolveImageMean, horizonal) {
         uint32_t h = 20+i;
 
         compare.setImageSize(w,h);
-        compare.setBlurRadius(1);
+        compare.setMeanRadius(1);
         compare.horizontal_mean();
-        compare.setBlurRadius(2);
+        compare.setMeanRadius(2);
         compare.horizontal_mean();
-        compare.setBlurRadius(5);
+        compare.setMeanRadius(5);
         compare.horizontal_mean();
     }
 }
@@ -180,16 +180,16 @@ TEST(ConvolveImageMean, vertical) {
         uint32_t h = 20+i;
 
         compare.setImageSize(w,h);
-        compare.setBlurRadius(1);
+        compare.setMeanRadius(1);
         compare.vertical_mean();
-        compare.setBlurRadius(2);
+        compare.setMeanRadius(2);
         compare.vertical_mean();
-        compare.setBlurRadius(5);
+        compare.setMeanRadius(5);
         compare.vertical_mean();
     }
 }
 
-TEST(ConvolveImageMean, mean) {
+TEST(BlurImageOps, mean) {
     CompareToNormalized<U8> compare;
 
     for( uint32_t i = 0; i < 3; i++ ) {
@@ -198,11 +198,11 @@ TEST(ConvolveImageMean, mean) {
 //        printf("mean i = %d  %dx%d\n",i,w,h);
 
         compare.setImageSize(w,h);
-        compare.setBlurRadius(1);
+        compare.setMeanRadius(1);
         compare.mean();
-        compare.setBlurRadius(2);
+        compare.setMeanRadius(2);
         compare.mean();
-        compare.setBlurRadius(5);
+        compare.setMeanRadius(5);
         compare.mean();
     }
 }

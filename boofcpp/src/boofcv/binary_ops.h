@@ -189,7 +189,7 @@ namespace boofcv
 
             Gray<T>& mean = storage1;
 
-            ConvolveImageMean::mean(input,mean,radius,storage2);
+            BlurImageOps::mean(input,mean,radius,storage2);
 
             if( down ) {
                 for( uint32_t y = 0; y < input.height; y++ ) {
@@ -251,10 +251,9 @@ namespace boofcv
         T threshold;
         bool down;
 
-        GlobalFixedBinaryFilter( T threshold, bool down ) {
-            this->threshold = threshold;
-            this->down = down;
-        }
+        GlobalFixedBinaryFilter( T threshold, bool down ) :
+                threshold(threshold), down(down)
+        { }
 
         void process(const Gray<T>& input , Gray<U8>& output ) override {
             ThresholdOps::threshold(input,threshold,down,output);
@@ -269,11 +268,9 @@ namespace boofcv
         T max_value;
         bool down;
 
-        GlobalOtsuBinaryFilter( T min_value , T max_value, bool down ) {
-            this->min_value = min_value;
-            this->max_value = max_value;
-            this->down = down;
-        }
+        GlobalOtsuBinaryFilter( T min_value , T max_value, bool down ) :
+                min_value(min_value), max_value(max_value) , down(down)
+        {  }
 
         void process(const Gray<T>& input , Gray<U8>& output ) override {
             T threshold = ThresholdOps::computeOtsu(input,min_value,max_value,false);
@@ -291,10 +288,10 @@ namespace boofcv
         Gray<T> storage1;
         Gray<T> storage2;
 
-        LocalMeanBinaryFilter( const ConfigLength& regionWidth, float scale, bool down ) {
+        LocalMeanBinaryFilter( const ConfigLength& regionWidth, float scale, bool down ) :
+                scale(scale), down(down)
+        {
             this->regionWidth = regionWidth;
-            this->scale = scale;
-            this->down = down;
         }
 
         void process(const Gray<T>& input , Gray<U8>& output ) override {

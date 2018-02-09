@@ -42,7 +42,7 @@ public class TestNativeLocalMean {
             for( boolean down : new boolean[]{true,false}) {
                 InputToBinary alg = new NativeLocalMean(regionWidth, scale, down, type);
                 InputToBinary check = FactoryThresholdBinary.localMean(regionWidth, scale, down, type);
-                
+
 //                long time0 = System.currentTimeMillis();
                 check.process(input, expected);
 //                long time1 = System.currentTimeMillis();

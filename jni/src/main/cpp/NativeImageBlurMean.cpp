@@ -17,7 +17,7 @@ JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeImageBlurMean_nativeproce
         ImageAndInfo<Gray<U8>,JImageInfoU8> output = wrapGrayU8(env,joutput);
         ImageAndInfo<Gray<U8>,JImageInfoU8> storage = wrapGrayU8(env,jstorage);
 
-        ConvolveImageMean::mean(input.image,output.image,(uint32_t)radius,storage.image);
+        BlurImageOps::mean(input.image,output.image,(uint32_t)radius,storage.image);
 
         env->ReleaseByteArrayElements((jbyteArray)input.info.jdata, input.info.data, 0);
         env->ReleaseByteArrayElements((jbyteArray)output.info.jdata, output.info.data, 0);
@@ -27,7 +27,7 @@ JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeImageBlurMean_nativeproce
         ImageAndInfo<Gray<F32>,JImageInfoF32> output = wrapGrayF32(env,joutput);
         ImageAndInfo<Gray<F32>,JImageInfoF32> storage = wrapGrayF32(env,jstorage);
 
-        ConvolveImageMean::mean(input.image,output.image,(uint32_t)radius,storage.image);
+        BlurImageOps::mean(input.image,output.image,(uint32_t)radius,storage.image);
 
         env->ReleaseFloatArrayElements((jfloatArray)input.info.jdata, input.info.data, 0);
         env->ReleaseFloatArrayElements((jfloatArray)output.info.jdata, output.info.data, 0);

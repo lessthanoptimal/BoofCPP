@@ -283,6 +283,15 @@ public:
         check_equals(expected,found);
     }
 
+    void normalized_convolve_1D() {
+        Gray<E> workspace(input.width,input.height);
+        ConvolveNormalizedNaive::horizontal(kernel,input,workspace);
+        ConvolveNormalizedNaive::vertical(kernel,workspace,expected);
+        ConvolveNormalized::convolve(kernel,input,found,workspace);
+
+        check_equals(expected,found);
+    }
+
     void checkResults_border() {
         check_equals_border(expected,found,borderX0,borderX1,borderY0,borderY1);
     }
@@ -626,5 +635,26 @@ TEST(ConvolveNormalized, vertical_F32) {
         compare.normalized_vertical();
         compare.setKernel(7,4);
         compare.normalized_vertical();
+    }
+}
+
+TEST(ConvolveNormalized, convolve_with1D) {
+    CompareToNaive<F32> compare;
+
+    for( uint32_t i = 0; i < 2; i++ ) {
+        uint32_t w = 15+i;
+        uint32_t h = 20+i;
+
+        compare.setImageSize(w,h);
+        compare.setKernel(3,1);
+        compare.normalized_convolve_1D();
+        compare.setKernel(5,2);
+        compare.normalized_convolve_1D();
+        compare.setKernel(7,3);
+        compare.normalized_convolve_1D();
+        compare.setKernel(7,1);
+        compare.normalized_convolve_1D();
+        compare.setKernel(7,4);
+        compare.normalized_convolve_1D();
     }
 }

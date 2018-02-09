@@ -186,8 +186,10 @@ namespace boofcv {
                 inner_vertical(input, output, radius);
             }
         }
+    };
 
-
+    class BlurImageOps {
+    public:
         /**
          * Applies a mean box filter.
          *
@@ -197,14 +199,14 @@ namespace boofcv {
          * @param storage Storage for intermediate results.
          * @return Output blurred image.
          */
-        template< class E>
-        static void mean(const Gray<E>& input, Gray<E>& output, uint32_t radius, Gray<E>& storage ) {
+        template<class E>
+        static void mean(const Gray<E> &input, Gray<E> &output, uint32_t radius, Gray<E> &storage) {
 
-            if( radius <= 0 )
+            if (radius <= 0)
                 throw invalid_argument("Radius must be > 0");
 
-            output.reshape(input.width,input.height);
-            storage.reshape(input.width,input.height);
+            output.reshape(input.width, input.height);
+            storage.reshape(input.width, input.height);
 
             ConvolveImageMean::horizontal(input, storage, radius);
             ConvolveImageMean::vertical(storage, output, radius);
