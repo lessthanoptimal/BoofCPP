@@ -11,14 +11,12 @@ import org.boofcpp.threshold.NativeThresholdBase;
 public class NativeImageBlurMean<T extends ImageGray<T>> extends NativeBase<T> implements BOverrideBlurImageOps.Mean<T>
 {
 
-    public NativeImageBlurMean(Class<T> inputType ) {
-        super(inputType);
-    }
-
     @Override
     public void process(T input, T output, int radius, T storage) {
         if( input.getImageType().getFamily() != ImageType.Family.GRAY )
             throw new RuntimeException("Only supports gray images");
+
+        setImageType(input.imageType.getImageClass());
 
         output.reshape(input.width,input.height);
         nativeprocess(input,output,radius,storage);

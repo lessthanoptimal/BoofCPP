@@ -12,6 +12,12 @@ public abstract class NativeBase<T extends ImageGray<T>>
     protected boolean isInteger;
 
     public NativeBase(Class<T> inputType ) {
+        setImageType(inputType);
+    }
+
+    public NativeBase(){}
+
+    public void setImageType( Class<T> inputType ) {
         this.imageType = ImageType.single(inputType);
         this.isInteger = this.imageType.getDataType().isInteger();
     }

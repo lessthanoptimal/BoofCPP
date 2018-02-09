@@ -27,6 +27,8 @@ public class TestNativeImageBlurMean {
 
     @Test
     public void compareToBoofCV() {
+        NativeImageBlurMean nativeBlur = new NativeImageBlurMean();
+
         for( Class type : types ) {
             ImageGray input = GeneralizedImageOps.createSingleBand(type,width,height);
             ImageGray found = GeneralizedImageOps.createSingleBand(type,width,height);
@@ -34,8 +36,6 @@ public class TestNativeImageBlurMean {
             ImageGray storage = GeneralizedImageOps.createSingleBand(type,width,height);
 
             GImageMiscOps.fillUniform(input,rand,0,255);
-
-            NativeImageBlurMean nativeBlur = new NativeImageBlurMean(type);
 
             for( int radius : new int[]{1,2,5} ) {
                 nativeBlur.process(input,found,radius,storage);

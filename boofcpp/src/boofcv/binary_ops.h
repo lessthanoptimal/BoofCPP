@@ -4,8 +4,8 @@
 #include "base_types.h"
 #include "image_types.h"
 #include "config_types.h"
-#include "blur_image.h"
 #include "image_statistics.h"
+#include "image_blur.h"
 
 namespace boofcv
 {
@@ -177,7 +177,7 @@ namespace boofcv
          * @param storage2 Storage for intermediate step.
          */
         template<class T>
-        static void localMean( const Gray<T>& input , Gray<T>& output ,
+        static void localMean( const Gray<T>& input , Gray<U8>& output ,
                                const ConfigLength& width , float scale , bool down ,
                                Gray<T>& storage1 , Gray<T>&  storage2 ) {
 
@@ -185,12 +185,11 @@ namespace boofcv
             storage1.reshape(input.width, input.height);
             storage2.reshape(input.width, input.height);
 
-
             uint32_t radius = (uint32_t)width.computeI(min(input.width,input.height))/2;
 
             Gray<T>& mean = storage1;
 
-            BlurImage::mean(input,mean,radius,storage2);
+            ConvolveImageMean::mean(input,mean,radius,storage2);
 
             if( down ) {
                 for( uint32_t y = 0; y < input.height; y++ ) {
@@ -289,8 +288,8 @@ namespace boofcv
         ConfigLength regionWidth;
         float scale;
         bool down;
-        T storage1;
-        T storage2;
+        Gray<T> storage1;
+        Gray<T> storage2;
 
         LocalMeanBinaryFilter( const ConfigLength& regionWidth, float scale, bool down ) {
             this->regionWidth = regionWidth;
