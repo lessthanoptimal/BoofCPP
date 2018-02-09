@@ -39,11 +39,16 @@ public class TestNativeImageConvolveNormalized {
 
             GImageMiscOps.fillUniform(input,rand,0,255);
 
-            for( int radius : new int[]{1,2,5} ) {
+            for( int radius : new int[]{1,2,5,24} ) {
                 Kernel1D kernel = FactoryKernelGaussian.gaussian1D(type,-1,radius);
 
+//                long time0 = System.currentTimeMillis();
                 nativeConv.horizontal(kernel,input,found);
+//                long time1 = System.currentTimeMillis();
                 GConvolveImageOps.horizontalNormalized(kernel,input,expected);
+//                long time2 = System.currentTimeMillis();
+
+//                System.out.println(input.getDataType()+" native "+(time1-time0)+"  java "+(time2-time1));
 
                 BoofTesting.assertEquals(expected, found, GrlConstants.TEST_F32);
             }
