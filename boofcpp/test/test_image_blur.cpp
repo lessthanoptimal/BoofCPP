@@ -3,37 +3,8 @@
 #include "image_misc_ops.h"
 #include "testing_utils.h"
 
-#include <stdio.h>
-#include "sanity_checks.h"
-
 using namespace std;
 using namespace boofcv;
-
-template<typename E>
-void print_difference( const Gray<E>& a , const Gray<E>& b ) {
-    checkSameShape(a,b);
-
-    for( uint32_t y = 0; y < a.height; y++ ) {
-        for( uint32_t x = 0; x < a.width; x++ ) {
-            if( a.at(x,y) != b.at(x,y)) {
-                printf("X");
-            } else {
-                printf("-");
-            }
-        }
-        printf("\n");
-    }
-}
-
-template<typename E>
-void print_kernel( const Kernel1D<E>& a , typename std::enable_if<std::is_integral<E>::value>::type* = 0 ) {
-
-    printf("Kernel1D[");
-    for( uint32_t y = 0; y < a.width; y++ ) {
-        printf(" %d",a[y]);
-    }
-    printf(" ]\n");
-}
 
 template<class E, class Enable = void>
 class CompareToNormalized {
