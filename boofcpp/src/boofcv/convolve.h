@@ -771,7 +771,7 @@ namespace boofcv {
                     signed_type total = 0;
                     E* input_ptr = &input.data[j];
                     signed_type* kernel_ptr = kernel.data.data;
-                    for( uint32_t k = kernel.width-1; k > 0; k-- ) {
+                    for( uint32_t k = kernel.width; k > 0; k-- ) {
                         total += (*input_ptr++) * (*kernel_ptr++);
                     }
                     output.data[indexDst++] = (E)(total/divisor);
