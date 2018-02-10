@@ -1,0 +1,14 @@
+.gradle
+.idea/libraries
+*.class
+*.jar
+**/*.iml
+**/*.ipr
+.DS_Store
+
+Makefile
+*.so
+*.dll
+*.dylib
+*.o
+*.cmake
