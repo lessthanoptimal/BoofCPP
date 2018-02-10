@@ -27,6 +27,7 @@ if (test)
     list(APPEND TestList test_image_statistics)
     list(APPEND TestList test_image_misc_ops)
     list(APPEND TestList test_image_types)
+    list(APPEND TestList test_packed_sets)
     list(APPEND TestList test_sanity_checks)
     list(APPEND TestList test_threshold_block_filters)
 
