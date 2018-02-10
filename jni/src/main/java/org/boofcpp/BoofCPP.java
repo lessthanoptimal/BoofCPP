@@ -19,7 +19,7 @@ public class BoofCPP {
         if( !NativeUtils.loadLocalPath(new File("build/jni"))) {
             if( !NativeUtils.loadLocalPath(new File("../build/jni"))) {
                 // Now try loading it from the jar
-                if( !NativeUtils.loadLibraryFromJar("/natives/") ) {
+                if( !NativeUtils.loadLibraryFromJar("/") ) {
                     throw new RuntimeException("Can't load native libraries");
                 }
             }
