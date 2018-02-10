@@ -18,7 +18,7 @@ public class TestNativeImageBlurOps {
 
     Class types[] = new Class[]{GrayU8.class, GrayF32.class};
 
-    int width=400,height=300;
+    int width=4000,height=3000;
 
     static {
         BoofCPP.loadlib();
@@ -37,17 +37,17 @@ public class TestNativeImageBlurOps {
             GImageMiscOps.fillUniform(input,rand,0,255);
 
             for( int radius : new int[]{1,2,5,24} ) {
-//                for (int i = 0; i < 5; i++) {
+                for (int i = 0; i < 5; i++) {
                 long time0 = System.currentTimeMillis();
                 nativeBlur.processMean(input,found,radius,storage);
                 long time1 = System.currentTimeMillis();
                 GBlurImageOps.mean(input,expected,radius,storage);
                 long time2 = System.currentTimeMillis();
 
-//                System.out.println(input.getDataType() + " radius " + radius + " native " + (time1 - time0) + "  java " + (time2 - time1));
+                System.out.println(input.getDataType() + " radius " + radius + " native " + (time1 - time0) + "  java " + (time2 - time1));
 
                 BoofTesting.assertEquals(expected, found, GrlConstants.TEST_F32);
-//                }
+                }
             }
         }
     }

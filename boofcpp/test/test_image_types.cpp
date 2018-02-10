@@ -11,7 +11,7 @@ TEST(Gray, Constructor_WH) {
     ASSERT_EQ(20,imgA.height);
     ASSERT_EQ(10,imgA.stride);
     ASSERT_EQ(0,imgA.offset);
-    ASSERT_EQ(false,imgA.subimage);
+    ASSERT_FALSE(imgA.subimage);
     ASSERT_EQ(200,imgA.data_length);
     for( uint32_t i = 0; i < 200; i++ ) {
         ASSERT_EQ(0,imgA.data[i]);
@@ -25,7 +25,7 @@ TEST(Gray, Constructor_NoArguments) {
     ASSERT_EQ(0,imgA.height);
     ASSERT_EQ(0,imgA.stride);
     ASSERT_EQ(0,imgA.offset);
-    ASSERT_EQ(false,imgA.subimage);
+    ASSERT_FALSE(imgA.subimage);
     ASSERT_EQ(0,imgA.data_length);
 }
 
@@ -56,7 +56,7 @@ TEST(Gray, reshape) {
     ASSERT_EQ(8,imgA.height);
     ASSERT_EQ(10,imgA.stride);
     ASSERT_EQ(0,imgA.offset);
-    ASSERT_EQ(false,imgA.subimage);
+    ASSERT_FALSE(imgA.subimage);
     ASSERT_EQ(200,imgA.data_length);
     ASSERT_EQ(orig_pts,imgA.data);
     for( uint32_t i = 0; i < 10*8; i++ ) {
@@ -69,7 +69,7 @@ TEST(Gray, reshape) {
     ASSERT_EQ(20,imgA.height);
     ASSERT_EQ(12,imgA.stride);
     ASSERT_EQ(0,imgA.offset);
-    ASSERT_EQ(false,imgA.subimage);
+    ASSERT_FALSE(imgA.subimage);
     ASSERT_EQ(12*20,imgA.data_length);
     EXPECT_NE(orig_pts,imgA.data);
     for( uint32_t i = 0; i < 12*20; i++ ) {
@@ -126,7 +126,7 @@ TEST(Interleaved, Constructor_WH) {
     ASSERT_EQ(2,imgA.num_bands);
     ASSERT_EQ(20,imgA.stride);
     ASSERT_EQ(0,imgA.offset);
-    ASSERT_EQ(false,imgA.subimage);
+    ASSERT_FALSE(imgA.subimage);
     ASSERT_EQ(300,imgA.data_length);
     for( uint32_t i = 0; i < imgA.data_length; i++ ) {
         ASSERT_EQ(0,imgA.data[i]);
@@ -141,7 +141,7 @@ TEST(Interleaved, Constructor_NoArguments) {
     ASSERT_EQ(0,img.num_bands);
     ASSERT_EQ(0,img.stride);
     ASSERT_EQ(0,img.offset);
-    ASSERT_EQ(false,img.subimage);
+    ASSERT_FALSE(img.subimage);
     ASSERT_EQ(0,img.data_length);
 }
 
@@ -172,7 +172,7 @@ TEST(Interleaved, reshape) {
     ASSERT_EQ(2,img.num_bands);
     ASSERT_EQ(20,img.stride);
     ASSERT_EQ(0,img.offset);
-    ASSERT_EQ(false,img.subimage);
+    ASSERT_FALSE(img.subimage);
     ASSERT_EQ(300,img.data_length);
     ASSERT_EQ(orig_pts,img.data);
     for( uint32_t i = 0; i < 10*8*2; i++ ) {
@@ -186,7 +186,7 @@ TEST(Interleaved, reshape) {
     ASSERT_EQ(2,img.num_bands);
     ASSERT_EQ(24,img.stride);
     ASSERT_EQ(0,img.offset);
-    ASSERT_EQ(false,img.subimage);
+    ASSERT_FALSE(img.subimage);
     ASSERT_EQ(12*20*2,img.data_length);
 //    EXPECT_NE(orig_pts,imgA.data); // it's possible for it to be allocated the same memorty twice
     for( uint32_t i = 0; i < 12*20*2; i++ ) {
@@ -203,7 +203,7 @@ TEST(Interleaved, setNumberOfBands) {
     ASSERT_EQ(1,img.num_bands);
     ASSERT_EQ(10,img.stride);
     ASSERT_EQ(0,img.offset);
-    ASSERT_EQ(false,img.subimage);
+    ASSERT_FALSE(img.subimage);
     ASSERT_EQ(300,img.data_length);
     for( uint32_t i = 0; i < 150; i++ ) {
         ASSERT_EQ(0,img.data[i]);
@@ -215,7 +215,7 @@ TEST(Interleaved, setNumberOfBands) {
     ASSERT_EQ(3,img.num_bands);
     ASSERT_EQ(30,img.stride);
     ASSERT_EQ(0,img.offset);
-    ASSERT_EQ(false,img.subimage);
+    ASSERT_FALSE(img.subimage);
     ASSERT_EQ(150*3,img.data_length);
     for( uint32_t i = 0; i < 150*3; i++ ) {
         ASSERT_EQ(0,img.data[i]);
@@ -234,7 +234,7 @@ TEST(Interleaved, setTo) {
     ASSERT_EQ(1,imgA.num_bands);
     ASSERT_EQ(4,imgA.stride);
     ASSERT_EQ(0,imgA.offset);
-    ASSERT_EQ(false,imgA.subimage);
+    ASSERT_FALSE(imgA.subimage);
     ASSERT_EQ(300,imgA.data_length);
     for( uint32_t i = 0; i < 20; i++ ) {
         if( i == 2*4+1 ) {
