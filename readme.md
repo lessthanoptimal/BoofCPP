@@ -14,7 +14,7 @@ one line code code to their project. If you wish to build a custom version of Bo
 for your architecture please follow the build instructions below. Those who do not RTFM are likely to be punished with
 code that is 2x to 3x slower than the pure Java code.
 
-# Adding to Your Project
+# Adding BoofCPP to Your Project
 
 Pre-build code can be found on Maven Central and added to your project by adding a dependency.
 Support is provided for the following architectures android-arm, linux-x86_64, macosx-x86_64, and windows-x86_64.
@@ -24,8 +24,8 @@ Examples for how to add depedencies in a Gradle script are provided below.
 compile group: 'org.boofcpp', name: "boofcpp", version: '0.29-SNAPSHOT'
 ```
 
-This will include binaries for all supported architectures. If you wish to only include your
-targeted platform then specify a classifier, e.g.
+That just includes the Java library. Now you need to tell it which architecture to include
+by specifying an architecture in the classifier field, e.g.
 
 ```Gradle
 compile group: 'org.boofcpp', name: "boofcpp", version: '0.29-SNAPSHOT', classifier: "linux-x86_64"
