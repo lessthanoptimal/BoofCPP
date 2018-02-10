@@ -1,7 +1,5 @@
 package org.boofcpp.convolve;
 
-import boofcv.alg.filter.blur.GBlurImageOps;
-import boofcv.alg.filter.convolve.ConvolveNormalized;
 import boofcv.alg.filter.convolve.GConvolveImageOps;
 import boofcv.alg.misc.GImageMiscOps;
 import boofcv.core.image.GeneralizedImageOps;
@@ -22,7 +20,7 @@ public class TestNativeImageConvolveNormalized {
 
     Class types[] = new Class[]{GrayU8.class, GrayF32.class};
 
-    int width=4000,height=3000;
+    int width=400,height=300;
 
     static {
         BoofCPP.loadlib();
@@ -41,19 +39,19 @@ public class TestNativeImageConvolveNormalized {
 
 
             for( int radius : new int[]{1,2,5,24} ) {
-                for (int i = 0; i < 5; i++) {
+//                for (int i = 0; i < 5; i++) {
                 Kernel1D kernel = FactoryKernelGaussian.gaussian1D(type, -1, radius);
 
-                    long time0 = System.currentTimeMillis();
+//                long time0 = System.currentTimeMillis();
                 nativeConv.horizontal(kernel, input, found);
-                    long time1 = System.currentTimeMillis();
+//                long time1 = System.currentTimeMillis();
                 GConvolveImageOps.horizontalNormalized(kernel, input, expected);
-                    long time2 = System.currentTimeMillis();
+//                long time2 = System.currentTimeMillis();
 
-                    System.out.println(input.getDataType() + " radius " + radius + " native " + (time1 - time0) + "  java " + (time2 - time1));
+//                System.out.println(input.getDataType() + " radius " + radius + " native " + (time1 - time0) + "  java " + (time2 - time1));
 
                 BoofTesting.assertEquals(expected, found, GrlConstants.TEST_F32);
-                }
+//                }
             }
 
         }
