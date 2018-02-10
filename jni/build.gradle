@@ -87,9 +87,9 @@ println "  Native location: $project.ext.build_location"
 
 task nativeJar(type: Jar) {
     classifier "$project.ext.platform"
-    from file("$project.ext.build_location/boofcpp/")
+//    from file("$project.ext.build_location/boofcpp/")
     from file("$project.ext.build_location/jni/")
-    include 'libBoofCPP.*'
+//    include 'libBoofCPP.*'
     include 'libJNIBoofCPP.*'
 }
 
