@@ -19,6 +19,18 @@ repositories {
     }
 }
 
+sourceSets {
+    benchmark {
+        java {
+            srcDir 'src/benchmark/java'
+        }
+        resources {
+            srcDir 'src/benchmark/resources'
+        }
+        compileClasspath += sourceSets.main.runtimeClasspath
+    }
+}
+
 // tell it where the .so is
 tasks.withType(Test) {
     systemProperties System.properties
@@ -31,6 +43,13 @@ dependencies {
     }
 
     testCompile group: 'junit', name: 'junit', version: '4.12'
+
+    ['core','generator-annprocess'].each { String a->
+        benchmarkCompile('org.openjdk.jmh:jmh-'+a+':1.19')
+    }
+    ['io'].each { String a->
+        benchmarkCompile('org.boofcv:boofcv-'+a+':0.29-SNAPSHOT')
+    }
 }
 
 task wrapper(type: Wrapper) {
