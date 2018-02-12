@@ -38,11 +38,11 @@ public class TestNativeImageBlurOps {
 
             for( int radius : new int[]{1,2,5,24} ) {
 //                for (int i = 0; i < 5; i++) {
-                long time0 = System.currentTimeMillis();
+//                long time0 = System.currentTimeMillis();
                 nativeBlur.processMean(input,found,radius,storage);
-                long time1 = System.currentTimeMillis();
+//                long time1 = System.currentTimeMillis();
                 GBlurImageOps.mean(input,expected,radius,storage);
-                long time2 = System.currentTimeMillis();
+//                long time2 = System.currentTimeMillis();
 
 //                System.out.println(input.getDataType() + " radius " + radius + " native " + (time1 - time0) + "  java " + (time2 - time1));
 

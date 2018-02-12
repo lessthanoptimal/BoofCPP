@@ -1,6 +1,7 @@
 #ifndef BOOFCPP_IMAGE_STATISTICS_H
 #define BOOFCPP_IMAGE_STATISTICS_H
 
+#include <limits>
 #include "image_types.h"
 #include "base_types.h"
 

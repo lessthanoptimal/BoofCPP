@@ -24,6 +24,7 @@ namespace boofcv {
             for( uint32_t y = 0; y < input.height; y++ ) {
                 uint32_t indexIn = input.offset + input.stride*y;
                 uint32_t indexOut = output.offset + output.stride*y + radius;
+                E* ptr_out = &output.data[indexOut];
 
                 sum_type total = 0;
 
@@ -32,14 +33,17 @@ namespace boofcv {
                 for( ; indexIn < indexEnd; indexIn++ ) {
                     total += input.data[indexIn];
                 }
-                output.data[indexOut++] = static_cast<E>((total+halfDivisor)/divisor);
+                *ptr_out++ = static_cast<E>((total+halfDivisor)/divisor);
 
-                indexEnd = indexIn + input.width - kernelWidth;
-                for( ; indexIn < indexEnd; indexIn++ ) {
-                    total -= input.data[ indexIn - kernelWidth ];
-                    total += input.data[ indexIn ];
+                E* ptr_front = &input.data[ indexIn - kernelWidth ];
+                E* ptr_back = &input.data[ indexIn ];
+                uint32_t N = input.width - kernelWidth;
 
-                    output.data[indexOut++] = static_cast<E>((total+halfDivisor)/divisor);
+                for( uint32_t i = N; i > 0; i-- ) {
+                    total -= *ptr_front++;
+                    total += *ptr_back++;
+
+                    *ptr_out++ = static_cast<E>((total+halfDivisor)/divisor);
                 }
             }
         }
@@ -56,6 +60,7 @@ namespace boofcv {
             for( uint32_t y = 0; y < input.height; y++ ) {
                 uint32_t indexIn = input.offset + input.stride*y;
                 uint32_t indexOut = output.offset + output.stride*y + radius;
+                E* ptr_out = &output.data[indexOut];
 
                 sum_type total = 0;
 
@@ -64,14 +69,17 @@ namespace boofcv {
                 for( ; indexIn < indexEnd; indexIn++ ) {
                     total += input.data[indexIn];
                 }
-                output.data[indexOut++] = static_cast<E>(total/divisor);
+                *ptr_out++ = static_cast<E>(total/divisor);
 
-                indexEnd = indexIn + input.width - kernelWidth;
-                for( ; indexIn < indexEnd; indexIn++ ) {
-                    total -= input.data[ indexIn - kernelWidth ];
-                    total += input.data[ indexIn ];
+                E* ptr_front = &input.data[ indexIn - kernelWidth ];
+                E* ptr_back = &input.data[ indexIn ];
+                uint32_t N = input.width - kernelWidth;
 
-                    output.data[indexOut++] = static_cast<E>(total/divisor);
+                for( uint32_t i = N; i > 0; i-- ) {
+                    total -= *ptr_front++;
+                    total += *ptr_back++;
+
+                    *ptr_out++ = static_cast<E>(total/divisor);
                 }
             }
         }
@@ -107,11 +115,15 @@ namespace boofcv {
                 uint32_t indexIn = input.offset + (y+radius)*input.stride;
                 uint32_t indexOut = output.offset + y*output.stride;
 
-                for( uint32_t x = 0; x < input.width; x++ ,indexIn++,indexOut++) {
-                    sum_type total = totals[ x ]  - input.data[ indexIn - backStep ];
-                    totals[ x ] = total += input.data[ indexIn ];
+                E* ptr_front = &input.data[ indexIn - backStep ];
+                E* ptr_back = &input.data[ indexIn ];
+                E* ptr_out = &output.data[indexOut];
 
-                    output.data[indexOut] = static_cast<E>((total+halfDivisor)/divisor);
+                for( uint32_t x = 0; x < input.width; x++) {
+                    sum_type total = totals[ x ]  - *ptr_front++;
+                    totals[ x ] = total += *ptr_back++;
+
+                    *ptr_out++ = static_cast<E>((total+halfDivisor)/divisor);
                 }
             }
         }
@@ -146,11 +158,15 @@ namespace boofcv {
                 uint32_t indexIn = input.offset + (y+radius)*input.stride;
                 uint32_t indexOut = output.offset + y*output.stride;
 
-                for( uint32_t x = 0; x < input.width; x++ ,indexIn++,indexOut++) {
-                    sum_type total = totals[ x ]  - input.data[ indexIn - backStep ];
-                    totals[ x ] = total += input.data[ indexIn ];
+                E* ptr_front = &input.data[ indexIn - backStep ];
+                E* ptr_back = &input.data[ indexIn ];
+                E* ptr_out = &output.data[indexOut];
 
-                    output.data[indexOut] = static_cast<E>(total/divisor);
+                for( uint32_t x = 0; x < input.width; x++) {
+                    sum_type total = totals[ x ]  - *ptr_front++;
+                    totals[ x ] = total += *ptr_back++;
+
+                    *ptr_out++ = static_cast<E>(total/divisor);
                 }
             }
         }

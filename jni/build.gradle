@@ -1,14 +1,16 @@
 
 apply plugin: 'idea'
 apply plugin: 'eclipse'
-apply plugin: 'maven'
 apply plugin: 'java'
+apply plugin: 'maven'
+//apply plugin: 'maven-publish'
+apply plugin: 'signing'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
-group = 'org.boofcv'
-version = '0.1-SNAPSHOT'
+group = 'org.boofcpp'
+version = '0.29-SNAPSHOT'
 
 repositories {
     mavenLocal()
@@ -16,6 +18,14 @@ repositories {
 
     maven {
         url = "https://oss.sonatype.org/content/repositories/snapshots/"
+    }
+}
+
+
+// Fail on jar conflict
+configurations.all {
+    resolutionStrategy {
+        failOnVersionConflict()
     }
 }
 
@@ -31,15 +41,10 @@ sourceSets {
     }
 }
 
-// tell it where the .so is
-tasks.withType(Test) {
-    systemProperties System.properties
-    systemProperty "java.library.path", file('../build/jni').absolutePath
-}
 
 dependencies {
     ['ip'].each { String a->
-        compile('org.boofcv:boofcv-'+a+':0.29-SNAPSHOT')
+        compile('org.boofcv:boofcv-'+a+':'+version)
     }
 
     testCompile group: 'junit', name: 'junit', version: '4.12'
@@ -54,4 +59,119 @@ dependencies {
 
 task wrapper(type: Wrapper) {
     gradleVersion = '4.3'
+}
+
+task javadocJar(type: Jar) {
+    classifier = 'javadoc'
+    from javadoc
+}
+
+task sourcesJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+javadoc.failOnError = false
+
+// Get the location of the native code
+if( project.hasProperty("native_build_location")) {
+    ext.build_location = project.property("native_build_location")
+} else {
+    ext.build_location = "../build"
+}
+if( !file("$ext.build_location").exists() ) {
+    throw new GradleException("Native build directory $ext.build_location does not exist!")
+}
+
+// Determine which architecture it is being bult on so that it knows what to name the classifier as.
+String osName = org.gradle.internal.os.OperatingSystem.current().getName()
+String osVersion = org.gradle.internal.os.OperatingSystem.current().getVersion()
+String jvmBits = System.getProperty("sun.arch.data.model")
+String cpuType = "x86" // not sure how to detect x86 vs arm
+println "  Platform:        $osName $osVersion $jvmBits-bits"
+
+// yes it assumes x86. Not sure
+if (org.gradle.internal.os.OperatingSystem.current().isLinux()) {
+    ext.platform = "linux-${cpuType}_$jvmBits"
+} else if (org.gradle.internal.os.OperatingSystem.current().isUnix()) {
+    ext.platform = "unix-${cpuType}_$jvmBits"
+} else if (org.gradle.internal.os.OperatingSystem.current().isWindows()) {
+    ext.platform = "windows-${cpuType}_$jvmBits"
+} else if (org.gradle.internal.os.OperatingSystem.current().isMacOsX()) {
+    ext.platform = "macos-${cpuType}_$jvmBits"
+} else {
+    ext.platform = "unknown_${cpuType}_$jvmBits"
+}
+
+println "  Classifier name: $project.ext.platform"
+println "  Native location: $project.ext.build_location"
+
+task nativeJar(type: Jar) {
+    classifier "$project.ext.platform"
+//    from file("$project.ext.build_location/boofcpp/")
+    from file("$project.ext.build_location/jni/")
+//    include 'libBoofCPP.*'
+    include 'libJNIBoofCPP.*'
+}
+
+artifacts {
+    archives sourcesJar
+//        archives javadocJar
+
+    archives(nativeJar.archivePath) {
+        type "jar"
+        builtBy nativeJar
+    }
+}
+
+// if Maven central isn't setup in ~/.gradle/gradle.properties skip all of this
+if( project.hasProperty('ossrhUsername') ) {
+    signing {
+        sign configurations.archives
+    }
+
+    uploadArchives {
+        repositories {
+            mavenDeployer {
+                beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+                repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                    authentication(userName: ossrhUsername, password: ossrhPassword)
+                }
+
+                snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+                    authentication(userName: ossrhUsername, password: ossrhPassword)
+                }
+
+                pom.project {
+                    name 'BoofCPP'
+                    packaging 'pom'
+                    // optionally artifactId can be defined here
+                    description 'Partial port of BoofCV to C++11'
+                    url 'http://boofcv.org'
+
+                    scm {
+                        connection 'scm:git:git://github.com/lessthanoptimal/BoofCPP.git'
+                        developerConnection 'scm:git:git://github.com/lessthanoptimal/BoofCPP.git'
+                        url 'https://github.com/lessthanoptimal/BoofCV'
+                    }
+
+                    licenses {
+                        license {
+                            name 'The Apache Software License, Version 2.0'
+                            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            id 'pabeles'
+                            name 'Peter Abeles'
+                            email 'peter.abeles@gmail.com'
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
