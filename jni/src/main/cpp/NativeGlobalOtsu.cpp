@@ -50,22 +50,18 @@ JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeGlobalOtsu_nativeprocess
     if( env->ExceptionCheck() )
             return;
 
-    JImageInfoU8 outputInfo = extractInfoU8(env,joutput);
-
-    Gray<U8> output((U8*)outputInfo.data,(uint32_t)outputInfo.dataLength,
-                   (uint32_t)outputInfo.width,(uint32_t)outputInfo.height,
-                   (uint32_t)outputInfo.offset,(uint32_t)outputInfo.stride);
+    ImageAndInfo<Gray<U8>,JImageCritical> output = wrapCriticalGrayU8(env,joutput);
 
     try {
 //        printf("   alg.threshold %d\n",alg->threshold);
         if( isInteger ) {
-            ImageAndInfo<Gray<U8>,JImageInfoU8> input = wrapGrayU8(env,jinput);
-            ((GlobalOtsuBinaryFilter<U8>*)nativePtr)->process(input.image, output);
-            env->ReleaseByteArrayElements((jbyteArray)input.info.jdata, input.info.data, 0);
+            ImageAndInfo<Gray<U8>,JImageCritical> input = wrapCriticalGrayU8(env,jinput);
+            ((GlobalOtsuBinaryFilter<U8>*)nativePtr)->process(input.image, output.image);
+            env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.info.data, 0);
         } else {
-            ImageAndInfo<Gray<F32>,JImageInfoF32> input = wrapGrayF32(env,jinput);
-            ((GlobalOtsuBinaryFilter<F32> *)nativePtr)->process(input.image, output);
-            env->ReleaseFloatArrayElements((jfloatArray)input.info.jdata, input.info.data, 0);
+            ImageAndInfo<Gray<F32>,JImageCritical> input = wrapCriticalGrayF32(env,jinput);
+            ((GlobalOtsuBinaryFilter<F32> *)nativePtr)->process(input.image, output.image);
+            env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.info.data, 0);
         }
     } catch( ... ) {
         printf("Exception!!\n");
@@ -73,7 +69,7 @@ JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeGlobalOtsu_nativeprocess
     }
 
     // Release the arrays
-    env->ReleaseByteArrayElements((jbyteArray)outputInfo.jdata, outputInfo.data, 0);
+    env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.info.data, 0);
 }
 
 }

@@ -23,6 +23,14 @@ struct JImageInfo {
     }
 };
 
+struct JImageCritical : public JImageInfo {
+    void *data;
+
+    JImageCritical() {
+        data = nullptr;
+    }
+};
+
 struct JImageInfoU8 : public JImageInfo {
     jbyte *data;
 
@@ -48,9 +56,15 @@ struct ImageAndInfo {
 JImageInfoU8 extractInfoU8( JNIEnv *env, jobject& jimage );
 JImageInfoF32 extractInfoF32( JNIEnv *env, jobject& jimage );
 
+JImageCritical extractInfoCriticalU8( JNIEnv *env, jobject& jimage );
+JImageCritical extractInfoCriticalF32( JNIEnv *env, jobject& jimage );
 
 ImageAndInfo<boofcv::Gray<boofcv::U8>,JImageInfoU8> wrapGrayU8( JNIEnv *env, jobject& jimage );
 ImageAndInfo<boofcv::Gray<boofcv::F32>,JImageInfoF32> wrapGrayF32( JNIEnv *env, jobject& jimage );
+
+ImageAndInfo<boofcv::Gray<boofcv::U8>,JImageCritical> wrapCriticalGrayU8( JNIEnv *env, jobject& jimage );
+ImageAndInfo<boofcv::Gray<boofcv::F32>,JImageCritical> wrapCriticalGrayF32( JNIEnv *env, jobject& jimage );
+
 
 boofcv::ConfigLength extractConfigLength( JNIEnv *env, jobject& jconfig );
 

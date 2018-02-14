@@ -74,6 +74,45 @@ JImageInfoF32 extractInfoF32( JNIEnv *env, jobject& jimage ) {
     return ret;
 }
 
+JImageCritical extractInfoCritical( JNIEnv *env, jobject& jimage , bool isbyte ) {
+    JImageCritical ret;
+
+    jclass objClass = env->GetObjectClass(jimage);
+    jfieldID fid;
+
+    if( isbyte )
+        fid = env->GetFieldID(objClass, "data", "[B");
+    else
+        fid = env->GetFieldID(objClass, "data", "[F");
+    if( env->ExceptionCheck() ) {
+        env->ExceptionDescribe();
+        throw "Get field ID for data failed";
+    }
+    ret.jdata = env->GetObjectField (jimage, fid);
+    if( ret.jdata == nullptr ) {
+        throw "data object is null";
+    }
+
+    ret.width = safe_GetInt(env,objClass,jimage, "width");
+    ret.height = safe_GetInt(env,objClass,jimage, "height");
+    ret.stride = safe_GetInt(env,objClass,jimage, "stride");
+    ret.offset = safe_GetInt(env,objClass,jimage, "startIndex");
+
+    // Get the elements (you probably have to fetch the length of the array as well
+    ret.dataLength = env->GetArrayLength((jarray)ret.jdata);
+    ret.data = env->GetPrimitiveArrayCritical((jarray)ret.jdata, 0);
+
+    return ret;
+}
+
+JImageCritical extractInfoCriticalU8( JNIEnv *env, jobject& jimage ) {
+    return extractInfoCritical(env,jimage,true);
+}
+
+JImageCritical extractInfoCriticalF32( JNIEnv *env, jobject& jimage ) {
+    return extractInfoCritical(env,jimage,false);
+}
+
 ImageAndInfo<boofcv::Gray<boofcv::U8>,JImageInfoU8> wrapGrayU8( JNIEnv *env, jobject& jimage ) {
     ImageAndInfo<boofcv::Gray<boofcv::U8>,JImageInfoU8> output;
 
@@ -90,6 +129,32 @@ ImageAndInfo<boofcv::Gray<boofcv::U8>,JImageInfoU8> wrapGrayU8( JNIEnv *env, job
 ImageAndInfo<boofcv::Gray<boofcv::F32>,JImageInfoF32> wrapGrayF32( JNIEnv *env, jobject& jimage ) {
     ImageAndInfo<boofcv::Gray<boofcv::F32>,JImageInfoF32> output;
     JImageInfoF32 inputInfo = extractInfoF32(env,jimage);
+
+    output.info = inputInfo;
+    output.image = Gray<F32>((F32*)inputInfo.data,(uint32_t)inputInfo.dataLength,
+                             (uint32_t)inputInfo.width,(uint32_t)inputInfo.height,
+                             (uint32_t)inputInfo.offset,(uint32_t)inputInfo.stride);
+
+    return output;
+}
+
+ImageAndInfo<boofcv::Gray<boofcv::U8>,JImageCritical> wrapCriticalGrayU8( JNIEnv *env, jobject& jimage ) {
+    ImageAndInfo<boofcv::Gray<boofcv::U8>,JImageCritical> output;
+
+    JImageCritical inputInfo = extractInfoCriticalU8(env,jimage);
+
+    output.info = inputInfo;
+    output.image = Gray<U8>((U8*)inputInfo.data,(uint32_t)inputInfo.dataLength,
+                            (uint32_t)inputInfo.width,(uint32_t)inputInfo.height,
+                            (uint32_t)inputInfo.offset,(uint32_t)inputInfo.stride);
+
+    return output;
+}
+
+ImageAndInfo<boofcv::Gray<boofcv::F32>,JImageCritical> wrapCriticalGrayF32( JNIEnv *env, jobject& jimage ) {
+    ImageAndInfo<boofcv::Gray<boofcv::F32>,JImageCritical> output;
+
+    JImageCritical inputInfo = extractInfoCriticalF32(env,jimage);
 
     output.info = inputInfo;
     output.image = Gray<F32>((F32*)inputInfo.data,(uint32_t)inputInfo.dataLength,

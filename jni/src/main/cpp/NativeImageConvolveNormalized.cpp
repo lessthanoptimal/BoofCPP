@@ -15,24 +15,24 @@ JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeImageConvolveNormalized_n
     jboolean isInteger = env->GetBooleanField(obj, fid);
 
     if( isInteger ) {
-        ImageAndInfo<Gray<U8>,JImageInfoU8> input = wrapGrayU8(env,jinput);
-        ImageAndInfo<Gray<U8>,JImageInfoU8> output = wrapGrayU8(env,joutput);
+        ImageAndInfo<Gray<U8>,JImageCritical> input = wrapCriticalGrayU8(env,jinput);
+        ImageAndInfo<Gray<U8>,JImageCritical> output = wrapCriticalGrayU8(env,joutput);
         boofcv::Kernel1D<S32>* kernel = extractKernel1D_S32(env,jkernel);
 
         ConvolveNormalized::horizontal(*kernel, input.image,output.image);
 
-        env->ReleaseByteArrayElements((jbyteArray)input.info.jdata, input.info.data, 0);
-        env->ReleaseByteArrayElements((jbyteArray)output.info.jdata, output.info.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.info.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.info.data, 0);
         delete kernel;
     } else {
-        ImageAndInfo<Gray<F32>,JImageInfoF32> input = wrapGrayF32(env,jinput);
-        ImageAndInfo<Gray<F32>,JImageInfoF32> output = wrapGrayF32(env,joutput);
+        ImageAndInfo<Gray<F32>,JImageCritical> input = wrapCriticalGrayF32(env,jinput);
+        ImageAndInfo<Gray<F32>,JImageCritical> output = wrapCriticalGrayF32(env,joutput);
         boofcv::Kernel1D<F32>* kernel = extractKernel1D_F32(env,jkernel);
 
         ConvolveNormalized::horizontal(*kernel, input.image,output.image);
 
-        env->ReleaseFloatArrayElements((jfloatArray)input.info.jdata, input.info.data, 0);
-        env->ReleaseFloatArrayElements((jfloatArray)output.info.jdata, output.info.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.info.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.info.data, 0);
         delete kernel;
     }
 }
@@ -45,24 +45,24 @@ JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeImageConvolveNormalized_n
     jboolean isInteger = env->GetBooleanField(obj, fid);
 
     if( isInteger ) {
-        ImageAndInfo<Gray<U8>,JImageInfoU8> input = wrapGrayU8(env,jinput);
-        ImageAndInfo<Gray<U8>,JImageInfoU8> output = wrapGrayU8(env,joutput);
+        ImageAndInfo<Gray<U8>,JImageCritical> input = wrapCriticalGrayU8(env,jinput);
+        ImageAndInfo<Gray<U8>,JImageCritical> output = wrapCriticalGrayU8(env,joutput);
         boofcv::Kernel1D<S32>* kernel = extractKernel1D_S32(env,jkernel);
 
         ConvolveNormalized::vertical(*kernel, input.image,output.image);
 
-        env->ReleaseByteArrayElements((jbyteArray)input.info.jdata, input.info.data, 0);
-        env->ReleaseByteArrayElements((jbyteArray)output.info.jdata, output.info.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.info.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.info.data, 0);
         delete kernel;
     } else {
-        ImageAndInfo<Gray<F32>,JImageInfoF32> input = wrapGrayF32(env,jinput);
-        ImageAndInfo<Gray<F32>,JImageInfoF32> output = wrapGrayF32(env,joutput);
+        ImageAndInfo<Gray<F32>,JImageCritical> input = wrapCriticalGrayF32(env,jinput);
+        ImageAndInfo<Gray<F32>,JImageCritical> output = wrapCriticalGrayF32(env,joutput);
         boofcv::Kernel1D<F32>* kernel = extractKernel1D_F32(env,jkernel);
 
         ConvolveNormalized::vertical(*kernel, input.image,output.image);
 
-        env->ReleaseFloatArrayElements((jfloatArray)input.info.jdata, input.info.data, 0);
-        env->ReleaseFloatArrayElements((jfloatArray)output.info.jdata, output.info.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.info.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.info.data, 0);
         delete kernel;
     }
 }
