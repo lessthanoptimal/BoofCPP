@@ -8,11 +8,8 @@ import boofcv.struct.ConfigLength;
 import boofcv.struct.image.GrayU8;
 import org.boofcpp.BoofCPP;
 import org.openjdk.jmh.annotations.*;
-import org.openjdk.jmh.runner.RunnerException;
 
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
 import java.net.URL;
 import java.util.concurrent.TimeUnit;
 
@@ -70,62 +67,38 @@ public class BenchmarkThresholding {
     }
 
     @Benchmark
-    public void global_fixed_native() {
-        global_fixed_native.process(input,output);
-    }
+    public void global_fixed_native() { global_fixed_native.process(input,output); }
 
     @Benchmark
-    public void global_fixed_java() {
-        global_fixed_java.process(input,output);
-    }
+    public void global_fixed_java() { global_fixed_java.process(input,output); }
 
     @Benchmark
-    public void global_otsu_native() {
-        global_otsu_native.process(input,output);
-    }
+    public void global_otsu_native() { global_otsu_native.process(input,output); }
 
     @Benchmark
-    public void global_otsu_java() {
-        global_otsu_java.process(input,output);
-    }
+    public void global_otsu_java() { global_otsu_java.process(input,output); }
 
     @Benchmark
-    public void local_mean_native() {
-        local_mean_native.process(input,output);
-    }
+    public void local_mean_native() { local_mean_native.process(input,output); }
 
     @Benchmark
-    public void local_mean_java() {
-        local_mean_java.process(input,output);
-    }
+    public void local_mean_java() { local_mean_java.process(input,output); }
 
     @Benchmark
-    public void block_minmax_native() {
-        block_minmax_native.process(input,output);
-    }
+    public void block_minmax_native() { block_minmax_native.process(input,output); }
 
     @Benchmark
-    public void block_minmax_java() {
-        block_minmax_java.process(input,output);
-    }
+    public void block_minmax_java() {  block_minmax_java.process(input,output); }
 
     @Benchmark
-    public void block_mean_native() {
-        block_mean_native.process(input,output);
-    }
+    public void block_mean_native() { block_mean_native.process(input,output); }
 
     @Benchmark
-    public void block_mean_java() {
-        block_mean_java.process(input,output);
-    }
+    public void block_mean_java() { block_mean_java.process(input,output); }
 
     @Benchmark
-    public void block_otsu_java() {
-        block_otsu_java.process(input,output);
-    }
+    public void block_otsu_native() { block_otsu_native.process(input,output); }
 
     @Benchmark
-    public void block_otsu_native() {
-        block_otsu_native.process(input,output);
-    }
+    public void block_otsu_java() { block_otsu_java.process(input,output); }
 }
