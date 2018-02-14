@@ -7,6 +7,9 @@ file(GLOB BOOFCPP_SRC "src/boofcv/*.cpp")
 
 add_library(BoofCPP SHARED ${BOOFCPP_HDR} ${BOOFCPP_SRC})
 
+# Install library
+install(TARGETS BoofCPP DESTINATION lib ARCHIVE DESTINATION lib)
+
 if (test)
     include_directories("src/boofcv/")
     include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
@@ -23,6 +26,7 @@ if (test)
     list(APPEND TestList test_convolve)
     list(APPEND TestList test_geometry_types)
     list(APPEND TestList test_image_blur)
+    list(APPEND TestList test_image_convert)
     list(APPEND TestList test_image_statistics)
     list(APPEND TestList test_image_misc_ops)
     list(APPEND TestList test_image_types)
