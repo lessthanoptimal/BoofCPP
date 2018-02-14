@@ -193,36 +193,22 @@ namespace boofcv
 
             if( down ) {
                 for( uint32_t y = 0; y < input.height; y++ ) {
-                    uint32_t indexIn = input.offset + y*input.stride;
-                    uint32_t indexOut = output.offset + y*output.stride;
-                    uint32_t indexMean = mean.offset + y*mean.stride;
+                    T* mean_ptr = &mean.data[mean.offset + y*mean.stride];
+                    T* input_ptr = &input.data[input.offset + y*input.stride];
+                    U8* output_ptr = &output.data[output.offset + y*output.stride];
 
-                    uint32_t end = indexIn + input.width;
-
-                    for( ; indexIn < end; indexIn++ , indexOut++, indexMean++ ) {
-                        float threshold = mean.data[indexMean]*scale;
-
-                        if( (input.data[indexIn]) <= threshold )
-                            output.data[indexOut] = 1;
-                        else
-                            output.data[indexOut] = 0;
+                    for( uint32_t i = input.width; i; i-- ) {
+                        *output_ptr++ = static_cast<U8>( *input_ptr++ <= (*mean_ptr++)*scale);
                     }
                 }
             } else {
                 for( uint32_t y = 0; y < input.height; y++ ) {
-                    uint32_t indexIn = input.offset + y*input.stride;
-                    uint32_t indexOut = output.offset + y*output.stride;
-                    uint32_t indexMean = mean.offset + y*mean.stride;
+                    T* mean_ptr = &mean.data[mean.offset + y*mean.stride];
+                    T* input_ptr = &input.data[input.offset + y*input.stride];
+                    U8* output_ptr = &output.data[output.offset + y*output.stride];
 
-                    uint32_t end = indexIn + input.width;
-
-                    for( ; indexIn < end; indexIn++ , indexOut++, indexMean++ ) {
-                        float threshold = mean.data[indexMean];
-
-                        if( input.data[indexIn]*scale > threshold )
-                            output.data[indexOut] = 1;
-                        else
-                            output.data[indexOut] = 0;
+                    for( uint32_t i = input.width; i; i-- ) {
+                        *output_ptr++ = static_cast<U8>((*input_ptr++)*scale > *mean_ptr++);
                     }
                 }
             }

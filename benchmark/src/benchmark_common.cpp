@@ -69,8 +69,7 @@ bool boofcv::load_jpeg( const char *filename , Interleaved<U8>& dst) {
         goto fail;
     }
 
-    dst.setNumberOfBands(3);
-    dst.reshape(dinfo.output_width, dinfo.output_height);
+    dst.reshape(dinfo.output_width, dinfo.output_height,(uint32_t)dinfo.output_components);
 
     for (y = 0; y < dinfo.output_height; y++) {
         JSAMPROW row_pointer = &dst.data[dst.offset + dst.stride*y];
@@ -202,8 +201,8 @@ bool boofcv::load_png(const char *filename , Interleaved<U8>& dst)
         goto out;
     }
 
-    dst.setNumberOfBands(3);
-    dst.reshape( (uint32_t)width, (uint32_t)height);
+    // TODO determine the number of channels/bands
+    dst.reshape( (uint32_t)width, (uint32_t)height, 3);
 
     for (pass = 0; pass < number_passes; pass++) {
         int y;

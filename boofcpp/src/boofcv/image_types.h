@@ -322,6 +322,29 @@ namespace boofcv {
             }
         }
 
+        void reshape( uint32_t width , uint32_t height , uint32_t bands ) {
+            if( this->width == width && this->height == height && this->num_bands == bands ) {
+                return;
+            } else if( this->subimage ) {
+                throw invalid_argument("Can't reshape a subimage");
+            }
+
+            uint32_t new_length = width*height*bands;
+            if( new_length > data_length ) {
+                if( this->subimage ) {
+                    throw invalid_argument("Grow the data array in a subimage");
+                }
+                delete []data;
+                data = new T[new_length]();
+                this->data_length = new_length;
+            }
+
+            this->width = width;
+            this->height = height;
+            this->num_bands = bands;
+            this->stride = width*bands;
+        }
+
         void reshape( uint32_t width , uint32_t height ) override {
             if( this->width == width && this->height == height )
                 return;
@@ -351,8 +374,10 @@ namespace boofcv {
         }
 
         void setNumberOfBands( uint32_t desired ) {
-            if( this->data_length == desired ) {
+            if( this->num_bands == desired ) {
                 return;
+            } else if( this->subimage ) {
+                throw invalid_argument("Can't reshape a subimage");
             }
 
             uint32_t new_length = this->width*this->height*desired;
