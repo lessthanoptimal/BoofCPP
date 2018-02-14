@@ -139,24 +139,20 @@ namespace boofcv
 
             if( down ) {
                 for( uint32_t y = 0; y < input.height; y++ ) {
-                    uint32_t indexIn = input.offset + y*input.stride;
-                    uint32_t indexOut = output.offset + y*output.stride;
+                    T* input_ptr = &input.data[input.offset + y*input.stride];
+                    U8* output_ptr = &output.data[output.offset + y*output.stride];
 
-                    uint32_t end = indexIn + input.width;
-
-                    for( ; indexIn < end; indexIn++ , indexOut++ ) {
-                        output.data[indexOut] = (U8)(input.data[indexIn] <= threshold);
+                    for( uint32_t i = input.width; i; i-- ) {
+                        *output_ptr++ = static_cast<U8>( *input_ptr++ <= threshold );
                     }
                 }
             } else {
                 for( uint32_t y = 0; y < input.height; y++ ) {
-                    uint32_t indexIn = input.offset + y*input.stride;
-                    uint32_t indexOut = output.offset + y*output.stride;
+                    T* input_ptr = &input.data[input.offset + y*input.stride];
+                    U8* output_ptr = &output.data[output.offset + y*output.stride];
 
-                    uint32_t end = indexIn + input.width;
-
-                    for( ; indexIn < end; indexIn++ , indexOut++ ) {
-                        output.data[indexOut] = (U8)(input.data[indexIn] > threshold);
+                    for( uint32_t i = input.width; i; i-- ) {
+                        *output_ptr++ = static_cast<U8>( *input_ptr++ > threshold );
                     }
                 }
             }

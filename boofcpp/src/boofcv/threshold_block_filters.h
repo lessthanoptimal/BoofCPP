@@ -243,7 +243,7 @@ namespace boofcv
                 E* end = &inptr[x1-x0];
 
                 while( inptr != end ) {
-                    *outptr++ = (U8)(down == (*inptr++ <= mean));
+                    *outptr++ = static_cast<U8>(down == (*inptr++ <= mean));
                 }
             }
         }
@@ -385,7 +385,7 @@ namespace boofcv
                 uint32_t indexOutput = output.offset + y*output.stride + x0;
                 uint32_t end = indexOutput + (x1-x0);
                 for (; indexOutput < end; indexOutput++, indexInput++ ) {
-                    output.data[indexOutput] = (U8)(otsu.down == ((U8)(input.data[indexInput]) <= otsu.threshold));
+                    output.data[indexOutput] = static_cast<U8>(otsu.down == ((U8)(input.data[indexInput]) <= otsu.threshold));
                     // TODO make this more efficient for floats.
                     //      is it possible to avoid converting it to an int twice? once here and once above
                     //      java version convert it into a U8 image and doesn't support float directly
@@ -459,21 +459,18 @@ namespace boofcv
             }
 
             // apply threshold
-            sum_type textureThreshold = (sum_type)this->minimumSpread;
+            auto textureThreshold = static_cast<sum_type>(this->minimumSpread);
             for (uint32_t y = y0; y < y1; y++) {
-                uint32_t indexInput = input.offset + y*input.stride + x0;
-                uint32_t indexOutput = output.offset + y*output.stride + x0;
-                for (uint32_t x = x0; x < x1; x++, indexOutput++, indexInput++ ) {
+                E* input_ptr = &input.data[input.offset + y*input.stride + x0];
+                U8* output_ptr = &output.data[output.offset + y*output.stride + x0];
 
+                for (uint32_t i = x1-x0; i ; i-- ) {
                     if( max-min <= textureThreshold ) {
-                        output.data[indexOutput] = 1;
+                        *output_ptr++ = 1;
+                        input_ptr++;
                     } else {
-                        sum_type average = static_cast<sum_type>(scale*((max+min)/2));
-                        if( down == input.data[indexInput] <= average ) {
-                            output.data[indexOutput] = 1;
-                        } else {
-                            output.data[indexOutput] = 0;
-                        }
+                        auto average = static_cast<sum_type>(scale*((max+min)/2));
+                        *output_ptr++ = static_cast<U8>( down == *input_ptr++ <= average );
                     }
                 }
             }
