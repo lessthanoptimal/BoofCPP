@@ -24,7 +24,6 @@ public class NativeLocalMean<T extends ImageGray<T>> extends NativeThresholdBase
         super.finalize();
     }
 
-
     public native void nativeprocess(T input, GrayU8 output);
     public native void nativedestroy();
     public native void nativeinit( ConfigLength regionWidth, double scale , boolean down );
