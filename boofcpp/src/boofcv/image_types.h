@@ -103,14 +103,14 @@ namespace boofcv {
 
         ~Gray() {
             if( !this->subimage ) {
-                this->width = 0;
-                this->height = 0;
-                this->data_length = 0;
-                this->offset = 0;
-                this->stride = 0;
                 delete[]this->data;
-                this->data = NULL;
             }
+            this->width = 0;
+            this->height = 0;
+            this->data_length = 0;
+            this->offset = 0;
+            this->stride = 0;
+            this->data = NULL;
         }
 
         void reshape( uint32_t width , uint32_t height ) override {

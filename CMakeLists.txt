@@ -14,6 +14,7 @@ option(test "Build all tests." ON) # Makes boolean 'test' available.
 enable_testing()
 
 add_subdirectory(boofcpp)
+add_subdirectory(benchmark)
 add_subdirectory(jni)
 
 add_subdirectory(gtest)

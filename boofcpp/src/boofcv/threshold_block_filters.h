@@ -33,7 +33,7 @@ namespace boofcv
      * @author Peter Abeles
      */
     template<class T, class S>
-    class ThresholdBlockCommon {
+    class ThresholdBlockCommon : public InputToBinary<T>{
     public: // NOTE: These would be protected but C++ doesn't make it easy to test protected data structures
         // Stores computed block statistics
         S stats;

@@ -109,7 +109,7 @@ namespace boofcv
          * @return Selected threshold.
          */
         template<class T>
-        static uint32_t computeOtsu(Gray<T> input , T min_value , T max_value , bool otsu2=false ) {
+        static uint32_t computeOtsu( const Gray<T>& input , T min_value , T max_value , bool otsu2=false ) {
 
             auto range = static_cast<uint32_t>(1+max_value - min_value);
             GrowArray<uint32_t> histogram(range);
