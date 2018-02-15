@@ -55,7 +55,6 @@ namespace boofcv {
             for( uint32_t i = 0; i < _number_of_blocks; i++ ) {
                 blocks[i] = new T[_size_of_block];
             }
-            start_new_set();
         }
 
         PackedSet() : PackedSet(2000) {}
@@ -66,6 +65,10 @@ namespace boofcv {
             }
             delete []blocks;
             blocks = nullptr;
+            _number_of_blocks = 0;
+            _size_of_block = 0;
+            _total_element = 0;
+
         }
 
         void reset() {
@@ -90,26 +93,32 @@ namespace boofcv {
          * Size of the tail set
          */
         uint32_t size_of_tail() const {
-            return set_info.end()->size;
+            if( set_info.size() == 0 )
+                return 0;
+            return set_info.back().size;
         }
 
         /**
          * Pushes the element on to the end of the tail set
          */
-        void push_into_tail( const T& element ) {
-            _add_element(element);
-            set_info.back().size++;
+        void push_tail( const T& element ) {
+            // if it's empty create a new set
+            if( set_info.size() == 0 )
+                start_new_set();
 
+            _add_element(element);
+
+            // increase the size of the tail set
+            set_info.back().size++;
         }
 
         /**
          * Adds an element to the end of the queue but does not modify any sets. For internal use only.
          */
         void _add_element( const T& element ) {
-            _total_element++;
-            uint32_t N = _total_element/_size_of_block;
-            if( N == _number_of_blocks ) {
-                T* tmp = new T*[N];
+            uint32_t block = _total_element/_size_of_block;
+            if( block == _number_of_blocks ) {
+                T** tmp = new T*[block+1];
                 for( uint32_t i = 0; i < _number_of_blocks; i++ ) {
                     tmp[i] = blocks[i];
                 }
@@ -118,15 +127,18 @@ namespace boofcv {
                 this->blocks = tmp;
                 this->_number_of_blocks++;
             }
-            this->blocks[N][_total_element%_size_of_block] = element;
+            this->blocks[block][_total_element%_size_of_block] = element;
+            _total_element++;
         }
 
         /**
          * Removes the set that's at the end.
          */
         void remove_tail_set() {
-            this->_total_element -= set_info.back().size;
-            this->set_info.pop_back();
+            if( set_info.size() > 0 ) {
+                this->_total_element -= set_info.back().size;
+                this->set_info.pop_back();
+            }
         }
 
         /**

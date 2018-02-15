@@ -278,7 +278,7 @@ namespace boofcv {
         void add( int x , int y ) {
             labeled->data[indexLabel] = label;
             if( storagePoints->size_of_tail() < maxContourSize ) {
-                storagePoints->push_into_tail( Point2D<S32>(x - 1, y - 1));
+                storagePoints->push_tail( Point2D<S32>(x - 1, y - 1));
             }
         }
 
