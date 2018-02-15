@@ -18,6 +18,24 @@ TEST(ImageMiscOps, fill) {
 
 }
 
+TEST(ImageMiscOps, fill_subimage) {
+    Gray<U8> image(5,6);
+    Gray<U8> subimage = image.makeSubimage(1,1,4,5);
+
+    ImageMiscOps::fill(subimage,(U8)8);
+
+    for( uint32_t y = 0; y < image.height; y++ ) {
+        for( uint32_t x = 0; x < image.width; x++ ) {
+            if( x >= 1 && x < image.width-1 && y >= 1 && y < image.height-1 ) {
+                ASSERT_EQ(8, image.at(x, y));
+            } else {
+                ASSERT_EQ(0, image.at(x, y));
+            }
+        }
+    }
+
+}
+
 TEST(ImageMiscOps, fill_border) {
     Gray<U8> image(5,6);
 

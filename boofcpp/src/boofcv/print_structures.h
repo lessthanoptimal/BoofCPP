@@ -2,6 +2,7 @@
 #define BOOFCPP_PRINT_STRUCTURES_H
 
 #include <stdio.h>
+#include "convolve.h"
 #include "sanity_checks.h"
 #include "testing_utils.h"
 
@@ -20,6 +21,20 @@ namespace boofcv {
             }
             printf("\n");
         }
+    }
+
+    template<typename E>
+    void print( const Gray<E>& a , typename std::enable_if<std::is_integral<E>::value>::type* = 0 ) {
+        printf("image %d x %d\n",a.width,a.height);
+
+        for( uint32_t y = 0; y < a.height; y++ ) {
+            printf("[ ");
+            for( uint32_t x = 0; x < a.width; x++ ) {
+                printf("%02x ",a.at(x,y));
+            }
+            printf(" ]\n");
+        }
+        printf("\n");
     }
 
     template<typename E>

@@ -9,10 +9,20 @@ namespace boofcv {
     public:
         template<class E>
         static void fill( Gray<E>& image , E value ) {
-            E* ptr = image.data;
-            E* end = &ptr[image.total_pixels()];
-            while( ptr != end ) {
-                *ptr++ = value;
+            if( image.subimage ) {
+                for( uint32_t y = 0; y < image.height; y++ ) {
+                    E *ptr = &image.data[image.offset + y*image.stride];
+                    E *end = &ptr[image.width];
+                    while (ptr != end) {
+                        *ptr++ = value;
+                    }
+                }
+            } else {
+                E *ptr = image.data;
+                E *end = &ptr[image.total_pixels()];
+                while (ptr != end) {
+                    *ptr++ = value;
+                }
             }
         }
 

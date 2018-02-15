@@ -153,7 +153,9 @@ namespace boofcv {
             }
         }
 
-        Gray<T> makeSubimage( uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1 ) {
+        Gray<T> makeSubimage( uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1 ) const {
+            if( x1 > this->width || y1 > this->height || x1 < x0 || y1 < y0 )
+                throw invalid_argument("Bounds are illegal");
             return Gray<T>(this->data,this->data_length,x1-x0,y1-y0,this->offset + y0*this->stride+x0, this->stride );
         }
 

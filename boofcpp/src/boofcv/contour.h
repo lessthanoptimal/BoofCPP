@@ -27,7 +27,7 @@ namespace boofcv {
     public:
 
         // Stops saving the contour when it meets or exceeds this value
-        uint32_t maxContourSize= std::numeric_limits<uint32_t>::max();
+        uint32_t maxContourSize = std::numeric_limits<uint32_t>::max();
 
         // which connectivity rule is being used. 4 and 8 supported
         ConnectRule rule;
@@ -103,7 +103,7 @@ namespace boofcv {
          * @param labeled Labeled image.  Size is the same as the original binary image without border.
          * @param storagePoints
          */
-        void setInputs( Gray<U8>& binary , Gray<S32>& labeled , PackedSet<Point2D<S32>>& storagePoints ) {
+        void set_inputs( Gray<U8>& binary , Gray<S32>& labeled , PackedSet<Point2D<S32>>& storagePoints ) {
             this->binary = &binary;
             this->labeled = &labeled;
             this->storagePoints = &storagePoints;
