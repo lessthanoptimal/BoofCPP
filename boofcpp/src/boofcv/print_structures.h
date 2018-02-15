@@ -32,7 +32,7 @@ namespace boofcv {
             for( uint32_t x = 0; x < a.width; x++ ) {
                 printf("%02x ",a.at(x,y));
             }
-            printf(" ]\n");
+            printf("]\n");
         }
         printf("\n");
     }
