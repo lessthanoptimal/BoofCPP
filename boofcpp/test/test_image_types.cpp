@@ -18,6 +18,24 @@ TEST(Gray, Constructor_WH) {
     }
 }
 
+TEST(Gray, Constructor_List) {
+    Gray<U8> imgA({{1,2},{4,5},{6,7}});
+
+    ASSERT_EQ(2,imgA.width);
+    ASSERT_EQ(3,imgA.height);
+    ASSERT_EQ(2,imgA.stride);
+    ASSERT_EQ(0,imgA.offset);
+    ASSERT_FALSE(imgA.subimage);
+    ASSERT_EQ(6,imgA.data_length);
+
+    ASSERT_EQ(1,imgA.data[0]);
+    ASSERT_EQ(2,imgA.data[1]);
+    ASSERT_EQ(4,imgA.data[2]);
+    ASSERT_EQ(5,imgA.data[3]);
+    ASSERT_EQ(6,imgA.data[4]);
+    ASSERT_EQ(7,imgA.data[5]);
+}
+
 TEST(Gray, Constructor_NoArguments) {
     Gray<U8> imgA;
 

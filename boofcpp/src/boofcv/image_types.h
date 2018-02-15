@@ -98,6 +98,31 @@ namespace boofcv {
             this->subimage = true;
         }
 
+        Gray(std::initializer_list<std::initializer_list<T>> l ){
+            this->height = static_cast<uint32_t >(l.size());
+
+            if( this->height == 0 ) {
+                this->width = 0;
+            } else {
+                this->width = static_cast<uint32_t >(l.begin()->size());
+            }
+            this->data = new T[this->width*this->height]();
+            this->data_length = this->width*this->height;
+            this->offset = 0;
+            this->stride = this->width;
+            this->subimage = false;
+            
+            T* ptr = this->data;
+            for (auto& x : l ) {
+                if( x.size() != this->width ) {
+                    throw invalid_argument("width missmatch");
+                }
+                for(auto& y : x ) {
+                    *ptr++ = y;
+                }
+            }
+        }
+
         Gray() : Gray(0,0) {
         }
 
