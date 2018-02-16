@@ -3,8 +3,6 @@
 #include "image_misc_ops.h"
 #include "image_statistics.h"
 
-#include "print_structures.h"
-
 using namespace std;
 using namespace boofcv;
 
@@ -36,7 +34,7 @@ void checkAllContour( const Gray<U8>& pattern , uint32_t expected_total,  Connec
 
             // process the image
             ImageMiscOps::fill(label,(S32)0);
-            queue.reset();
+            queue.clear();
             tracer.set_inputs(border,label,queue);
             tracer.trace(2,x+1,y+1,true);
 

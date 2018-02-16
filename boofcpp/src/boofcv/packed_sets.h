@@ -71,7 +71,7 @@ namespace boofcv {
 
         }
 
-        void reset() {
+        void clear() {
             this->set_info.clear();
             this->_total_element = 0;
         }
@@ -134,7 +134,7 @@ namespace boofcv {
         /**
          * Removes the set that's at the end.
          */
-        void remove_tail_set() {
+        void remove_tail() {
             if( set_info.size() > 0 ) {
                 this->_total_element -= set_info.back().size;
                 this->set_info.pop_back();
@@ -159,6 +159,10 @@ namespace boofcv {
             uint32_t b = set.block*_size_of_block + set.offset + index_element;
 
             return this->blocks[b / _size_of_block][b % _size_of_block];
+        }
+
+        uint32_t number_of_sets() {
+            return static_cast<uint32_t>(set_info.size());
         }
     };
 }

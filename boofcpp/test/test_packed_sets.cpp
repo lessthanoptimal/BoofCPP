@@ -126,7 +126,7 @@ TEST(PackedSet, reset) {
     packed.start_new_set();
     packed.push_tail(TD(6,5));
 
-    packed.reset();
+    packed.clear();
     ASSERT_EQ(1,packed._number_of_blocks);
     ASSERT_EQ(100,packed._size_of_block);
     ASSERT_EQ(0,packed._total_element);
@@ -166,15 +166,15 @@ TEST(PackedSet, remove_tail_set) {
     ASSERT_EQ(2,packed.set_info.at(0).size);
     ASSERT_EQ(1,packed.set_info.at(1).size);
 
-    packed.remove_tail_set();
+    packed.remove_tail();
     ASSERT_EQ(2,packed._total_element);
     ASSERT_EQ(1,packed.set_info.size());
 
-    packed.remove_tail_set();
+    packed.remove_tail();
     ASSERT_EQ(0,packed._total_element);
     ASSERT_EQ(0,packed.set_info.size());
 
-    packed.remove_tail_set();
+    packed.remove_tail();
     ASSERT_EQ(0,packed._total_element);
     ASSERT_EQ(0,packed.set_info.size());
 }

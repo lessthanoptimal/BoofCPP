@@ -6,6 +6,7 @@
 #include "base_types.h"
 #include "packed_sets.h"
 #include "geometry_types.h"
+#include "image_misc_ops.h"
 
 namespace boofcv {
 
@@ -288,6 +289,212 @@ namespace boofcv {
 
         ConnectRule getConnectRule() {
             return rule;
+        }
+    };
+
+    /**
+     * Internal and externals contours for a binary blob with the actual points stored in a
+     * {@link boofcv.struct.PackedSetsPoint2D_I32}.  The set of points in each contour list are ordered in
+     * CW or CCW directions.
+     *
+     * @author Peter Abeles
+     */
+    class ContourPacked {
+    public:
+        /**
+         * ID of blob in the image.  Pixels belonging to this blob in the labeled image will have this pixel value.
+         */
+        uint32_t id;
+
+        /**
+         * Index in the packed list of the external contour
+         */
+        uint32_t externalIndex;
+        /**
+         * Number of internal contours. Their ID = external + 1 + internal index
+         */
+        std::vector<uint32_t> internalIndexes;
+
+        void reset() {
+            id = std::numeric_limits<uint32_t>::max();
+            externalIndex = std::numeric_limits<uint32_t>::max();
+            internalIndexes.clear();
+        }
+    };
+
+    /**
+     * <p>
+     * Finds objects in a binary image by tracing their contours.  The output is labeled binary image, set of external
+     * and internal contours for each object/blob.  Blobs can be defined using a 4 or 8 connect rule.  The algorithm
+     * works by processing the image in a single pass.  When a new object is encountered its contour is traced.  Then
+     * the inner pixels are labeled.  If an internal contour is found it will also be traced.  See [1] for all
+     * the details.  The original algorithm has been modified to use different connectivity rules.
+     * </p>
+     *
+     * <p>
+     * Output: Background pixels (0 in input image) are assigned a value of 0, Each blob is then assigned a unique
+     * ID starting from 1 up to the number of blobs.
+     * </p>
+     *
+     * <p>The maximum contour size says how many elements are allowed in a contour. if that number is exceeded
+     * by the external contour the external contour will be zeroed. Internal contours that exceed it will
+     * be discarded. Note that the all external and internal contours will still be traversed they will
+     * just not be recorded if too large.</p>
+     *
+     * <p>
+     * Internally, the input binary image is copied into another image which will have a 1 pixel border of all zeros
+     * around it.  This ensures that boundary checks will not need to be done, speeding up the algorithm by about 25%.
+     * </p>
+     *
+     * <p>
+     * [1] Fu Chang and Chun-jen Chen and Chi-jen Lu, "A linear-time component-labeling algorithm using contour
+     * tracing technique" Computer Vision and Image Understanding, 2004
+     * </p>
+     *
+     * @author Peter Abeles
+     */
+    class LinearContourLabelChang2004 {
+    public:
+
+        // The maximum number of elements in a contour that will be recorded
+        uint32_t minContourSize = 0;
+        // The maximum number of elements in a contour that will be recorded
+        uint32_t maxContourSize = std::numeric_limits<uint32_t>::max();
+        // If false it will not save internal contours as they are found
+        bool saveInternalContours = true;
+
+        // traces edge pixels
+        ContourTracer tracer;
+
+        // binary image with a border of zero.
+        Gray<U8> border;
+
+        // predeclared/recycled data structures
+        PackedSet<Point2D<S32>> packedPoints;
+        std::vector<ContourPacked> contours;
+
+        // internal book keeping variables
+        uint32_t x,y,indexIn,indexOut;
+
+        /**
+         * Configures the algorithm.
+         *
+         * @param rule Connectivity rule.  4 or 8
+         */
+        LinearContourLabelChang2004( ConnectRule rule ) : tracer(rule) , packedPoints(2000){
+        }
+
+        /**
+         * Processes the binary image to find the contour of and label blobs.
+         *
+         * @param binary Input binary image. Not modified.
+         * @param labeled Output. Labeled image.  Modified.
+         */
+        void process( const Gray<U8>& binary , Gray<S32>& labeled ) {
+            // initialize data structures
+            labeled.reshape(binary.width,binary.height);
+
+            // ensure that the image border pixels are filled with zero by enlarging the image
+            if( border.width != binary.width+2 || border.height != binary.height+2)  {
+                border.reshape(binary.width + 2, binary.height + 2);
+                ImageMiscOps::fill_border(border, (U8)0, 1);
+            }
+            border.makeSubimage(1,1,border.width-1,border.height-1).setTo(binary);
+
+            // labeled image must initially be filled with zeros
+            ImageMiscOps::fill(labeled,(S32)0);
+
+            packedPoints.clear();
+            contours.clear();
+            tracer.set_inputs(border,labeled, packedPoints);
+
+            // Outside border is all zeros so it can be ignored
+            uint32_t endY = border.height-1, enxX = border.width-1;
+            for( y = 1; y < endY; y++ ) {
+                indexIn = border.offset + y*border.stride+1;
+                indexOut = labeled.offset + (y-1)*labeled.stride;
+
+                for( x = 1; x < enxX; x++ , indexIn++ , indexOut++) {
+                    U8 bit = border.data[indexIn];
+
+                    // white pixels are ignored
+                    if( bit != 1 )
+                        continue;
+
+                    auto label = static_cast<uint32_t>(labeled.data[indexOut]);
+                    bool handled = false;
+                    if( label == 0 && border.data[indexIn - border.stride ] != 1 ) {
+                        handleStep1();
+                        handled = true;
+                        label = static_cast<uint32_t>(contours.size());
+                    }
+                    // could be an external and internal contour
+                    if( border.data[indexIn + border.stride ] == 0 ) {
+                        handleStep2(labeled, label);
+                        handled = true;
+                    }
+                    if( !handled ) {
+                        handleStep3(labeled);
+                    }
+                }
+            }
+        }
+
+        /**
+         *  Step 1: If the pixel is unlabeled and the pixel above is white, then it
+         *          must be an external contour of a newly encountered blob.
+         */
+        void handleStep1() {
+            // grow the number of contours by 1
+            contours.push_back(ContourPacked());
+            ContourPacked &c = contours.back();
+            c.id = static_cast<uint32_t>(contours.size());
+            tracer.setMaxContourSize(maxContourSize);
+            // save the set index for this contour and declare memory for it
+            c.externalIndex = packedPoints.number_of_sets();
+            packedPoints.start_new_set();
+            c.internalIndexes.clear();
+            tracer.trace(c.id,x,y,true);
+
+            // Keep track that this was a contour, but free up all the points used in defining it
+            if( packedPoints.size_of_tail() >= maxContourSize || packedPoints.size_of_tail() < minContourSize ) {
+                packedPoints.remove_tail();
+            }
+        }
+
+        /**
+         * Step 2: If the pixel below is unmarked and white then it must be an internal contour
+         *         Same behavior it the pixel in question has been labeled or not already
+         */
+        void handleStep2(Gray<S32>& labeled, uint32_t label) {
+            // if the blob is not labeled and in this state it cannot be against the left side of the image
+            if( label == 0 )
+                label = static_cast<uint32_t>(labeled.data[indexOut-1]);
+
+            ContourPacked& c = contours.at(label-1);
+            c.internalIndexes.push_back( packedPoints.size_of_tail() );
+            packedPoints.start_new_set();
+            tracer.setMaxContourSize(saveInternalContours?maxContourSize:0);
+            tracer.trace(label,x,y,false);
+
+            // See if the inner contour exceeded the maximum  or minimum size. If so free its points
+            if( packedPoints.size_of_tail() >= maxContourSize || packedPoints.size_of_tail() < minContourSize ) {
+                packedPoints.remove_tail();
+                packedPoints.start_new_set();
+            }
+        }
+
+        /**
+         * Step 3: Must not be part of the contour but an inner pixel and the pixel to the left must be
+         *         labeled
+         */
+        void handleStep3(Gray<S32>& labeled) {
+            if( labeled.data[indexOut] == 0 )
+                labeled.data[indexOut] = labeled.data[indexOut-1];
+        }
+
+        ConnectRule getConnectRule() {
+            return tracer.getConnectRule();
         }
     };
 }
