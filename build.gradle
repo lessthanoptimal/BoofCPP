@@ -1,0 +1,11 @@
+allprojects {
+    apply plugin: 'idea'
+    apply plugin: 'eclipse'
+
+    group = 'org.boofcpp'
+    version = '0.29-SNAPSHOT'
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '4.3'
+}
