@@ -39,9 +39,8 @@ namespace boofcv {
                 E* ptr_back = &input.data[ indexIn ];
                 uint32_t N = input.width - kernelWidth;
 
-                for( uint32_t i = N; i > 0; i-- ) {
-                    total -= *ptr_front++;
-                    total += *ptr_back++;
+                for( uint32_t i = N; i; i-- ) {
+                    total = (total - *ptr_front++) + *ptr_back++;
 
                     *ptr_out++ = static_cast<E>((total+halfDivisor)/divisor);
                 }
@@ -75,9 +74,8 @@ namespace boofcv {
                 E* ptr_back = &input.data[ indexIn ];
                 uint32_t N = input.width - kernelWidth;
 
-                for( uint32_t i = N; i > 0; i-- ) {
-                    total -= *ptr_front++;
-                    total += *ptr_back++;
+                for( uint32_t i = N; i; i-- ) {
+                    total = (total - *ptr_front++) + *ptr_back++;
 
                     *ptr_out++ = static_cast<E>(total/divisor);
                 }
