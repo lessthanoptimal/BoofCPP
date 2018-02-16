@@ -58,9 +58,17 @@ make -j8
 
 Then to install the Java library invoke the following command:
 ```bash
-cd boofcpp/jni
+cd boofcpp
 ./gradlew install
 ```
+
+Android build and installation:
+```bash
+cd boofcpp/android
+../gradlew uploadArchives
+```
+Currently Android doesn't like JDK 1.9 so you will need to switch to JDK 1.8 if you are using that.
+
 
 # Design Comments
 
