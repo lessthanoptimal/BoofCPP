@@ -2,6 +2,7 @@
 #include "contour.h"
 #include "image_misc_ops.h"
 #include "image_statistics.h"
+#include "image_border.h"
 
 using namespace std;
 using namespace boofcv;
@@ -213,4 +214,217 @@ TEST(PackedSet, mark_white) {
                 ASSERT_EQ(after.at(j,i),before.at(j,i));
         }
     }
+}
+
+class TestLinearContourLabelChang2004 {
+public:
+    Gray<U8> TEST1;
+    Gray<U8> TEST2;
+    Gray<U8> TEST3;
+    Gray<U8> TEST4;
+
+    std::vector<Point2D<S32>> local;
+
+    TestLinearContourLabelChang2004() {
+        TEST1 = Gray<U8>({{0,0,0,0,0,0,0,1,0,0,0,1,1},
+                          {0,0,0,0,0,0,0,1,0,0,0,1,1},
+                          {0,0,0,0,0,0,0,1,0,0,1,1,0},
+                          {0,0,0,0,0,0,0,0,1,1,1,1,0},
+                          {0,0,1,0,0,0,0,0,1,1,1,0,0},
+                          {0,0,1,0,0,0,1,1,1,1,1,0,0},
+                          {1,1,1,1,1,1,1,1,1,1,0,0,0},
+                          {0,0,0,1,1,1,1,1,0,0,0,0,0}});
+
+        TEST2 = Gray<U8>({{0,0,1,0,0,0,0,1,0,0,0,0,0},
+                          {0,1,0,1,0,0,1,0,0,1,0,0,0},
+                          {0,0,1,0,0,1,0,1,0,1,1,1,0},
+                          {0,0,0,0,1,0,0,0,1,1,1,1,0},
+                          {0,0,1,0,1,0,0,0,1,0,0,0,0},
+                          {0,0,0,0,1,0,1,1,1,0,1,1,0},
+                          {1,1,1,0,0,1,0,0,1,0,0,1,0},
+                          {0,0,0,1,1,1,1,1,0,0,0,0,0}});
+
+        TEST3 = Gray<U8>({{0,0,0,0,0},
+                          {0,1,1,1,0},
+                          {0,1,1,1,0},
+                          {0,1,0,1,0},
+                          {0,1,1,1,0},
+                          {0,0,1,0,0},
+                          {0,0,0,0,0}});
+
+        TEST4 = Gray<U8>({{0,0,0,0,0,0,0},
+                          {0,0,1,1,1,1,1},
+                          {0,1,0,1,1,1,1},
+                          {0,1,1,1,0,1,1},
+                          {0,1,1,1,1,1,1},
+                          {0,1,1,1,1,1,1},
+                          {0,1,1,1,1,1,1},
+                          {0,0,0,0,0,0,0}});
+
+        local.push_back(Point2D<S32>(-1,-1));
+        local.push_back(Point2D<S32>( 0,-1));
+        local.push_back(Point2D<S32>( 1,-1));
+        local.push_back(Point2D<S32>( 1, 0));
+        local.push_back(Point2D<S32>( 1, 1));
+        local.push_back(Point2D<S32>( 0, 1));
+        local.push_back(Point2D<S32>(-1, 1));
+        local.push_back(Point2D<S32>(-1, 0));
+        local.push_back(Point2D<S32>(-1, -1));
+    }
+
+    /**
+     * Create an unordered list of all points in the internal and external contour
+     */
+    vector<Point2D<S32>> findContour8(Gray<S32> labeled, S32 target) {
+        vector<Point2D<S32>> list;
+
+        ImageBorderValue<S32> border(labeled,(S32)0);
+
+        for( uint32_t y = 0; y < labeled.height; y++ ) {
+            for( uint32_t x = 0; x < labeled.width; x++ ) {
+                if( target == labeled.at(x,y) ) {
+
+                    bool isContour = false;
+                    for( uint32_t i = 0; i < local.size()-1; i++ ) {
+                        Point2D<S32>& a = local.at(i);
+                        Point2D<S32>& b = local.at(i+1);
+
+                        if( border.get( x + a.x, y + a.y) != target && border.get(x + b.x, y + b.y) != target ) {
+                            isContour = true;
+                            break;
+                        }
+                    }
+
+                    if( !isContour && border.get( x + 1, y) != target)
+                        isContour = true;
+                    if( !isContour && border.get( x - 1, y) != target)
+                        isContour = true;
+                    if( !isContour && border.get( x, y + 1) != target)
+                        isContour = true;
+                    if( !isContour && border.get( x, y - 1) != target)
+                        isContour = true;
+
+                    if( isContour )
+                        list.push_back( Point2D<S32> (x,y) );
+                }
+            }
+        }
+        return list;
+    }
+
+    std::vector<Point2D<S32>> findContour4(Gray<S32>& labeled, S32 target) {
+        vector<Point2D<S32>> list;
+
+        ImageBorderValue<S32> border(labeled,(S32)0);
+
+        for( uint32_t y = 0; y < labeled.height; y++ ) {
+            for( uint32_t x = 0; x < labeled.width; x++ ) {
+                if( target == labeled.at(x,y) ) {
+
+                    bool isContour = false;
+                    for( uint32_t i = 0; i < local.size(); i++ ) {
+                        Point2D<S32>& a = local.at(i);
+                        if( border.get(x + a.x, y + a.y) != target ) {
+                            isContour = true;
+                        }
+                    }
+
+                    if( isContour )
+                        list.push_back( Point2D<S32>(x,y) );
+                }
+            }
+        }
+        return list;
+    }
+
+    void addPointsToList( LinearContourLabelChang2004& alg , uint32_t set , std::vector<Point2D<S32>>& list ) {
+        uint32_t length = alg.packedPoints.set_info.at(set).size;
+
+        for( uint32_t i = 0; i < length; i++ ) {
+            list.push_back( alg.packedPoints.at(set,i));
+        }
+    }
+
+    vector<Point2D<S32>> removeDuplicates( vector<Point2D<S32>>& list ) {
+        vector<Point2D<S32>> ret;
+
+        for( uint32_t i = 0; i < list.size(); i++ ) {
+            Point2D<S32> &p = list.at(i);
+            bool matched = false;
+            for( uint32_t j = i+1; j < list.size(); j++ ) {
+                Point2D<S32> &c = list.at(j);
+                if( p.x == c.x && p.y == c.y ) {
+                    matched = true;
+                    break;
+                }
+            }
+            if( !matched ) {
+                ret.push_back(p);
+            }
+        }
+        return ret;
+    }
+
+    /**
+     * Creates a list of every pixel with the specified label that is on the contour.  Removes duplicate points
+     * in the found contour.  Sees if the two lists are equivalent.
+     *
+     * @param rule Which connectivity rule is being tested
+     */
+    void checkContour(LinearContourLabelChang2004& alg, Gray<S32>& labeled , ConnectRule rule ) {
+
+        std::vector<ContourPacked>&contours = alg.contours;
+
+        for( size_t i = 0; i < contours.size(); i++ ) {
+//			System.out.println("=================== Contour "+i);
+            ContourPacked& c = contours.at(i);
+
+            ASSERT_TRUE(c.id > 0 );
+
+            std::vector<Point2D<S32>> found;
+            addPointsToList(alg,c.externalIndex,found);
+            for(uint32_t j = 0; j < c.internalIndexes.size(); j++ ) {
+                addPointsToList(alg,c.internalIndexes.at(j),found);
+            }
+
+            // there can be duplicate points, remove them
+            found = removeDuplicates(found);
+
+            // see if the two lists are equivalent
+            std::vector<Point2D<S32>> expected = rule == ConnectRule::EIGHT ? findContour8(labeled, c.id) : findContour4(labeled, c.id);
+
+//			labeled.print();
+//			System.out.println("------------------");
+//			print(found,labeled.width,labeled.height);
+//			print(expected,labeled.width,labeled.height);
+
+            ASSERT_EQ(expected.size(),found.size());
+
+            for( Point2D<S32> f : found ) {
+                bool match = false;
+                for( uint32_t j = 0; j < expected.size(); j++ ) {
+                    Point2D<S32> &e = expected.at(j);
+                    if( f.x == e.x && f.y == e.y ) {
+                        match = true;
+                        break;
+                    }
+                }
+                ASSERT_TRUE(match);
+            }
+        }
+    }
+};
+
+
+TEST(LinearContourLabelChang2004, test1_4) {
+    TestLinearContourLabelChang2004 testing;
+
+    Gray<U8> &input = testing.TEST1;
+
+    Gray<S32> labeled(input.width,input.height);
+    LinearContourLabelChang2004 alg(ConnectRule::FOUR);
+    alg.process(input, labeled);
+
+    ASSERT_EQ(2, alg.contours.size());
+    testing.checkContour(alg, labeled, ConnectRule::FOUR);
 }

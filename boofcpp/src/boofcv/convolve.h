@@ -10,6 +10,7 @@
 #include "base_types.h"
 #include "image_types.h"
 #include "sanity_checks.h"
+#include "image_border.h"
 
 namespace boofcv {
 
@@ -149,39 +150,6 @@ namespace boofcv {
             for( uint32_t i = 0; i < kernel.width; i++ ) {
                 kernel.data[i] /= sum;
             }
-        }
-    };
-
-    template< class E>
-    class ImageBorder {
-    public:
-        const Gray<E>* image;
-
-        void setImage( const Gray<E>& image ) {
-            this->image = &image;
-        }
-
-        E get( int32_t x , int32_t y) const {
-            if( image->isInBounds(x,y)) {
-                return image->at(x,y);
-            }
-            return outside_get(x,y);
-        }
-
-        virtual E outside_get( int32_t x , int32_t y ) const = 0;
-    };
-
-    template< class E>
-    class ImageBorderValue : public ImageBorder<E> {
-    public:
-        E value;
-
-        ImageBorderValue( E value ) {
-            this->value = value;
-        }
-
-        E outside_get( int32_t x , int32_t y ) const override {
-            return this->value;
         }
     };
 
