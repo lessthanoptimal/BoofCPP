@@ -4,6 +4,8 @@
 #include "image_statistics.h"
 #include "image_border.h"
 
+#include "print_structures.h"
+
 using namespace std;
 using namespace boofcv;
 
@@ -275,7 +277,7 @@ public:
     /**
      * Create an unordered list of all points in the internal and external contour
      */
-    vector<Point2D<S32>> findContour8(Gray<S32> labeled, S32 target) {
+    vector<Point2D<S32>> findContour8(Gray<S32>& labeled, S32 target) {
         vector<Point2D<S32>> list;
 
         ImageBorderValue<S32> border(labeled,(S32)0);
@@ -427,4 +429,87 @@ TEST(LinearContourLabelChang2004, test1_4) {
 
     ASSERT_EQ(2, alg.contours.size());
     testing.checkContour(alg, labeled, ConnectRule::FOUR);
+}
+
+TEST(LinearContourLabelChang2004, test1_8) {
+    TestLinearContourLabelChang2004 testing;
+
+    Gray<U8> &input = testing.TEST1;
+
+    Gray<S32> labeled(input.width,input.height);
+    LinearContourLabelChang2004 alg(ConnectRule::EIGHT);
+    alg.process(input, labeled);
+
+    ASSERT_EQ(1, alg.contours.size());
+    testing.checkContour(alg, labeled, ConnectRule::EIGHT);
+}
+
+TEST(LinearContourLabelChang2004, test2_4) {
+    TestLinearContourLabelChang2004 testing;
+
+    Gray<U8> &input = testing.TEST2;
+
+    Gray<S32> labeled(input.width,input.height);
+    LinearContourLabelChang2004 alg(ConnectRule::FOUR);
+    alg.process(input, labeled);
+
+    ASSERT_EQ(14, alg.contours.size());
+    testing.checkContour(alg, labeled, ConnectRule::FOUR);
+}
+
+TEST(LinearContourLabelChang2004, test2_8) {
+    TestLinearContourLabelChang2004 testing;
+
+    Gray<U8> &input = testing.TEST2;
+
+    Gray<S32> labeled(input.width,input.height);
+    LinearContourLabelChang2004 alg(ConnectRule::EIGHT);
+    alg.process(input, labeled);
+
+    ASSERT_EQ(4, alg.contours.size());
+    testing.checkContour(alg, labeled, ConnectRule::EIGHT);
+}
+
+TEST(LinearContourLabelChang2004, test3_4) {
+    TestLinearContourLabelChang2004 testing;
+
+    Gray<U8> &input = testing.TEST4;
+
+    Gray<S32> labeled(input.width,input.height);
+    LinearContourLabelChang2004 alg(ConnectRule::FOUR);
+    alg.process(input, labeled);
+
+    ASSERT_EQ(1, alg.contours.size());
+    testing.checkContour(alg, labeled, ConnectRule::FOUR);
+}
+
+TEST(LinearContourLabelChang2004, test3_8) {
+    TestLinearContourLabelChang2004 testing;
+
+    Gray<U8> &input = testing.TEST4;
+
+    Gray<S32> labeled(input.width,input.height);
+    LinearContourLabelChang2004 alg(ConnectRule::EIGHT);
+    alg.process(input, labeled);
+
+    ASSERT_EQ(1, alg.contours.size());
+    testing.checkContour(alg, labeled, ConnectRule::EIGHT);
+}
+
+TEST(LinearContourLabelChang2004, checkInnerOuterContour) {
+    TestLinearContourLabelChang2004 testing;
+
+    Gray<U8> &input = testing.TEST3;
+
+    Gray<S32> labeled(input.width,input.height);
+    LinearContourLabelChang2004 alg(ConnectRule::EIGHT);
+    alg.process(input, labeled);
+
+    ASSERT_EQ(1, alg.contours.size());
+    testing.checkContour(alg, labeled, ConnectRule::EIGHT);
+
+    ContourPacked& c = alg.contours.at(0);
+    ASSERT_EQ(10, alg.packedPoints.set_info.at(c.externalIndex).size);
+    ASSERT_EQ(1,  c.internalIndexes.size());
+    ASSERT_EQ(4,  alg.packedPoints.set_info.at(c.externalIndex+1).size);
 }

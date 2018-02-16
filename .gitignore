@@ -1,4 +1,5 @@
 .gradle
+.idea/*
 .idea/libraries
 *.class
 *.jar

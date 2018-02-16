@@ -315,6 +315,13 @@ namespace boofcv {
          */
         std::vector<uint32_t> internalIndexes;
 
+        ContourPacked() :
+                id(std::numeric_limits<uint32_t>::max()),
+                externalIndex(std::numeric_limits<uint32_t>::max())
+        {
+
+        }
+
         void reset() {
             id = std::numeric_limits<uint32_t>::max();
             externalIndex = std::numeric_limits<uint32_t>::max();
@@ -459,6 +466,7 @@ namespace boofcv {
             // Keep track that this was a contour, but free up all the points used in defining it
             if( packedPoints.size_of_tail() >= maxContourSize || packedPoints.size_of_tail() < minContourSize ) {
                 packedPoints.remove_tail();
+                packedPoints.start_new_set();
             }
         }
 
@@ -472,7 +480,7 @@ namespace boofcv {
                 label = static_cast<uint32_t>(labeled.data[indexOut-1]);
 
             ContourPacked& c = contours.at(label-1);
-            c.internalIndexes.push_back( packedPoints.size_of_tail() );
+            c.internalIndexes.push_back( (uint32_t)packedPoints.set_info.size() );
             packedPoints.start_new_set();
             tracer.setMaxContourSize(saveInternalContours?maxContourSize:0);
             tracer.trace(label,x,y,false);

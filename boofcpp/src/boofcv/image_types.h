@@ -174,7 +174,7 @@ namespace boofcv {
             }
             // This will handle the situation where all of some of the images are sub-images
             for( uint32_t y = 0; y < this->height; y++ ) {
-                memcpy(this->data+this->offset+y*this->stride,src.data+src.offset+y*src.stride,src.width);
+                memcpy(&this->data[this->offset+y*this->stride],&src.data[src.offset+y*src.stride], sizeof(T)*src.width);
             }
         }
 
@@ -186,6 +186,14 @@ namespace boofcv {
 
         uint32_t index_of( uint32_t x , uint32_t y ) const {
             return this->offset + y*this->stride + x;
+        }
+
+        Gray<T>& operator=(const Gray<T>& other) // copy assignment
+        {
+            if (this != &other) { // self-assignment check expected
+                this->setTo(other);
+            }
+            return *this;
         }
     };
 
