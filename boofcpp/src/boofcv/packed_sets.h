@@ -147,11 +147,12 @@ namespace boofcv {
          * @param index_element Which element in the set
          * @return The element
          */
-        T& at( uint32_t index_set , uint32_t index_element ) const {
+        T& at( uint32_t index_set , uint32_t index_element ) const
+        {
             if( index_set >= set_info.size()  )
                 throw std::invalid_argument("set out of range");
 
-            const PackedSetInfo& set = set_info[index_set];
+            const PackedSetInfo& set = set_info.at(index_set);
 
             if( index_element >= set.size )
                 throw std::invalid_argument("element out of range");
@@ -159,6 +160,29 @@ namespace boofcv {
             uint32_t b = set.block*_size_of_block + set.offset + index_element;
 
             return this->blocks[b / _size_of_block][b % _size_of_block];
+        }
+
+        void load_set( uint32_t index_set , std::vector<T>& output ) const
+        {
+            const PackedSetInfo& set = set_info.at(index_set);
+
+            for( uint32_t i = 0; i < set.size; i++ ) {
+                uint32_t b = set.block*_size_of_block + set.offset + i;
+                output.push_back( this->blocks[b / _size_of_block][b % _size_of_block] );
+            }
+        }
+
+        void write_set( uint32_t index_set , const std::vector<T>& input )
+        {
+            const PackedSetInfo& set = set_info.at(index_set);
+
+            if( input.size() != set.size )
+                throw std::invalid_argument("sizes do not match");
+
+            for( uint32_t i = 0; i < set.size; i++ ) {
+                uint32_t b = set.block*_size_of_block + set.offset + i;
+                this->blocks[b / _size_of_block][b % _size_of_block] = input[i];
+            }
         }
 
         uint32_t number_of_sets() {

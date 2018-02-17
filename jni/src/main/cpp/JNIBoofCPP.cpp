@@ -2,6 +2,63 @@
 
 using namespace boofcv;
 
+
+WrapJGrowQueue_I32::WrapJGrowQueue_I32(JNIEnv *env, jobject jobj)
+: env(env), jobj(jobj), data(nullptr), size(0)
+{
+    jclass objClass = env->GetObjectClass(jobj);
+    fid_data = safe_GetFieldID(env,objClass,"data","[I");
+    fid_size = safe_GetFieldID(env,objClass,"size","I");
+
+    this->array_object = (jarray)env->GetObjectField (jobj, fid_data);
+    if( array_object == nullptr ) {
+        throw "array object is null";
+    }
+
+    this->array_length = env->GetArrayLength((jfloatArray)array_object);
+    this->size = env->GetIntField(jobj,fid_size);
+    this->data = (jint *)env->GetPrimitiveArrayCritical(array_object, 0);
+}
+
+WrapJGrowQueue_I32::~WrapJGrowQueue_I32() {
+    if( this->data != nullptr ) {
+        this->env->ReleasePrimitiveArrayCritical(array_object, this->data, 0);
+        this->data = nullptr;
+    }
+}
+
+void WrapJGrowQueue_I32::setTo( const std::vector<uint32_t>& input ) {
+    if( input.size() != this->size ) {
+        resize((uint32_t)input.size());
+    }
+    for (int i = 0; i < this->size; ++i) {
+        this->data[i] = input[i];
+    }
+}
+
+void WrapJGrowQueue_I32::resize( uint32_t desired ) {
+    if( desired == this->size )
+        return;
+
+    jclass objClass = env->GetObjectClass(jobj);
+    jmethodID mid =  env->GetMethodID(objClass, "resize", "(V)I");
+    env->CallObjectMethod(jobj,mid,(jint)desired);
+    this->size = desired;
+
+    // See if the array has been resized
+    if( desired > this->array_length ) {
+        // Array could have been reallocated
+        this->env->ReleasePrimitiveArrayCritical(array_object, this->data, 0);
+        this->array_object = (jarray) env->GetObjectField(jobj, fid_data);
+        if (array_object == nullptr) {
+            throw "array object is null";
+        }
+
+        this->data = (jint *) env->GetPrimitiveArrayCritical(array_object, 0);
+        this->array_length = env->GetArrayLength((jfloatArray)array_object);
+    }
+}
+
 jfieldID safe_GetFieldID( JNIEnv *env, jclass& objClass, const char* name , const char* type)
 {
     jfieldID fid = env->GetFieldID(objClass, name, type);
@@ -74,16 +131,13 @@ JImageInfoF32 extractInfoF32( JNIEnv *env, jobject& jimage ) {
     return ret;
 }
 
-JImageCritical extractInfoCritical( JNIEnv *env, jobject& jimage , bool isbyte ) {
+JImageCritical extractInfoCritical( JNIEnv *env, jobject& jimage , const char*type ) {
     JImageCritical ret;
 
     jclass objClass = env->GetObjectClass(jimage);
     jfieldID fid;
 
-    if( isbyte )
-        fid = env->GetFieldID(objClass, "data", "[B");
-    else
-        fid = env->GetFieldID(objClass, "data", "[F");
+    fid = env->GetFieldID(objClass, "data", type);
     if( env->ExceptionCheck() ) {
         env->ExceptionDescribe();
         throw "Get field ID for data failed";
@@ -106,11 +160,15 @@ JImageCritical extractInfoCritical( JNIEnv *env, jobject& jimage , bool isbyte )
 }
 
 JImageCritical extractInfoCriticalU8( JNIEnv *env, jobject& jimage ) {
-    return extractInfoCritical(env,jimage,true);
+    return extractInfoCritical(env,jimage,"[B");
+}
+
+JImageCritical extractInfoCriticalS32( JNIEnv *env, jobject& jimage ) {
+    return extractInfoCritical(env,jimage,"[I");
 }
 
 JImageCritical extractInfoCriticalF32( JNIEnv *env, jobject& jimage ) {
-    return extractInfoCritical(env,jimage,false);
+    return extractInfoCritical(env,jimage,"[F");
 }
 
 ImageAndInfo<boofcv::Gray<boofcv::U8>,JImageInfoU8> wrapGrayU8( JNIEnv *env, jobject& jimage ) {
@@ -145,6 +203,19 @@ ImageAndInfo<boofcv::Gray<boofcv::U8>,JImageCritical> wrapCriticalGrayU8( JNIEnv
 
     output.info = inputInfo;
     output.image = Gray<U8>((U8*)inputInfo.data,(uint32_t)inputInfo.dataLength,
+                            (uint32_t)inputInfo.width,(uint32_t)inputInfo.height,
+                            (uint32_t)inputInfo.offset,(uint32_t)inputInfo.stride);
+
+    return output;
+}
+
+ImageAndInfo<boofcv::Gray<boofcv::S32>,JImageCritical> wrapCriticalGrayS32( JNIEnv *env, jobject& jimage ) {
+    ImageAndInfo<boofcv::Gray<boofcv::S32>,JImageCritical> output;
+
+    JImageCritical inputInfo = extractInfoCriticalS32(env,jimage);
+
+    output.info = inputInfo;
+    output.image = Gray<S32>((S32*)inputInfo.data,(uint32_t)inputInfo.dataLength,
                             (uint32_t)inputInfo.width,(uint32_t)inputInfo.height,
                             (uint32_t)inputInfo.offset,(uint32_t)inputInfo.stride);
 

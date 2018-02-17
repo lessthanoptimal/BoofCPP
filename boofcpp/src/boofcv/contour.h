@@ -371,7 +371,11 @@ namespace boofcv {
         bool saveInternalContours = true;
 
         // traces edge pixels
-        ContourTracer tracer;
+        ContourTracer tracer4;
+        ContourTracer tracer8;
+        ContourTracer *tracer;
+        // which rule is active
+        ConnectRule rule;
 
         // binary image with a border of zero.
         Gray<U8> border;
@@ -388,7 +392,11 @@ namespace boofcv {
          *
          * @param rule Connectivity rule.  4 or 8
          */
-        LinearContourLabelChang2004( ConnectRule rule ) : tracer(rule) , packedPoints(2000){
+        LinearContourLabelChang2004( ConnectRule rule ) :
+                rule(rule) ,
+                tracer4(ConnectRule::FOUR) ,
+                tracer8(ConnectRule::EIGHT) ,
+                packedPoints(2000){
         }
 
         /**
@@ -413,7 +421,10 @@ namespace boofcv {
 
             packedPoints.clear();
             contours.clear();
-            tracer.set_inputs(border,labeled, packedPoints);
+
+            tracer = rule == ConnectRule::FOUR ? &tracer4 : &tracer8;
+
+            tracer->set_inputs(border,labeled, packedPoints);
 
             // Outside border is all zeros so it can be ignored
             uint32_t endY = border.height-1, enxX = border.width-1;
@@ -456,12 +467,12 @@ namespace boofcv {
             contours.push_back(ContourPacked());
             ContourPacked &c = contours.back();
             c.id = static_cast<uint32_t>(contours.size());
-            tracer.setMaxContourSize(maxContourSize);
+            tracer->setMaxContourSize(maxContourSize);
             // save the set index for this contour and declare memory for it
             c.externalIndex = packedPoints.number_of_sets();
             packedPoints.start_new_set();
             c.internalIndexes.clear();
-            tracer.trace(c.id,x,y,true);
+            tracer->trace(c.id,x,y,true);
 
             // Keep track that this was a contour, but free up all the points used in defining it
             if( packedPoints.size_of_tail() >= maxContourSize || packedPoints.size_of_tail() < minContourSize ) {
@@ -482,8 +493,8 @@ namespace boofcv {
             ContourPacked& c = contours.at(label-1);
             c.internalIndexes.push_back( (uint32_t)packedPoints.set_info.size() );
             packedPoints.start_new_set();
-            tracer.setMaxContourSize(saveInternalContours?maxContourSize:0);
-            tracer.trace(label,x,y,false);
+            tracer->setMaxContourSize(saveInternalContours?maxContourSize:0);
+            tracer->trace(label,x,y,false);
 
             // See if the inner contour exceeded the maximum  or minimum size. If so free its points
             if( packedPoints.size_of_tail() >= maxContourSize || packedPoints.size_of_tail() < minContourSize ) {
@@ -501,8 +512,12 @@ namespace boofcv {
                 labeled.data[indexOut] = labeled.data[indexOut-1];
         }
 
+        void setConnectRule( ConnectRule rule ) {
+            this->rule = rule;
+        }
+
         ConnectRule getConnectRule() {
-            return tracer.getConnectRule();
+            return rule;
         }
     };
 }

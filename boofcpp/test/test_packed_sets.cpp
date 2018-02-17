@@ -178,3 +178,49 @@ TEST(PackedSet, remove_tail_set) {
     ASSERT_EQ(0,packed._total_element);
     ASSERT_EQ(0,packed.set_info.size());
 }
+
+TEST(PackedSet, load_set) {
+    PackedSet<TD> packed(100);
+
+    packed.push_tail(TD(5,2));
+    packed.push_tail(TD(6,7));
+
+    packed.start_new_set();
+    packed.push_tail(TD(6,5));
+
+    std::vector<TD> storage;
+
+    packed.load_set(0,storage);
+    ASSERT_EQ(2,storage.size());
+    ASSERT_EQ(5,storage.at(0).x);
+    ASSERT_EQ(2,storage.at(0).y);
+    ASSERT_EQ(6,storage.at(1).x);
+    ASSERT_EQ(7,storage.at(1).y);
+
+    storage.clear();
+    packed.load_set(1,storage);
+    ASSERT_EQ(1,storage.size());
+    ASSERT_EQ(6,storage.at(0).x);
+    ASSERT_EQ(5,storage.at(0).y);
+}
+
+TEST(PackedSet, write_set) {
+    PackedSet<TD> packed(100);
+
+    packed.push_tail(TD(5,2));
+    packed.push_tail(TD(6,7));
+
+    packed.start_new_set();
+    packed.push_tail(TD(6,5));
+
+    std::vector<TD> storage;
+    storage.push_back(TD(1,2));
+    storage.push_back(TD(3,4));
+
+    packed.write_set(0,storage);
+
+    ASSERT_EQ(1,packed.at(0,0).x);
+    ASSERT_EQ(2,packed.at(0,0).y);
+    ASSERT_EQ(3,packed.at(0,1).x);
+    ASSERT_EQ(4,packed.at(0,1).y);
+}

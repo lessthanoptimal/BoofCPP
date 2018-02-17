@@ -1,1 +1,3 @@
-include 'jni','android'
+include 'jni'
+
+//include 'android'
