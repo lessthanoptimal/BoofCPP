@@ -41,7 +41,7 @@ JNIEXPORT void JNICALL Java_org_boofcpp_contour_NativeChang2004_native_1process
     jlong nativePtr = env->GetLongField(obj, fid);
 
     ImageAndInfo<Gray<U8>,JImageCritical> input = wrapCriticalGrayU8(env,jbinary);
-    ImageAndInfo<Gray<S32>,JImageCritical> label = wrapCriticalGrayS32(env,jbinary);
+    ImageAndInfo<Gray<S32>,JImageCritical> label = wrapCriticalGrayS32(env,jlabel);
 
     ((LinearContourLabelChang2004*)nativePtr)->process(input.image, label.image);
 
@@ -56,17 +56,17 @@ JNIEXPORT void JNICALL Java_org_boofcpp_contour_NativeChang2004_native_1getConto
     jfieldID fid = safe_GetFieldID(env, objClass, "nativePtr", "J");
     LinearContourLabelChang2004* contour = (LinearContourLabelChang2004*)env->GetLongField(obj, fid);
 
-    jfieldID fidPoints = env->GetFieldID(objClass, "storagePoints", "Lorg/ddogleg/struct/GrowQueue_I32");
+    jfieldID fidPoints = safe_GetFieldID(env, objClass, "storagePoints", "Lorg/ddogleg/struct/GrowQueue_I32;");
     jobject jpoints = env->GetObjectField(obj,fidPoints);
     WrapJGrowQueue_I32 grow_queue(env,jpoints);
 
-    jmethodID midAdd =  env->GetMethodID(objClass, "addContour", "(V)II");
+    jmethodID midAdd =  safe_GetMethodID(env, objClass, "addContour", "(II)V");
     for( uint32_t i = 0; i < contour->contours.size(); i++ ) {
         ContourPacked &p = contour->contours.at(i);
 
         // internal contour ids will be grabbed from storagePoints
         grow_queue.setTo(p.internalIndexes);
-        env->CallVoidMethod(jstorage,midAdd,(jint)p.id,(jint)p.externalIndex);
+        env->CallVoidMethod(obj,midAdd,(jint)p.id,(jint)p.externalIndex);
     }
 }
 
@@ -77,7 +77,7 @@ JNIEXPORT void JNICALL Java_org_boofcpp_contour_NativeChang2004_native_1loadCont
     jfieldID fid = safe_GetFieldID(env, objClass, "nativePtr", "J");
     LinearContourLabelChang2004* contour = (LinearContourLabelChang2004*)env->GetLongField(obj, fid);
 
-    jfieldID fidPoints = env->GetFieldID(objClass, "storagePoints", "Lorg/ddogleg/struct/GrowQueue_I32");
+    jfieldID fidPoints = safe_GetFieldID(env, objClass, "storagePoints", "Lorg/ddogleg/struct/GrowQueue_I32;");
     jobject jpoints = env->GetObjectField(obj,fidPoints);
     WrapJGrowQueue_I32 grow_queue(env,jpoints);
 
@@ -97,17 +97,16 @@ JNIEXPORT void JNICALL Java_org_boofcpp_contour_NativeChang2004_native_1loadCont
 JNIEXPORT void JNICALL Java_org_boofcpp_contour_NativeChang2004_native_1writeContour
         (JNIEnv *env, jobject obj, jint contourID)
 {
-
     jclass objClass = env->GetObjectClass(obj);
     jfieldID fid = env->GetFieldID(objClass, "nativePtr", "J");
     LinearContourLabelChang2004* contour = (LinearContourLabelChang2004*)env->GetLongField(obj, fid);
 
-    jfieldID fidPoints = env->GetFieldID(objClass, "storagePoints", "Lorg/ddogleg/struct/GrowQueue_I32");
+    jfieldID fidPoints = safe_GetFieldID(env,objClass, "storagePoints", "Lorg/ddogleg/struct/GrowQueue_I32;");
     jobject jpoints = env->GetObjectField(obj,fidPoints);
     WrapJGrowQueue_I32 grow_queue(env,jpoints);
 
     std::vector<Point2D<S32>> tmp;
-    for( uint32_t i = 0; i < grow_queue.size; i =+ 2 ) {
+    for( uint32_t i = 0; i < grow_queue.size; i += 2 ) {
         S32 x = grow_queue.data[i];
         S32 y = grow_queue.data[i+1];
 
@@ -186,8 +185,6 @@ JNIEXPORT void JNICALL Java_org_boofcpp_contour_NativeChang2004_setConnectRule
 
     jclass enumClass = env->GetObjectClass(jrule);
     jmethodID mid =  safe_GetMethodID(env, enumClass, "ordinal", "()I");
-    if (mid == 0)
-        return;
     jint rule_oridinal = env->CallIntMethod(jrule,mid);
 
     switch( rule_oridinal ) {

@@ -19,11 +19,11 @@ import java.util.List;
 public class NativeChang2004 implements BinaryContourFinder {
 
     // Storage here to simplify JNI wrapper code
-    FastQueue<ContourPacked> storageContours = new FastQueue<>(ContourPacked.class,true);
+    protected FastQueue<ContourPacked> storageContours = new FastQueue<>(ContourPacked.class,true);
 
     // use this to transfer information about points. More memory but many fewer JNI calls and
     // simpler JNI code
-    GrowQueue_I32 storagePoints = new GrowQueue_I32();
+    protected GrowQueue_I32 storagePoints = new GrowQueue_I32();
 
     protected long nativePtr;
 

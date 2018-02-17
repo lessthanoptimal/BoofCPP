@@ -18,6 +18,8 @@ WrapJGrowQueue_I32::WrapJGrowQueue_I32(JNIEnv *env, jobject jobj)
     this->array_length = env->GetArrayLength((jfloatArray)array_object);
     this->size = env->GetIntField(jobj,fid_size);
     this->data = (jint *)env->GetPrimitiveArrayCritical(array_object, 0);
+
+//    printf("WrapJGrowQueue_I32 array_length=%d size=%d\n",this->array_length,this->size);
 }
 
 WrapJGrowQueue_I32::~WrapJGrowQueue_I32() {
@@ -40,8 +42,10 @@ void WrapJGrowQueue_I32::resize( uint32_t desired ) {
     if( desired == this->size )
         return;
 
+//    printf("ENTER resize. desired = %d\n",desired);
+
     jclass objClass = env->GetObjectClass(jobj);
-    jmethodID mid =  env->GetMethodID(objClass, "resize", "(V)I");
+    jmethodID mid =  safe_GetMethodID(env, objClass, "resize", "(I)V");
     env->CallObjectMethod(jobj,mid,(jint)desired);
     this->size = desired;
 
