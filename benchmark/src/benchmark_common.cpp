@@ -1,6 +1,9 @@
 #include <stdio.h> // needed for jpeglib since it doesn't define everything it needed
+#include <csetjmp> // needed on windows
 #include <jpeglib.h>
 #include <png.h>
+#include <libpng16/png.h> // required for windows + cygwin
+
 
 #include "benchmark_common.h"
 
