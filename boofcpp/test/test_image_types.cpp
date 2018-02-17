@@ -89,7 +89,7 @@ TEST(Gray, reshape) {
     ASSERT_EQ(0,imgA.offset);
     ASSERT_FALSE(imgA.subimage);
     ASSERT_EQ(12*20,imgA.data_length);
-    EXPECT_NE(orig_pts,imgA.data);
+//    EXPECT_NE(orig_pts,imgA.data); <-- possible for it to have the same address
     for( uint32_t i = 0; i < 12*20; i++ ) {
         ASSERT_EQ(0,imgA.data[i]);
     }

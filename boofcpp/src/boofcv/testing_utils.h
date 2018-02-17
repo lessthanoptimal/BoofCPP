@@ -29,7 +29,7 @@ namespace boofcv {
     Gray<E> create_subimage( const Gray<E>& input ) {
         Gray<E> *larger = new Gray<E>(input.width+4, input.height+6);
         Gray<E> sub = larger->makeSubimage(2,3,2+input.width,3+input.height);
-        sub.setTo(input);
+        sub.copy(input);
 //        sub.subimage = false;
         // hack it so it doesn't delete the array in the de-constructor
         larger->subimage = true;

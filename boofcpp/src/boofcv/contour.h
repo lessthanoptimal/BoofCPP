@@ -414,7 +414,7 @@ namespace boofcv {
                 border.reshape(binary.width + 2, binary.height + 2);
                 ImageMiscOps::fill_border(border, (U8)0, 1);
             }
-            border.makeSubimage(1,1,border.width-1,border.height-1).setTo(binary);
+            border.makeSubimage(1,1,border.width-1,border.height-1).copy(binary);
 
             // labeled image must initially be filled with zeros
             ImageMiscOps::fill(labeled,(S32)0);

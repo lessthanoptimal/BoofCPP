@@ -11,7 +11,7 @@ using namespace boofcv;
 
 void add_border(const Gray<U8>& src , Gray<U8>& border ) {
     border.reshape(src.width+2,src.height+2);
-    border.makeSubimage(1,1,border.width-1,border.height-1).setTo(src);
+    border.makeSubimage(1,1,border.width-1,border.height-1).copy(src);
     ImageMiscOps::fill_border(border,(U8)0,1);
 }
 
@@ -31,7 +31,7 @@ void checkAllContour( const Gray<U8>& pattern , uint32_t expected_total,  Connec
 
             // fill in a solid image which is marked as all contour
             Gray<U8> inner = input.makeSubimage(x,y,pattern.width+x,pattern.height+y);
-            inner.setTo(pattern);
+            inner.copy(pattern);
 
             add_border(input,border);
 

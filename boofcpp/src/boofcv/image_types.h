@@ -146,7 +146,7 @@ namespace boofcv {
             }
 
             uint32_t desired_length = width*height;
-            if( desired_length > data_length ) {
+            if( desired_length > this->data_length ) {
                 delete []data;
                 data = new T[desired_length]();
                 this->data_length = desired_length;
@@ -166,7 +166,7 @@ namespace boofcv {
             return data[this->offset + y*this->stride + x];
         }
 
-        void setTo( const Gray<T>& src ) {
+        void copy( const Gray<T>& src ) {
             if (this->subimage && (this->width != src.width || this->height != src.height) ) {
                 throw invalid_argument("Shapes must match for sub images");
             } else {
@@ -191,7 +191,17 @@ namespace boofcv {
         Gray<T>& operator=(const Gray<T>& other) // copy assignment
         {
             if (this != &other) { // self-assignment check expected
-                this->setTo(other);
+                if( other.subimage ) {
+                    this->data = other.data;
+                    this->data_length = other.data_length;
+                    this->width = other.width;
+                    this->height = other.height;
+                    this->offset = other.offset;
+                    this->stride = other.stride;
+                    this->subimage = true;
+                } else {
+                    this->copy(other);
+                }
             }
             return *this;
         }
