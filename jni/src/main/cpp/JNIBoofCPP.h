@@ -74,7 +74,9 @@ struct ImageAndInfo {
     Info info;
 };
 
+jclass safe_FindClass( JNIEnv *env, const char* name );
 jfieldID safe_GetFieldID( JNIEnv *env, jclass& objClass, const char* name , const char* type);
+jmethodID safe_GetMethodID( JNIEnv *env, jclass& objClass, const char* name , const char* type);
 
 JImageInfoU8 extractInfoU8( JNIEnv *env, jobject& jimage );
 JImageInfoF32 extractInfoF32( JNIEnv *env, jobject& jimage );

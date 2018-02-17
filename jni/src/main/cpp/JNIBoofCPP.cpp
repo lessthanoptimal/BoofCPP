@@ -59,12 +59,32 @@ void WrapJGrowQueue_I32::resize( uint32_t desired ) {
     }
 }
 
+jclass safe_FindClass( JNIEnv *env, const char* name )
+{
+    jclass theclass = env->FindClass(name);
+    if( env->ExceptionCheck() || theclass == nullptr ) {
+        env->ExceptionDescribe();
+        throw "failed FindClass";
+    }
+    return theclass;
+}
+
 jfieldID safe_GetFieldID( JNIEnv *env, jclass& objClass, const char* name , const char* type)
 {
     jfieldID fid = env->GetFieldID(objClass, name, type);
     if( env->ExceptionCheck() ) {
         env->ExceptionDescribe();
-        throw "filed ID failed";
+        throw "failed GetFieldID";
+    }
+    return fid;
+}
+
+jmethodID safe_GetMethodID( JNIEnv *env, jclass& objClass, const char* name , const char* type)
+{
+    jmethodID fid = env->GetMethodID(objClass, name, type);
+    if( env->ExceptionCheck() ) {
+        env->ExceptionDescribe();
+        throw "failed GetMethodID";
     }
     return fid;
 }
