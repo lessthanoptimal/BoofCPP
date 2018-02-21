@@ -79,6 +79,7 @@ public class NativeUtils {
     }
 
     public static boolean loadLibraryFromJar( String path ) {
+//        printResourceInPath(path);
         if( path.charAt(path.length()-1) != '/') {
             path += "/";
         }
@@ -92,6 +93,19 @@ public class NativeUtils {
             } catch( IOException ignore ){}
         }
         return false;
+    }
+
+    private static void printResourceInPath( String path ) {
+
+        System.out.println("Resources in "+path);
+        try {
+            InputStream in = NativeUtils.class.getResourceAsStream( path );
+            BufferedReader br = new BufferedReader( new InputStreamReader( in ) );
+            String resource;
+            while( (resource = br.readLine()) != null ) {
+                System.out.println("   "+resource);
+            }
+        } catch( Exception ignore ){}
     }
 
     /**
@@ -132,7 +146,7 @@ public class NativeUtils {
         File temp = new File(temporaryDir, filename);
 
         try (InputStream is = NativeUtils.class.getResourceAsStream(path)) {
-            Files.copy(is, temp.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            copy(is, temp); // can't use nio copy on android
         } catch (IOException e) {
             temp.delete();
             throw e;
@@ -151,6 +165,24 @@ public class NativeUtils {
                 // Assume non-POSIX, and don't delete until last file descriptor closed
                 temp.deleteOnExit();
             }
+        }
+    }
+
+    public static void copy(InputStream in, File dst) throws IOException {
+        try {
+            OutputStream out = new FileOutputStream(dst);
+            try {
+                // Transfer bytes from in to out
+                byte[] buf = new byte[1024];
+                int len;
+                while ((len = in.read(buf)) > 0) {
+                    out.write(buf, 0, len);
+                }
+            } finally {
+                out.close();
+            }
+        } finally {
+            in.close();
         }
     }
 

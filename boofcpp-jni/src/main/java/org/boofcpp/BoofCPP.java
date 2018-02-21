@@ -15,22 +15,21 @@ import java.io.File;
 public class BoofCPP {
 
     static {
-//        System.loadLibrary("JNIBoofCPP");
+        System.loadLibrary("JNIBoofCPP");
+
         NativeUtils.setLibraryName("JNIBoofCPP");
 
-//        try {
-//            // First try loading it locally from the devepmental patj
-//            if (!NativeUtils.loadLocalPath(new File("build/jni"))) {
-//                if (!NativeUtils.loadLocalPath(new File("../build/jni"))) {
-//                    // Now try loading it from the jar
-//                    if (!NativeUtils.loadLibraryFromJar("/")) {
-//                        throw new RuntimeException("Can't load native libraries");
-//                    }
-//                }
-//            }
-//        } catch( NoSuchMethodError ignore ) {
-//            // on android this exception will be thrown
-//        }
+        boolean success = false;
+
+        // First try loading it locally from the devepmental path
+        success = NativeUtils.loadLocalPath(new File("build/jni"));
+        success = !success && NativeUtils.loadLocalPath(new File("../build/jni"));
+        success = !success && NativeUtils.loadLibraryFromJar("/");
+        success = !success && NativeUtils.loadLibraryFromJar("/arm64-v8a");
+        success = !success && NativeUtils.loadLibraryFromJar("/armeabi-v7a");
+
+        if( !success )
+            System.err.println("Failed to load native library");
     }
 
     /**

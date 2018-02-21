@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 
 set(path_to_boofcpp ${CMAKE_CURRENT_SOURCE_DIR}/../boofcpp/src/boofcv)
-set(path_to_jni ${CMAKE_CURRENT_SOURCE_DIR}/../jni/src/main/cpp)
+set(path_to_jni ${CMAKE_CURRENT_SOURCE_DIR}/../boofcpp-jni/src/main/cpp)
 
 file(GLOB_RECURSE BOOFCPP_SRCS ${path_to_boofcpp}/*.cpp)
 file(GLOB_RECURSE BOOFCPP_HDRS ${path_to_boofcpp}/*.h)
