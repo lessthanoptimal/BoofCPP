@@ -15,7 +15,7 @@ enable_testing()
 
 add_subdirectory(boofcpp)
 add_subdirectory(benchmark)
-add_subdirectory(jni)
+add_subdirectory(boofcpp-jni)
 
 add_subdirectory(gtest)
 

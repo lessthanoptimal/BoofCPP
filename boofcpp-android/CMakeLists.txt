@@ -14,7 +14,7 @@ include_directories( ${path_to_boofcpp} )
 #MESSAGE( STATUS "path_to_quirc_detector:         " ${path_to_quirc_detector} )
 
 
-add_library(boofcpp_android SHARED
+add_library(JNIBoofCPP SHARED
         ${BOOFCPP_SRCS} ${BOOFCPP_HDRS}
         ${JNI_SRCS} ${JNI_HDRS})
 
@@ -27,7 +27,7 @@ find_library( # Sets the name of the path variable.
               log )
 
 target_link_libraries( # Specifies the target library.
-                       boofcpp_android
+                       JNIBoofCPP
 
                        # Links the target library to the log library
                        # included in the NDK.

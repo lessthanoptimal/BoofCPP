@@ -15,17 +15,22 @@ import java.io.File;
 public class BoofCPP {
 
     static {
+//        System.loadLibrary("JNIBoofCPP");
         NativeUtils.setLibraryName("JNIBoofCPP");
 
-        // First try loading it locally from the devepmental patj
-        if( !NativeUtils.loadLocalPath(new File("build/jni"))) {
-            if( !NativeUtils.loadLocalPath(new File("../build/jni"))) {
-                // Now try loading it from the jar
-                if( !NativeUtils.loadLibraryFromJar("/") ) {
-                    throw new RuntimeException("Can't load native libraries");
-                }
-            }
-        }
+//        try {
+//            // First try loading it locally from the devepmental patj
+//            if (!NativeUtils.loadLocalPath(new File("build/jni"))) {
+//                if (!NativeUtils.loadLocalPath(new File("../build/jni"))) {
+//                    // Now try loading it from the jar
+//                    if (!NativeUtils.loadLibraryFromJar("/")) {
+//                        throw new RuntimeException("Can't load native libraries");
+//                    }
+//                }
+//            }
+//        } catch( NoSuchMethodError ignore ) {
+//            // on android this exception will be thrown
+//        }
     }
 
     /**

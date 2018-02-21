@@ -13,6 +13,12 @@ android {
         externalNativeBuild {
             cmake {
                 cppFlags '-std=c++11'
+                arguments '-DANDROID_TOOLCHAIN=clang',
+                        '-DANDROID_PLATFORM=android-24',
+                        '-DANDROID_STL=gnustl_static',
+                        '-DANDROID_ARM_NEON=TRUE',
+                        '-DANDROID_CPP_FEATURES=exceptions rtti'
+                targets 'JNIBoofCPP'
             }
         }
     }
