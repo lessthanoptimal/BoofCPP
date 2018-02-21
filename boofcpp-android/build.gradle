@@ -1,4 +1,5 @@
 apply plugin: 'com.android.library'
+apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: 'maven'
 
 android {
@@ -13,13 +14,17 @@ android {
         externalNativeBuild {
             cmake {
                 cppFlags '-std=c++11'
-                arguments '-DANDROID_TOOLCHAIN=clang',
-                        '-DANDROID_PLATFORM=android-24',
-                        '-DANDROID_STL=gnustl_static',
-                        '-DANDROID_ARM_NEON=TRUE',
-                        '-DANDROID_CPP_FEATURES=exceptions rtti'
-                targets 'JNIBoofCPP'
             }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+
+        debug {
+            debuggable true
         }
     }
 
@@ -32,15 +37,17 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+    lintOptions {
+        abortOnError false
+    }
+
 }
 
-uploadArchives {
-    repositories {
-        mavenDeployer {
-            repository(url: mavenLocal().getUrl())
-        }
-    }
-}
+//packagingOptions{
+//    doNotStrip "*/armeabi/*.so"
+//    doNotStrip "*/armeabi-v7a/*.so"
+//    doNotStrip "*/x86/*.so"
+//}
 
 repositories {
     google()
@@ -60,6 +67,7 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:3.0.1'
+        classpath 'com.github.dcendents:android-maven-gradle-plugin:1.5'
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files

@@ -69,6 +69,8 @@ cd boofcpp/android
 ```
 Currently Android doesn't like JDK 1.9 so you will need to switch to JDK 1.8 if you are using that.
 
+To include debug symbols invoke 
+./gradlew installDebug
 
 # Design Comments
 
