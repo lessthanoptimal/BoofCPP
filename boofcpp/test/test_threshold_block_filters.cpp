@@ -114,6 +114,10 @@ public:
         alg->process(sub_input,sub_output);
 
         check_equals(expected,sub_output);
+
+        // do this so that it frees the memory and valgrind doesn't complain
+        sub_input.subimage = false;
+        sub_output.subimage = false;
     }
 };
 
