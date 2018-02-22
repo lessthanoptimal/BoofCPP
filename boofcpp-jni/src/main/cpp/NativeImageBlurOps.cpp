@@ -13,25 +13,33 @@ JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeImageBlurOps_nativeMean(
     jboolean isInteger = env->GetBooleanField(obj, fid);
 
     if( isInteger ) {
-        ImageAndInfo<Gray<U8>,JImageCritical> input = wrapCriticalGrayU8(env,jinput);
-        ImageAndInfo<Gray<U8>,JImageCritical> output = wrapCriticalGrayU8(env,joutput);
-        ImageAndInfo<Gray<U8>,JImageCritical> storage = wrapCriticalGrayU8(env,jstorage);
+        ImageAndInfo<Gray<U8>,JImageInfo> input = wrapCriticalGrayU8(env,jinput);
+        ImageAndInfo<Gray<U8>,JImageInfo> output = wrapCriticalGrayU8(env,joutput);
+        ImageAndInfo<Gray<U8>,JImageInfo> storage = wrapCriticalGrayU8(env,jstorage);
+
+        input.image.data = (U8*)env->GetPrimitiveArrayCritical((jarray)input.info.jdata, 0);
+        output.image.data = (U8*)env->GetPrimitiveArrayCritical((jarray)output.info.jdata, 0);
+        storage.image.data = (U8*)env->GetPrimitiveArrayCritical((jarray)storage.info.jdata, 0);
 
         BlurImageOps::mean(input.image,output.image,(uint32_t)radius,storage.image);
 
-        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.info.data, 0);
-        env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.info.data, 0);
-        env->ReleasePrimitiveArrayCritical((jarray)storage.info.jdata, storage.info.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.image.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)storage.info.jdata, storage.image.data, 0);
     } else {
-        ImageAndInfo<Gray<F32>,JImageCritical> input = wrapCriticalGrayF32(env,jinput);
-        ImageAndInfo<Gray<F32>,JImageCritical> output = wrapCriticalGrayF32(env,joutput);
-        ImageAndInfo<Gray<F32>,JImageCritical> storage = wrapCriticalGrayF32(env,jstorage);
+        ImageAndInfo<Gray<F32>,JImageInfo> input = wrapCriticalGrayF32(env,jinput);
+        ImageAndInfo<Gray<F32>,JImageInfo> output = wrapCriticalGrayF32(env,joutput);
+        ImageAndInfo<Gray<F32>,JImageInfo> storage = wrapCriticalGrayF32(env,jstorage);
+
+        input.image.data = (F32*)env->GetPrimitiveArrayCritical((jarray)input.info.jdata, 0);
+        output.image.data = (F32*)env->GetPrimitiveArrayCritical((jarray)output.info.jdata, 0);
+        storage.image.data = (F32*)env->GetPrimitiveArrayCritical((jarray)storage.info.jdata, 0);
 
         BlurImageOps::mean(input.image,output.image,(uint32_t)radius,storage.image);
 
-        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.info.data, 0);
-        env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.info.data, 0);
-        env->ReleasePrimitiveArrayCritical((jarray)storage.info.jdata, storage.info.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.image.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)storage.info.jdata, storage.image.data, 0);
     }
 }
 

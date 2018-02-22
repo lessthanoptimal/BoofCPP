@@ -1,4 +1,5 @@
 #include "JNIBoofCPP.h"
+#include <stdexcept>
 
 using namespace boofcv;
 
@@ -6,59 +7,76 @@ using namespace boofcv;
 WrapJGrowQueue_I32::WrapJGrowQueue_I32(JNIEnv *env, jobject jobj)
 : env(env), jobj(jobj), data(nullptr), size(0)
 {
-    jclass objClass = env->GetObjectClass(jobj);
+    objClass = env->GetObjectClass(jobj);
+    methodResize =  safe_GetMethodID(env, objClass, "resize", "(I)V");
     fid_data = safe_GetFieldID(env,objClass,"data","[I");
     fid_size = safe_GetFieldID(env,objClass,"size","I");
 
     this->array_object = (jarray)env->GetObjectField (jobj, fid_data);
     if( array_object == nullptr ) {
-        throw "array object is null";
+        throw std::runtime_error("array object is null");
     }
 
     this->array_length = env->GetArrayLength((jfloatArray)array_object);
     this->size = env->GetIntField(jobj,fid_size);
-    this->data = (jint *)env->GetPrimitiveArrayCritical(array_object, 0);
+    this->data = nullptr;
 
 //    printf("WrapJGrowQueue_I32 array_length=%d size=%d\n",this->array_length,this->size);
 }
 
 WrapJGrowQueue_I32::~WrapJGrowQueue_I32() {
     if( this->data != nullptr ) {
-        this->env->ReleasePrimitiveArrayCritical(array_object, this->data, 0);
-        this->data = nullptr;
+        throw std::runtime_error("You didn't release the critical array!");
     }
+}
+
+void WrapJGrowQueue_I32::criticalGet() {
+    this->data = (jint *)env->GetPrimitiveArrayCritical(array_object, 0);
+}
+
+void WrapJGrowQueue_I32::criticalRelease() {
+    this->env->ReleasePrimitiveArrayCritical(array_object, this->data, 0);
+    this->data = nullptr;
 }
 
 void WrapJGrowQueue_I32::setTo( const std::vector<uint32_t>& input ) {
     if( input.size() != this->size ) {
         resize((uint32_t)input.size());
     }
+
+    bool aquired = false;
+    if( this->data == nullptr ) {
+        aquired = true;
+        criticalGet();
+    }
+
     for (int i = 0; i < this->size; ++i) {
         this->data[i] = input[i];
+    }
+
+    if( aquired ) {
+        criticalRelease();
     }
 }
 
 void WrapJGrowQueue_I32::resize( uint32_t desired ) {
     if( desired == this->size )
         return;
+    if( this->data != nullptr ) {
+        throw std::runtime_error("Unsafe resize. data must be null!");
+    }
 
 //    printf("ENTER resize. desired = %d\n",desired);
 
-    jclass objClass = env->GetObjectClass(jobj);
-    jmethodID mid =  safe_GetMethodID(env, objClass, "resize", "(I)V");
-    env->CallObjectMethod(jobj,mid,(jint)desired);
+    env->CallVoidMethod(jobj,methodResize,(jint)desired);
     this->size = desired;
 
     // See if the array has been resized
     if( desired > this->array_length ) {
-        // Array could have been reallocated
-        this->env->ReleasePrimitiveArrayCritical(array_object, this->data, 0);
         this->array_object = (jarray) env->GetObjectField(jobj, fid_data);
         if (array_object == nullptr) {
-            throw "array object is null";
+            throw std::runtime_error("array object is null");
         }
-
-        this->data = (jint *) env->GetPrimitiveArrayCritical(array_object, 0);
         this->array_length = env->GetArrayLength((jfloatArray)array_object);
     }
 }
@@ -110,11 +128,11 @@ JImageInfoU8 extractInfoU8( JNIEnv *env, jobject& jimage ) {
     jfieldID fid = env->GetFieldID(objClass, "data", "[B");
     if( env->ExceptionCheck() ) {
         env->ExceptionDescribe();
-        throw "Get field ID for data failed";
+        throw std::runtime_error("Get field ID for data failed");
     }
     ret.jdata = env->GetObjectField (jimage, fid);
     if( ret.jdata == nullptr ) {
-        throw "data object is null";
+        throw std::runtime_error("data object is null");
     }
 
     // Get the elements (you probably have to fetch the length of the array as well
@@ -136,11 +154,11 @@ JImageInfoF32 extractInfoF32( JNIEnv *env, jobject& jimage ) {
     jfieldID fid = env->GetFieldID(objClass, "data", "[F");
     if( env->ExceptionCheck() ) {
         env->ExceptionDescribe();
-        throw "Get field ID for data failed";
+        throw std::runtime_error("Get field ID for data failed");
     }
     ret.jdata = env->GetObjectField (jimage, fid);
     if( ret.jdata == nullptr ) {
-        throw "data object is null";
+        throw std::runtime_error("data object is null");
     }
 
     // Get the elements (you probably have to fetch the length of the array as well
@@ -155,8 +173,8 @@ JImageInfoF32 extractInfoF32( JNIEnv *env, jobject& jimage ) {
     return ret;
 }
 
-JImageCritical extractInfoCritical( JNIEnv *env, jobject& jimage , const char*type ) {
-    JImageCritical ret;
+JImageInfo extractInfoCritical( JNIEnv *env, jobject& jimage , const char*type ) {
+    JImageInfo ret;
 
     jclass objClass = env->GetObjectClass(jimage);
     jfieldID fid;
@@ -164,11 +182,11 @@ JImageCritical extractInfoCritical( JNIEnv *env, jobject& jimage , const char*ty
     fid = env->GetFieldID(objClass, "data", type);
     if( env->ExceptionCheck() ) {
         env->ExceptionDescribe();
-        throw "Get field ID for data failed";
+        throw std::runtime_error("Get field ID for data failed");
     }
     ret.jdata = env->GetObjectField (jimage, fid);
     if( ret.jdata == nullptr ) {
-        throw "data object is null";
+        throw std::runtime_error("data object is null");
     }
 
     ret.width = safe_GetInt(env,objClass,jimage, "width");
@@ -178,20 +196,19 @@ JImageCritical extractInfoCritical( JNIEnv *env, jobject& jimage , const char*ty
 
     // Get the elements (you probably have to fetch the length of the array as well
     ret.dataLength = env->GetArrayLength((jarray)ret.jdata);
-    ret.data = env->GetPrimitiveArrayCritical((jarray)ret.jdata, 0);
 
     return ret;
 }
 
-JImageCritical extractInfoCriticalU8( JNIEnv *env, jobject& jimage ) {
+JImageInfo extractInfoCriticalU8( JNIEnv *env, jobject& jimage ) {
     return extractInfoCritical(env,jimage,"[B");
 }
 
-JImageCritical extractInfoCriticalS32( JNIEnv *env, jobject& jimage ) {
+JImageInfo extractInfoCriticalS32( JNIEnv *env, jobject& jimage ) {
     return extractInfoCritical(env,jimage,"[I");
 }
 
-JImageCritical extractInfoCriticalF32( JNIEnv *env, jobject& jimage ) {
+JImageInfo extractInfoCriticalF32( JNIEnv *env, jobject& jimage ) {
     return extractInfoCritical(env,jimage,"[F");
 }
 
@@ -220,39 +237,39 @@ ImageAndInfo<boofcv::Gray<boofcv::F32>,JImageInfoF32> wrapGrayF32( JNIEnv *env, 
     return output;
 }
 
-ImageAndInfo<boofcv::Gray<boofcv::U8>,JImageCritical> wrapCriticalGrayU8( JNIEnv *env, jobject& jimage ) {
-    ImageAndInfo<boofcv::Gray<boofcv::U8>,JImageCritical> output;
+ImageAndInfo<boofcv::Gray<boofcv::U8>,JImageInfo> wrapCriticalGrayU8( JNIEnv *env, jobject& jimage ) {
+    ImageAndInfo<boofcv::Gray<boofcv::U8>,JImageInfo> output;
 
-    JImageCritical inputInfo = extractInfoCriticalU8(env,jimage);
+    JImageInfo inputInfo = extractInfoCriticalU8(env,jimage);
 
     output.info = inputInfo;
-    output.image = Gray<U8>((U8*)inputInfo.data,(uint32_t)inputInfo.dataLength,
+    output.image = Gray<U8>((U8*)nullptr,(uint32_t)inputInfo.dataLength,
                             (uint32_t)inputInfo.width,(uint32_t)inputInfo.height,
                             (uint32_t)inputInfo.offset,(uint32_t)inputInfo.stride);
 
     return output;
 }
 
-ImageAndInfo<boofcv::Gray<boofcv::S32>,JImageCritical> wrapCriticalGrayS32( JNIEnv *env, jobject& jimage ) {
-    ImageAndInfo<boofcv::Gray<boofcv::S32>,JImageCritical> output;
+ImageAndInfo<boofcv::Gray<boofcv::S32>,JImageInfo> wrapCriticalGrayS32( JNIEnv *env, jobject& jimage ) {
+    ImageAndInfo<boofcv::Gray<boofcv::S32>,JImageInfo> output;
 
-    JImageCritical inputInfo = extractInfoCriticalS32(env,jimage);
+    JImageInfo inputInfo = extractInfoCriticalS32(env,jimage);
 
     output.info = inputInfo;
-    output.image = Gray<S32>((S32*)inputInfo.data,(uint32_t)inputInfo.dataLength,
+    output.image = Gray<S32>((S32*)nullptr,(uint32_t)inputInfo.dataLength,
                             (uint32_t)inputInfo.width,(uint32_t)inputInfo.height,
                             (uint32_t)inputInfo.offset,(uint32_t)inputInfo.stride);
 
     return output;
 }
 
-ImageAndInfo<boofcv::Gray<boofcv::F32>,JImageCritical> wrapCriticalGrayF32( JNIEnv *env, jobject& jimage ) {
-    ImageAndInfo<boofcv::Gray<boofcv::F32>,JImageCritical> output;
+ImageAndInfo<boofcv::Gray<boofcv::F32>,JImageInfo> wrapCriticalGrayF32( JNIEnv *env, jobject& jimage ) {
+    ImageAndInfo<boofcv::Gray<boofcv::F32>,JImageInfo> output;
 
-    JImageCritical inputInfo = extractInfoCriticalF32(env,jimage);
+    JImageInfo inputInfo = extractInfoCriticalF32(env,jimage);
 
     output.info = inputInfo;
-    output.image = Gray<F32>((F32*)inputInfo.data,(uint32_t)inputInfo.dataLength,
+    output.image = Gray<F32>((F32*)nullptr,(uint32_t)inputInfo.dataLength,
                              (uint32_t)inputInfo.width,(uint32_t)inputInfo.height,
                              (uint32_t)inputInfo.offset,(uint32_t)inputInfo.stride);
 

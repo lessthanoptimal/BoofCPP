@@ -40,13 +40,16 @@ JNIEXPORT void JNICALL Java_org_boofcpp_contour_NativeChang2004_native_1process
     jfieldID fid = safe_GetFieldID(env,objClass, "nativePtr", "J");
     jlong nativePtr = env->GetLongField(obj, fid);
 
-    ImageAndInfo<Gray<U8>,JImageCritical> input = wrapCriticalGrayU8(env,jbinary);
-    ImageAndInfo<Gray<S32>,JImageCritical> label = wrapCriticalGrayS32(env,jlabel);
+    ImageAndInfo<Gray<U8>,JImageInfo> input = wrapCriticalGrayU8(env,jbinary);
+    ImageAndInfo<Gray<S32>,JImageInfo> label = wrapCriticalGrayS32(env,jlabel);
+
+    input.image.data = (U8*)env->GetPrimitiveArrayCritical((jarray)input.info.jdata, 0);
+    label.image.data = (S32*)env->GetPrimitiveArrayCritical((jarray)label.info.jdata, 0);
 
     ((LinearContourLabelChang2004*)nativePtr)->process(input.image, label.image);
 
-    env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.info.data, 0);
-    env->ReleasePrimitiveArrayCritical((jarray)label.info.jdata, label.info.data, 0);
+    env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, 0);
+    env->ReleasePrimitiveArrayCritical((jarray)label.info.jdata, label.image.data, 0);
 }
 
 JNIEXPORT void JNICALL Java_org_boofcpp_contour_NativeChang2004_native_1getContours
@@ -61,6 +64,7 @@ JNIEXPORT void JNICALL Java_org_boofcpp_contour_NativeChang2004_native_1getConto
     WrapJGrowQueue_I32 grow_queue(env,jpoints);
 
     jmethodID midAdd =  safe_GetMethodID(env, objClass, "addContour", "(II)V");
+
     for( uint32_t i = 0; i < contour->contours.size(); i++ ) {
         ContourPacked &p = contour->contours.at(i);
 
@@ -85,13 +89,14 @@ JNIEXPORT void JNICALL Java_org_boofcpp_contour_NativeChang2004_native_1loadCont
 
     contour->packedPoints.load_set((uint32_t)contourID,tmp);
     grow_queue.resize((uint32_t)(tmp.size()*2));
-
+    grow_queue.criticalGet();
     for( uint32_t i = 0; i < tmp.size(); i++ ) {
         Point2D<S32>& p = tmp[i];
 
         grow_queue.data[i*2]   = p.x;
         grow_queue.data[i*2+1] = p.y;
     }
+    grow_queue.criticalRelease();
 }
 
 JNIEXPORT void JNICALL Java_org_boofcpp_contour_NativeChang2004_native_1writeContour
@@ -104,6 +109,7 @@ JNIEXPORT void JNICALL Java_org_boofcpp_contour_NativeChang2004_native_1writeCon
     jfieldID fidPoints = safe_GetFieldID(env,objClass, "storagePoints", "Lorg/ddogleg/struct/GrowQueue_I32;");
     jobject jpoints = env->GetObjectField(obj,fidPoints);
     WrapJGrowQueue_I32 grow_queue(env,jpoints);
+    grow_queue.criticalGet();
 
     std::vector<Point2D<S32>> tmp;
     for( uint32_t i = 0; i < grow_queue.size; i += 2 ) {
@@ -112,6 +118,7 @@ JNIEXPORT void JNICALL Java_org_boofcpp_contour_NativeChang2004_native_1writeCon
 
         tmp.push_back(Point2D<S32>(x,y));
     }
+    grow_queue.criticalRelease();
 
     contour->packedPoints.write_set((uint32_t)contourID,tmp);
 }

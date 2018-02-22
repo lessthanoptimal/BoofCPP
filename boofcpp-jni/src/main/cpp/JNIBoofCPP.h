@@ -11,6 +11,7 @@ class WrapJGrowQueue_I32 {
 public:
     JNIEnv *env;
     jobject jobj;
+    jclass objClass;
     jarray array_object;
     jint* data;
     jint size;
@@ -19,9 +20,15 @@ public:
     jfieldID fid_data;
     jfieldID fid_size;
 
+    jmethodID methodResize;
+
     WrapJGrowQueue_I32(JNIEnv *env, jobject jobj);
 
     ~WrapJGrowQueue_I32();
+
+    // there can't be any JNI call's between these two
+    void criticalGet();
+    void criticalRelease();
 
     void setTo( const std::vector<uint32_t>& input );
 
@@ -41,14 +48,6 @@ struct JImageInfo {
         jdata = nullptr;
         dataLength = 0;
         width=height=offset=stride=0;
-    }
-};
-
-struct JImageCritical : public JImageInfo {
-    void *data;
-
-    JImageCritical() {
-        data = nullptr;
     }
 };
 
@@ -81,16 +80,16 @@ jmethodID safe_GetMethodID( JNIEnv *env, jclass& objClass, const char* name , co
 JImageInfoU8 extractInfoU8( JNIEnv *env, jobject& jimage );
 JImageInfoF32 extractInfoF32( JNIEnv *env, jobject& jimage );
 
-JImageCritical extractInfoCriticalU8( JNIEnv *env, jobject& jimage );
-JImageCritical extractInfoCriticalS32( JNIEnv *env, jobject& jimage );
-JImageCritical extractInfoCriticalF32( JNIEnv *env, jobject& jimage );
+JImageInfo extractInfoCriticalU8( JNIEnv *env, jobject& jimage );
+JImageInfo extractInfoCriticalS32( JNIEnv *env, jobject& jimage );
+JImageInfo extractInfoCriticalF32( JNIEnv *env, jobject& jimage );
 
 ImageAndInfo<boofcv::Gray<boofcv::U8>,JImageInfoU8> wrapGrayU8( JNIEnv *env, jobject& jimage );
 ImageAndInfo<boofcv::Gray<boofcv::F32>,JImageInfoF32> wrapGrayF32( JNIEnv *env, jobject& jimage );
 
-ImageAndInfo<boofcv::Gray<boofcv::U8>,JImageCritical> wrapCriticalGrayU8( JNIEnv *env, jobject& jimage );
-ImageAndInfo<boofcv::Gray<boofcv::S32>,JImageCritical> wrapCriticalGrayS32( JNIEnv *env, jobject& jimage );
-ImageAndInfo<boofcv::Gray<boofcv::F32>,JImageCritical> wrapCriticalGrayF32( JNIEnv *env, jobject& jimage );
+ImageAndInfo<boofcv::Gray<boofcv::U8>,JImageInfo> wrapCriticalGrayU8( JNIEnv *env, jobject& jimage );
+ImageAndInfo<boofcv::Gray<boofcv::S32>,JImageInfo> wrapCriticalGrayS32( JNIEnv *env, jobject& jimage );
+ImageAndInfo<boofcv::Gray<boofcv::F32>,JImageInfo> wrapCriticalGrayF32( JNIEnv *env, jobject& jimage );
 
 boofcv::ConfigLength extractConfigLength( JNIEnv *env, jobject& jconfig );
 

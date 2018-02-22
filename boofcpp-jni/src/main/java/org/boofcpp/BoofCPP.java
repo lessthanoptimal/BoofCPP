@@ -15,21 +15,27 @@ import java.io.File;
 public class BoofCPP {
 
     static {
-        System.loadLibrary("JNIBoofCPP");
-
-        NativeUtils.setLibraryName("JNIBoofCPP");
-
         boolean success = false;
 
-        // First try loading it locally from the devepmental path
-        success = NativeUtils.loadLocalPath(new File("build/jni"));
-        success = !success && NativeUtils.loadLocalPath(new File("../build/jni"));
-        success = !success && NativeUtils.loadLibraryFromJar("/");
-        success = !success && NativeUtils.loadLibraryFromJar("/arm64-v8a");
-        success = !success && NativeUtils.loadLibraryFromJar("/armeabi-v7a");
+        try {
+            System.loadLibrary("JNIBoofCPP");
+            success = true;
+        } catch( UnsatisfiedLinkError ignore ){}
 
-        if( !success )
-            System.err.println("Failed to load native library");
+        try {
+            NativeUtils.setLibraryName("JNIBoofCPP");
+            // First try loading it locally from the devepmental path
+            success = !success && NativeUtils.loadLocalPath(new File("build/boofcpp-jni"));
+            success = !success && NativeUtils.loadLocalPath(new File("../build/boofcpp-jni"));
+            success = !success && NativeUtils.loadLibraryFromJar("/");
+            success = !success && NativeUtils.loadLibraryFromJar("/arm64-v8a");
+            success = !success && NativeUtils.loadLibraryFromJar("/armeabi-v7a");
+
+            if (!success)
+                System.err.println("Failed to load native library");
+        } catch( Exception e ) {
+            e.printStackTrace();
+        }
     }
 
     /**
