@@ -25,11 +25,11 @@ public class BoofCPP {
         try {
             NativeUtils.setLibraryName("JNIBoofCPP");
             // First try loading it locally from the devepmental path
-            success = !success && NativeUtils.loadLocalPath(new File("build/boofcpp-jni"));
-            success = !success && NativeUtils.loadLocalPath(new File("../build/boofcpp-jni"));
-            success = !success && NativeUtils.loadLibraryFromJar("/");
-            success = !success && NativeUtils.loadLibraryFromJar("/arm64-v8a");
-            success = !success && NativeUtils.loadLibraryFromJar("/armeabi-v7a");
+            success = success || NativeUtils.loadLocalPath(new File("build/boofcpp-jni"));
+            success = success || NativeUtils.loadLocalPath(new File("../build/boofcpp-jni"));
+            success = success || NativeUtils.loadLibraryFromJar("/");
+            success = success || NativeUtils.loadLibraryFromJar("/arm64-v8a");
+            success = success || NativeUtils.loadLibraryFromJar("/armeabi-v7a");
 
             if (!success)
                 System.err.println("Failed to load native library");

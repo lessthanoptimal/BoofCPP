@@ -6,6 +6,8 @@
 #include "image_types.h"
 #include "base_types.h"
 #include "convolve.h"
+#include <geometry_types.h>
+#include <packed_sets.h>
 
 class WrapJGrowQueue_I32 {
 public:
@@ -29,6 +31,9 @@ public:
     // there can't be any JNI call's between these two
     void criticalGet();
     void criticalRelease();
+
+    void regularGet();
+    void regularRelease();
 
     void setTo( const std::vector<uint32_t>& input );
 
@@ -72,6 +77,8 @@ struct ImageAndInfo {
     Image image;
     Info info;
 };
+
+void copy_into_java( JNIEnv *env, const boofcv::PackedSet<boofcv::Point2D<boofcv::S32>>& src , jobject dst );
 
 jclass safe_FindClass( JNIEnv *env, const char* name );
 jfieldID safe_GetFieldID( JNIEnv *env, jclass& objClass, const char* name , const char* type);

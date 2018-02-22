@@ -1,5 +1,6 @@
 #include "JNIBoofCPP.h"
 #include <stdexcept>
+#include <packed_sets.h>
 
 using namespace boofcv;
 
@@ -36,6 +37,15 @@ void WrapJGrowQueue_I32::criticalGet() {
 
 void WrapJGrowQueue_I32::criticalRelease() {
     this->env->ReleasePrimitiveArrayCritical(array_object, this->data, 0);
+    this->data = nullptr;
+}
+
+void WrapJGrowQueue_I32::regularGet() {
+    this->data = (jint *)env->GetIntArrayElements((jintArray)array_object, 0);
+}
+
+void WrapJGrowQueue_I32::regularRelease() {
+    this->env->ReleaseIntArrayElements((jintArray)array_object, this->data, 0);
     this->data = nullptr;
 }
 
@@ -78,6 +88,56 @@ void WrapJGrowQueue_I32::resize( uint32_t desired ) {
             throw std::runtime_error("array object is null");
         }
         this->array_length = env->GetArrayLength((jfloatArray)array_object);
+    }
+}
+
+void copy_into_java( JNIEnv *env,
+                     const boofcv::PackedSet<boofcv::Point2D<boofcv::S32>>& src ,
+                     jobject dst )
+{
+    jclass class_packed = env->GetObjectClass(dst);
+    jfieldID field_blockLength = safe_GetFieldID(env,class_packed, "blockLength", "I");
+    jfieldID field_blocks = safe_GetFieldID(env,class_packed, "blocks", "Lorg/ddogleg/struct/FastQueue;");
+    jfieldID field_sets = safe_GetFieldID(env,class_packed, "sets", "Lorg/ddogleg/struct/FastQueue;");
+
+    jint blockLength = env->GetIntField(dst,field_blockLength);
+
+    if( blockLength != src._size_of_block*2 ) {
+        printf("%d vs %d\n",blockLength,src._size_of_block);
+        throw std::runtime_error("Block lengths do not match");
+    }
+
+    jobject object_blocks = env->GetObjectField (dst, field_blocks);
+    jobject object_sets = env->GetObjectField (dst, field_sets);
+    jclass class_fastqueue = env->GetObjectClass(object_blocks);
+
+    jmethodID method_resize =  safe_GetMethodID(env, class_fastqueue, "resize", "(I)V");
+    jmethodID method_get =  safe_GetMethodID(env, class_fastqueue, "get", "(I)Ljava/lang/Object;");
+
+    env->CallVoidMethod(object_blocks,method_resize,(jint)src._number_of_blocks);
+    env->CallVoidMethod(object_sets,method_resize,(jint)src.set_info.size());
+
+    for( uint32_t block_idx = 0; block_idx < src._number_of_blocks; block_idx++ ) {
+        jobject the_array = env->CallObjectMethod(object_blocks,method_get,(jint)block_idx);
+
+        auto array_src = (boofcv::Point2D<boofcv::S32>*)src.blocks[block_idx];
+        auto array_dst = (jint *)env->GetPrimitiveArrayCritical((jarray)the_array, 0);
+        for( uint32_t j = 0; j < src._size_of_block; j++ ) {
+            array_dst[j*2  ] = array_src[j].x;
+            array_dst[j*2+1] = array_src[j].y;
+        }
+        env->ReleasePrimitiveArrayCritical((jarray)the_array, array_dst, 0);
+    }
+
+    jclass class_blockindexlength = env->FindClass("boofcv/struct/BlockIndexLength");
+    jmethodID method_bil_set =  safe_GetMethodID(env, class_blockindexlength, "set", "(III)V");
+
+    for( uint32_t i = 0; i < src.set_info.size(); i++ ) {
+        const PackedSetInfo& set_info = src.set_info[i];
+
+        jobject jset = env->CallObjectMethod(object_sets,method_get,(jint)i);
+        env->CallVoidMethod(jset,method_bil_set,set_info.offset*2,set_info.size,set_info.block);
+        env->DeleteLocalRef(jset);
     }
 }
 

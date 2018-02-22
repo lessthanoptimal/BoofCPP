@@ -3,6 +3,7 @@ package org.boofcpp.contour;
 import boofcv.abst.filter.binary.BinaryContourFinder;
 import boofcv.alg.filter.binary.ContourPacked;
 import boofcv.struct.ConnectRule;
+import boofcv.struct.PackedSetsPoint2D_I32;
 import boofcv.struct.image.GrayS32;
 import boofcv.struct.image.GrayU8;
 import georegression.struct.point.Point2D_I32;
@@ -20,6 +21,7 @@ public class NativeChang2004 implements BinaryContourFinder {
 
     // Storage here to simplify JNI wrapper code
     protected FastQueue<ContourPacked> storageContours = new FastQueue<>(ContourPacked.class,true);
+    protected PackedSetsPoint2D_I32 packedPoints = new PackedSetsPoint2D_I32(4000);
 
     // use this to transfer information about points. More memory but many fewer JNI calls and
     // simpler JNI code
@@ -33,18 +35,13 @@ public class NativeChang2004 implements BinaryContourFinder {
 
     @Override
     public void process(GrayU8 binary, GrayS32 labeled) {
+        storageContours.reset();
+        packedPoints.reset();
         labeled.reshape(binary.width,binary.height);
         native_process(binary, labeled);
     }
 
     public native void native_process(GrayU8 binary, GrayS32 labeled);
-
-    @Override
-    public List<ContourPacked> getContours() {
-        storageContours.reset();
-        native_getContours(storageContours);
-        return storageContours.toList();
-    }
 
     protected void addContour( int id , int externalIndex ) {
         ContourPacked P = storageContours.grow();
@@ -53,35 +50,20 @@ public class NativeChang2004 implements BinaryContourFinder {
         P.internalIndexes.setTo(storagePoints);
     }
 
-    protected native void native_getContours( FastQueue<ContourPacked> storage );
+    @Override
+    public List<ContourPacked> getContours() {
+        return storageContours.toList();
+    }
 
     @Override
     public void loadContour(int contourID, FastQueue<Point2D_I32> storage) {
-
-        storagePoints.reset();
-        native_loadContour(contourID);
-
-        for (int i = 0; i < storagePoints.size; i += 2 ) {
-            storage.grow().set( storagePoints.data[i],storagePoints.data[i+1]);
-        }
+        packedPoints.getSet(contourID,storage);
     }
-
-    protected native void native_loadContour( int contourID );
 
     @Override
     public void writeContour(int contourID, List<Point2D_I32> storage) {
-        storagePoints.resize(storage.size()*2);
-
-        for (int i = 0; i < storage.size(); i++) {
-            Point2D_I32 p = storage.get(i);
-            storagePoints.data[i*2] = p.x;
-            storagePoints.data[i*2+1] = p.y;
-        }
-
-        native_writeContour(contourID);
+        packedPoints.writeOverSet(contourID,storage);
     }
-
-    protected native void native_writeContour(int contourID );
 
     @Override
     public native void setSaveInnerContour(boolean enabled);
