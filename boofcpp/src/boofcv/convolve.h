@@ -14,13 +14,23 @@
 
 namespace boofcv {
 
+    /**
+     * Base type for all convolutional kernels
+     * @tparam E
+     */
+    template< class E>
     class KernelBase {
     public:
+        typedef typename TypeInfo<E>::sum_type sum_type;
+
         /* number of elements in the kernel */
         uint32_t width;
 
         /** which index is the kernel's origin.  For symmetric kernels with an odd width it is width/2 */
         uint32_t offset;
+
+        /** Storage for kernel data */
+        GrowArray<E> data;
 
         KernelBase() {
             width = 0;
@@ -39,26 +49,32 @@ namespace boofcv {
         }
 
         virtual uint32_t dimension() const = 0;
+
+        sum_type sum() const {
+            sum_type total = 0;
+            for( uint32_t i = 0; i < data.size; i++ ) {
+                total += data[i];
+            }
+            return total;
+        }
     };
 
     /**
      * 1D Kernel. Used to convolve in the horizontal and vertical directions.
      */
     template< class E>
-    class Kernel1D : public KernelBase {
+    class Kernel1D : public KernelBase<E> {
     public:
-        typedef typename TypeInfo<E>::sum_type sum_type;
-        GrowArray<E> data;
 
-        Kernel1D( uint32_t width , uint32_t offset) : KernelBase(width,offset) {
-            data.resize(width);
+        Kernel1D( uint32_t width , uint32_t offset) : KernelBase<E>(width,offset) {
+            this->data.resize(width);
         }
 
         Kernel1D( uint32_t width ) : Kernel1D(width,width/2) {
         }
 
-        Kernel1D( uint32_t offset, std::initializer_list<E> l ) : KernelBase((uint32_t)l.size(),offset) {
-            data.setTo(l);
+        Kernel1D( uint32_t offset, std::initializer_list<E> l ) : KernelBase<E>((uint32_t)l.size(),offset) {
+            this->data.setTo(l);
         }
 
         Kernel1D() {
@@ -71,23 +87,15 @@ namespace boofcv {
         }
 
         E& at( uint32_t index ) const {
-            return data.at(index);
+            return this->data.at(index);
         }
 
         E& operator[] (uint32_t index) const {
-            return data[index];
+            return this->data[index];
         }
 
         uint32_t dimension() const override  {
             return 1;
-        }
-
-        sum_type sum() const {
-            sum_type total = 0;
-            for( uint32_t i = 0; i < width; i++ ) {
-                total += data[i];
-            }
-            return total;
         }
 
         Kernel1D<E>& operator=(const Kernel1D<E>& other) // copy assignment
@@ -105,19 +113,50 @@ namespace boofcv {
      * 2D Kernel. Convolves a N by N region.
      */
     template< class E>
-    class Kernel2D : public KernelBase {
+    class Kernel2D : public KernelBase<E> {
     public:
-        GrowArray<E> data;
-
-        Kernel2D( uint32_t width , uint32_t offset) : KernelBase(width,offset) {
-            data.resize(width*width);
+        Kernel2D( uint32_t width , uint32_t offset) : KernelBase<E>(width,offset) {
+            this->data.resize(width*width);
         }
 
         Kernel2D( uint32_t width ) : Kernel2D(width,width/2) {
         }
 
+        Kernel2D(uint32_t offset, std::initializer_list<std::initializer_list<E>> l ) {
+            this->width = static_cast<uint32_t >(l.size());
+            this->offset = offset;
+
+            this->data.resize(this->width*this->width);
+
+            E* ptr = this->data.data;
+            for (auto& x : l ) {
+                if( x.size() != this->width ) {
+                    throw invalid_argument("missmatched row width");
+                }
+                for(auto& y : x ) {
+                    *ptr++ = y;
+                }
+            }
+        }
+
         uint32_t dimension() const override  {
             return 2;
+        }
+
+        E& at( uint32_t x , uint32_t y ) const {
+            if(x >= this->width || y >= this->width )
+                throw invalid_argument("Out of bounds error");
+            return this->data.at(y*this->width+x);
+        }
+
+        Kernel2D<E>& operator=(const Kernel2D<E>& other) // copy assignment
+        {
+            if (this != &other) { // self-assignment check expected
+                this->width = other.width;
+                this->offset = other.offset;
+                this->data = other.data;
+            }
+            return *this;
         }
     };
 
@@ -205,8 +244,9 @@ namespace boofcv {
     };
 
     /**
-     * Unoptimized convolution algorithms. They are intended to be easy to understand and work no matter
-     * what you throw at it, e.g. kernel larger than the image.
+     * Unoptimized image convolution algorithms. They are intended to be easy to understand and can
+     * be verified through manual inspection. They can also handle all edge cases, e.g. kernel larger than
+     * the input image.
      */
     class ConvolveNaive {
     public:
@@ -327,6 +367,75 @@ namespace boofcv {
                 }
             }
         }
+
+        template<typename E, typename R>
+        static void convolve( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel,
+                              const ImageBorder<E>& input, Gray<R>& output )
+        {
+            typedef typename TypeInfo<E>::signed_type signed_type;
+
+            for (uint32_t y = 0; y < input.image->height; y++) {
+                for (uint32_t x = 0; x < input.image->width; x++) {
+
+                    signed_type sum = 0;
+                    for (uint32_t k = 0; k < kernel.width; k++) {
+                        int32_t yy = y - kernel.offset + k;
+                        for (uint32_t l = 0; l < kernel.width; l++) {
+                            int32_t xx = x - kernel.offset + l;
+                            sum += kernel.at(l,k) * input.get(xx, yy);
+                        }
+                    }
+                    output.at(x, y) = (R)sum;
+                }
+            }
+        }
+
+        template<typename E>
+        static void convolve( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel, const ImageBorder<E>& input,
+                              Gray<E>& output , typename TypeInfo<E>::signed_type divisor,
+                              typename std::enable_if<std::is_integral<E>::value >::type* = 0) {
+
+            typedef typename TypeInfo<E>::signed_type signed_type;
+
+            for (uint32_t y = 0; y < input.image->height; y++) {
+                for (uint32_t x = 0; x < input.image->width; x++) {
+
+                    signed_type sum = 0;
+                    for (uint32_t k = 0; k < kernel.width; k++) {
+                        int32_t yy = y - kernel.offset + k;
+                        for (uint32_t l = 0; l < kernel.width; l++) {
+                            int32_t xx = x - kernel.offset + l;
+                            sum += kernel.at(l,k) * input.get(xx, yy);
+                        }
+                    }
+                    output.at(x, y) = (E)((sum + divisor/2)/divisor);
+                }
+            }
+        }
+
+        template<typename E>
+        static void convolve( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel, const ImageBorder<E>& input,
+                              Gray<E>& output , typename TypeInfo<E>::signed_type divisor,
+                              typename std::enable_if<std::is_floating_point<E>::value >::type* = 0) {
+
+            typedef typename TypeInfo<E>::signed_type signed_type;
+
+            for (uint32_t y = 0; y < input.image->height; y++) {
+                for (uint32_t x = 0; x < input.image->width; x++) {
+
+                    signed_type sum = 0;
+                    for (uint32_t k = 0; k < kernel.width; k++) {
+                        int32_t yy = y - kernel.offset + k;
+                        for (uint32_t l = 0; l < kernel.width; l++) {
+                            int32_t xx = x - kernel.offset + l;
+                            sum += kernel.at(l,k) * input.get(xx, yy);
+                        }
+                    }
+                    output.at(x, y) = (E)(sum/divisor);
+                }
+            }
+        }
+
     };
 
     /**

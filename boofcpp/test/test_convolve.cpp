@@ -234,6 +234,90 @@ TEST(ConvolveNaive, vertical_1D_int) {
     }
 }
 
+U8 convolve2D(uint32_t x , uint32_t y , const Kernel2D<S32>& kernel , const ImageBorder<U8>& image )
+{
+    S32 total = 0;
+
+    for (uint32_t i = 0; i < kernel.width; i++) {
+        int32_t yy = (int32_t) (y + i) - (int32_t) kernel.offset;
+
+        for (uint32_t j = 0; j < kernel.width; j++) {
+            int32_t xx = (int32_t) (x + j) - (int32_t) kernel.offset;
+
+            S32 w = kernel.at(j,i);
+            U8 v = image.get(xx, yy);
+
+            total += w * v;
+        }
+    }
+
+    return (U8)total;
+}
+
+TEST(ConvolveNaive, convolve_2D_int) {
+    std::mt19937 gen(0xBEEF);
+    Kernel2D<S32> kernel(3,{{1,2,3,4},{5,6,7,8},{4,0,5,6},{4,-1,3,-9}});
+
+    Gray<U8> input(15,16);
+    ImageMiscOps::fill_uniform(input, (U8)0, (U8)50, gen);
+    Gray<U8> output(15,16);
+
+    ImageBorderValue<U8> border(5);
+    border.setImage(input);
+
+    ConvolveNaive::convolve(kernel,border,output);
+
+    for (uint32_t y = 0; y < output.height; y++) {
+        for (uint32_t x = 0; x < output.width; x++) {
+            U8 expected = convolve2D(x,y,kernel,border);
+            U8 found = output.at(x,y);
+            ASSERT_EQ(expected,found);
+        }
+    }
+}
+
+F32 convolve2D(uint32_t x , uint32_t y , const Kernel2D<F32>& kernel , const ImageBorder<F32>& image )
+{
+    F32 total = 0;
+
+    for (uint32_t i = 0; i < kernel.width; i++) {
+        int32_t yy = (int32_t) (y + i) - (int32_t) kernel.offset;
+
+        for (uint32_t j = 0; j < kernel.width; j++) {
+            int32_t xx = (int32_t) (x + j) - (int32_t) kernel.offset;
+
+            F32 w = kernel.at(j,i);
+            F32 v = image.get(xx, yy);
+
+            total += w * v;
+        }
+    }
+
+    return total;
+}
+
+TEST(ConvolveNaive, convolve_2D_float) {
+    std::mt19937 gen(0xBEEF);
+    Kernel2D<F32> kernel(3,{{1,2,3,4},{5,6,7,8},{4,0,5,6},{4,-1,3,-9}});
+
+    Gray<F32> input(15,16);
+    ImageMiscOps::fill_uniform(input, (F32)0, (F32)50, gen);
+    Gray<F32> output(15,16);
+
+    ImageBorderValue<F32> border(5);
+    border.setImage(input);
+
+    ConvolveNaive::convolve(kernel,border,output);
+
+    for (uint32_t y = 0; y < output.height; y++) {
+        for (uint32_t x = 0; x < output.width; x++) {
+            F32 expected = convolve2D(x,y,kernel,border);
+            F32 found = output.at(x,y);
+            ASSERT_EQ(expected,found);
+        }
+    }
+}
+
 U8 horizontal_divide(uint32_t x , uint32_t y , const Kernel1D<S32>& kernel , const ImageBorder<U8>& image, S32 divisor )
 {
     S32 total = 0;
@@ -310,6 +394,95 @@ TEST(ConvolveNaive, horizontal_divide_1D_float) {
     for (uint32_t y = 0; y < output.height; y++) {
         for (uint32_t x = 0; x < output.width; x++) {
             F32 expected = horizontal_divide(x,y,kernel,border,divisor);
+            F32 found = output.at(x,y);
+            ASSERT_EQ(expected,found);
+        }
+    }
+}
+
+S32 convolve2D_divide(uint32_t x , uint32_t y , const Kernel2D<S32>& kernel , const ImageBorder<U8>& image, S32 divisor )
+{
+    S32 total = 0;
+
+    for (uint32_t i = 0; i < kernel.width; i++) {
+        int32_t yy = (int32_t) (y + i) - (int32_t) kernel.offset;
+        for (uint32_t j = 0; j < kernel.width; j++) {
+            // going overboard on typecasting to make sure it's signed
+            int32_t xx = (int32_t) (x + j) - (int32_t) kernel.offset;
+
+            S32 w = kernel.at(j, i);
+            U8 v = image.get(xx, yy);
+
+            total += w * v;
+        }
+    }
+
+    return static_cast<U8>((total+divisor/2)/divisor);
+}
+
+
+TEST(ConvolveNaive, convolve2D_divide_int) {
+    std::mt19937 gen(0xBEEF);
+    Kernel2D<S32> kernel(3,{{1,2,3,4},{5,6,7,8},{4,0,5,6},{4,-1,3,-9}});
+
+    Gray<U8> input(15,16);
+    ImageMiscOps::fill_uniform(input, (U8)0, (U8)50, gen);
+    Gray<U8> output(15,16);
+
+    ImageBorderValue<U8> border(5);
+    border.setImage(input);
+
+    S32 divisor = 14;
+
+    ConvolveNaive::convolve(kernel,border,output,divisor);
+
+    for (uint32_t y = 0; y < output.height; y++) {
+        for (uint32_t x = 0; x < output.width; x++) {
+            S32 expected = convolve2D_divide(x,y,kernel,border,divisor);
+            U8 found = output.at(x,y);
+            ASSERT_EQ(expected,found);
+        }
+    }
+}
+
+F32 convolve2D_divide(uint32_t x , uint32_t y , const Kernel2D<F32>& kernel , const ImageBorder<F32>& image, F32 divisor )
+{
+    F32 total = 0;
+
+    for (uint32_t i = 0; i < kernel.width; i++) {
+        int32_t yy = (int32_t) (y + i) - (int32_t) kernel.offset;
+        for (uint32_t j = 0; j < kernel.width; j++) {
+            // going overboard on typecasting to make sure it's signed
+            int32_t xx = (int32_t) (x + j) - (int32_t) kernel.offset;
+
+            F32 w = kernel.at(j, i);
+            F32 v = image.get(xx, yy);
+
+            total += w * v;
+        }
+    }
+
+    return total/divisor;
+}
+
+TEST(ConvolveNaive, convolve2D_divide_float) {
+    std::mt19937 gen(0xBEEF);
+    Kernel2D<F32> kernel(3,{{1,2,3,4},{5,6,7,8},{4,0,5,6},{4,-1,3,-9}});
+
+    Gray<F32> input(15,16);
+    ImageMiscOps::fill_uniform(input, (F32)0, (F32)50, gen);
+    Gray<F32> output(15,16);
+
+    ImageBorderValue<F32> border(5);
+    border.setImage(input);
+
+    F32 divisor = 14.5f;
+
+    ConvolveNaive::convolve(kernel,border,output,divisor);
+
+    for (uint32_t y = 0; y < output.height; y++) {
+        for (uint32_t x = 0; x < output.width; x++) {
+            F32 expected = convolve2D_divide(x,y,kernel,border,divisor);
             F32 found = output.at(x,y);
             ASSERT_EQ(expected,found);
         }
