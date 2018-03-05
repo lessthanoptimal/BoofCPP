@@ -16,9 +16,9 @@ code that is 2x to 3x slower than the pure Java code.
 
 # Adding BoofCPP to Your Project
 
-Pre-build code can be found on Maven Central and added to your project by adding a dependency.
-Support is provided for the following architectures android-arm, linux-x86_64, macosx-x86_64, and windows-x86_64.
-Examples for how to add depedencies in a Gradle script are provided below.
+Pre-build code can be found on Maven Central (IT'S NOT THERE YET!!) and can be included as a dependency without 
+building BoofCPP. Support is provided for the following architectures android-arm, linux-x86_64, macosx-x86_64,
+and windows-x86_64. Examples for how to add depedencies in a Gradle script are provided below.
 
 ```Gradle
 compile group: 'org.boofcpp', name: "boofcpp", version: '0.29-SNAPSHOT'
@@ -56,21 +56,28 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make -j8
 ```
 
-Then to install the Java library invoke the following command:
+Then to install the Java and Android libraries invoke the following command:
 ```bash
 cd boofcpp
 ./gradlew install
 ```
 
-Android build and installation:
-```bash
-cd boofcpp/android
-../gradlew uploadArchives
-```
-Currently Android doesn't like JDK 1.9 so you will need to switch to JDK 1.8 if you are using that.
+## Android
+
+* The Android SDK must be installed
+* If the ANDROID_HOME environmental variable is not set then the android submodule is skipped.
+* Currently Android doesn't like JDK 1.9 so you will need to switch to JDK 1.8 if you are using that.
 
 To include debug symbols invoke 
+```bash
 ./gradlew installDebug
+```
+
+# Trouble Shooting
+
+* When I load this project into IntelliJ the IDE becomes unstable
+** As of this writing, IntelliJ can't handle a project with the Java plugin and Android plugin
+** Comment out the line which includes the Android plugin and restart IntelliJ
 
 # Design Comments
 
@@ -84,29 +91,22 @@ Changes from BoofCV
 * Array length's are unsigned 32-bit integerss (uint32_t)
   * Justification: Simplifies precondition checks, e.g. impossible to pass in a negative number
 * Templates
-  * Justification: Despite all of it's flaws, C++ templates are easier to maintain than autogenerating code.
+  * Justification: Despite all of its flaws, C++ templates are easier to maintain than autogenerating code.
 * Bloated Unit Tests:
   * Justification: Java reflections make iterating through functions and data types much easier and more concise
 
 # Performance Comments
 
 Java is much faster than most non-Java developers believe. Saying if C++
-or Java is faster is a complex question. My general observations is
-that: "It varies. For most well written code, C++ is equal to or faster
-than Java. However, most code isn't well written". For array heavy tasks
-C++ tends to be 1.5x to 2.5x faster, if the array is large enough.
-Non-array tasks it's a coin toss which one is faster, but in general they
-are comparable. Situations have been encounter in BoofCPP where
-equivalent Java code runs much faster than C++ code and it's not fully
-understood why.
+or Java is faster is a complex question. For well written Java and C++ code, operations which are array 
+heavy and can be processed in sequence typically run 1.5x to 2.5x faster. Linear algebra is a perfect
+example of code which can be optimized to run much faster in C++. For all other operations it's a
+coin toss if Java or C++ is faster. If the code is not well written then typically C++ will run faster and 
+crash harder than equally poorly written Java code.
 
-The answer also depends on which platform you're using and compiler
-flags for C++. Oracle's JVM does a good to excellent job of optimizing
-code at runtime. Google's Dalvik VM does an OK job and produces code
-which is relatively
-much slower than the JVM. Google's official stance appears to be that
-they no longer want to bother with making Dalvik faster and just tell
-people to write native code if performance is an issue.
+BoofCPP has several good examples of the general rule stated in the previous paragraph. Very simple operations
+run much faster in C++ (e.g. a simple global threshold) while complex algorithm with out of order operations
+(e.g. contour finding) run at approximately the same speed in C++ and Java.
 
 It's worth mentioning that the reason Java was used as the language for
 BoofCV is because Java projects are easier to write and maintain as

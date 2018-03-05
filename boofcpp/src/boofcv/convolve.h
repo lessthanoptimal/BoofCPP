@@ -41,6 +41,9 @@ namespace boofcv {
         virtual uint32_t dimension() const = 0;
     };
 
+    /**
+     * 1D Kernel. Used to convolve in the horizontal and vertical directions.
+     */
     template< class E>
     class Kernel1D : public KernelBase {
     public:
@@ -98,6 +101,9 @@ namespace boofcv {
         }
     };
 
+    /**
+     * 2D Kernel. Convolves a N by N region.
+     */
     template< class E>
     class Kernel2D : public KernelBase {
     public:
@@ -115,8 +121,15 @@ namespace boofcv {
         }
     };
 
+    /**
+     * Used to create commonly used convolution kernels.
+     */
     class FactoryKernel {
     public:
+        /**
+         * Creates a 1D kernel where all values are 1
+         * @param width How wide the kernel is
+         */
         template<class E>
         static Kernel1D<E> table1D( uint32_t width ) {
             Kernel1D<E> k(width);
@@ -126,6 +139,12 @@ namespace boofcv {
             return k;
         }
 
+        /**
+         * A kernel where each element has the same value and the sum of the elements
+         * adds up to one.
+         * @param width How wide the kernel is
+
+         */
         template<class E>
         static Kernel1D<E> mean1D( uint32_t width ) {
             Kernel1D<E> mean = table1D<E>(width);
@@ -185,6 +204,10 @@ namespace boofcv {
         }
     };
 
+    /**
+     * Unoptimized convolution algorithms. They are intended to be easy to understand and work no matter
+     * what you throw at it, e.g. kernel larger than the image.
+     */
     class ConvolveNaive {
     public:
         template<typename E, typename R>
@@ -306,6 +329,10 @@ namespace boofcv {
         }
     };
 
+    /**
+     * Unoptimized normalizing convolution algorithms. They are intended to be easy to understand and work no matter
+     * what you throw at it, e.g. kernel larger than the image.
+     */
     class ConvolveNormalizedNaive {
     public:
         template<class E>
@@ -438,6 +465,9 @@ namespace boofcv {
 
     };
 
+    /**
+     * Optimized normalized convlution code which just processes the image border.
+     */
     class ConvolveNormalized_JustBorder {
     public:
         template<class E>
@@ -648,6 +678,11 @@ namespace boofcv {
     };
 
 
+    /**
+     * Optimized convolution code which processes the inner portion of the image
+     * and doesn't handle the border. if the function has a divisor then the sum
+     * resulting from the convolution is divided by the divisor
+     */
     class ConvolveImage_Inner {
     public:
 
@@ -812,6 +847,10 @@ namespace boofcv {
         }
     };
 
+    /**
+     * Optimized general normalized image convolution. Internally it invokes specialized code for handling image
+     * border and the inner image.
+     */
     class ConvolveNormalized {
     public:
         template<class E>
