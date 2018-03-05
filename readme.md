@@ -91,7 +91,7 @@ Changes from BoofCV
 * Array length's are unsigned 32-bit integerss (uint32_t)
   * Justification: Simplifies precondition checks, e.g. impossible to pass in a negative number
 * Templates
-  * Justification: Despite all of it's flaws, C++ templates are easier to maintain than autogenerating code.
+  * Justification: Despite all of its flaws, C++ templates are easier to maintain than autogenerating code.
 * Bloated Unit Tests:
   * Justification: Java reflections make iterating through functions and data types much easier and more concise
 
@@ -99,7 +99,8 @@ Changes from BoofCV
 
 Java is much faster than most non-Java developers believe. Saying if C++
 or Java is faster is a complex question. For well written Java and C++ code, operations which are array 
-heavy and can be processed in sequence typically run 1.5x to 2.5x faster. For all other operations it's a
+heavy and can be processed in sequence typically run 1.5x to 2.5x faster. Linear algebra is a perfect
+example of code which can be optimized to run much faster in C++. For all other operations it's a
 coin toss if Java or C++ is faster. If the code is not well written then typically C++ will run faster and 
 crash harder than equally poorly written Java code.
 
