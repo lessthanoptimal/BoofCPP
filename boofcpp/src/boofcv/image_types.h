@@ -2,6 +2,7 @@
 #define BOOFCPP_IMAGE_TYPES_H
 
 #include <cstdint>
+#include <cstring>
 #include <exception>
 #include <stdexcept>
 #include <vector>
@@ -174,7 +175,7 @@ namespace boofcv {
             }
             // This will handle the situation where all of some of the images are sub-images
             for( uint32_t y = 0; y < this->height; y++ ) {
-                memcpy(&this->data[this->offset+y*this->stride],&src.data[src.offset+y*src.stride], sizeof(T)*src.width);
+                std::memcpy(&this->data[this->offset+y*this->stride],&src.data[src.offset+y*src.stride], sizeof(T)*src.width);
             }
         }
 

@@ -1,3 +1,4 @@
+#include <print_structures.h>
 #include "gtest/gtest.h"
 #include "convolve.h"
 #include "image_misc_ops.h"
@@ -578,6 +579,7 @@ public:
 
     Gray<E> input,found,expected;
     Kernel1D<signed_type> kernel;
+    Kernel2D<signed_type> kernel2;
 
     std::mt19937 gen;
 
@@ -602,6 +604,14 @@ public:
             KernelOps::fill_uniform(kernel,(signed_type)-10,(signed_type)10,gen);
         else
             KernelOps::fill_uniform(kernel,(signed_type)0,(signed_type)10,gen);
+    }
+
+    void setKernel2( uint32_t width , uint32_t offset , bool has_negative=false) {
+        kernel2.reshape(width,offset);
+        if( has_negative )
+            KernelOps::fill_uniform(kernel2,(signed_type)-10,(signed_type)10,gen);
+        else
+            KernelOps::fill_uniform(kernel2,(signed_type)0,(signed_type)10,gen);
     }
 
     void horizontal_norm_border() {
@@ -680,6 +690,38 @@ public:
         borderX0=borderX1=0;
         borderY0 = kernel.offset;
         borderY1 = kernel.width-1-kernel.offset;
+
+        checkResults_inner();
+    }
+
+    void convolve_div_inner() {
+        ImageBorderValue<E> border(0);
+        border.setImage(input);
+
+        signed_type kernel_sum = kernel2.sum();
+
+        ConvolveNaive::convolve(kernel2,border,expected,kernel_sum);
+        ConvolveImage_Inner::convolve(kernel2,input,found,kernel_sum);
+
+        borderX0 = kernel2.offset;
+        borderX1 = kernel2.width-1-kernel2.offset;
+        borderY0 = kernel2.offset;
+        borderY1 = kernel2.width-1-kernel2.offset;
+
+        checkResults_inner();
+    }
+
+    void convolve_inner() {
+        ImageBorderValue<E> border(0);
+        border.setImage(input);
+
+        ConvolveNaive::convolve(kernel2,border,expected);
+        ConvolveImage_Inner::convolve(kernel2,input,found);
+
+        borderX0 = kernel2.offset;
+        borderX1 = kernel2.width-1-kernel2.offset;
+        borderY0 = kernel2.offset;
+        borderY1 = kernel2.width-1-kernel2.offset;
 
         checkResults_inner();
     }
@@ -966,6 +1008,90 @@ TEST(ConvolveImage_Inner, vertical_F32) {
         compare.vertical_inner();
         compare.setKernel(7,4);
         compare.vertical_inner();
+    }
+}
+
+TEST(ConvolveImage_Inner, convolve_U8) {
+    CompareToNaive<U8> compare;
+
+    for( uint32_t i = 0; i < 2; i++ ) {
+        uint32_t w = 15+i;
+        uint32_t h = 20+i;
+
+        compare.setImageSize(w,h);
+        compare.setKernel2(3,1,true);
+        compare.convolve_inner();
+        compare.setKernel2(5,2,true);
+        compare.convolve_inner();
+        compare.setKernel2(7,3,true);
+        compare.convolve_inner();
+        compare.setKernel2(7,1,true);
+        compare.convolve_inner();
+        compare.setKernel2(7,4,true);
+        compare.convolve_inner();
+    }
+}
+
+TEST(ConvolveImage_Inner, convolve_F32) {
+    CompareToNaive<F32> compare;
+
+    for( uint32_t i = 0; i < 2; i++ ) {
+        uint32_t w = 15+i;
+        uint32_t h = 20+i;
+
+        compare.setImageSize(w,h);
+        compare.setKernel2(3,1,true);
+        compare.convolve_inner();
+        compare.setKernel2(5,2,true);
+        compare.convolve_inner();
+        compare.setKernel2(7,3,true);
+        compare.convolve_inner();
+        compare.setKernel2(7,1,true);
+        compare.convolve_inner();
+        compare.setKernel2(7,4,true);
+        compare.convolve_inner();
+    }
+}
+
+TEST(ConvolveImage_Inner, convolve_div_U8) {
+    CompareToNaive<U8> compare;
+
+    for( uint32_t i = 0; i < 2; i++ ) {
+        uint32_t w = 15+i;
+        uint32_t h = 20+i;
+
+        compare.setImageSize(w,h);
+        compare.setKernel2(3,1);
+        compare.convolve_div_inner();
+        compare.setKernel2(5,2);
+        compare.convolve_div_inner();
+        compare.setKernel2(7,3);
+        compare.convolve_div_inner();
+        compare.setKernel2(7,1);
+        compare.convolve_div_inner();
+        compare.setKernel2(7,4);
+        compare.convolve_div_inner();
+    }
+}
+
+TEST(ConvolveImage_Inner, convolve_div_F32) {
+    CompareToNaive<F32> compare;
+
+    for( uint32_t i = 0; i < 2; i++ ) {
+        uint32_t w = 15+i;
+        uint32_t h = 20+i;
+
+        compare.setImageSize(w,h);
+        compare.setKernel2(3,1);
+        compare.convolve_div_inner();
+        compare.setKernel2(5,2);
+        compare.convolve_div_inner();
+        compare.setKernel2(7,3);
+        compare.convolve_div_inner();
+        compare.setKernel2(7,1);
+        compare.convolve_div_inner();
+        compare.setKernel2(7,4);
+        compare.convolve_div_inner();
     }
 }
 

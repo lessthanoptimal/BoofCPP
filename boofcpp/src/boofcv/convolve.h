@@ -44,6 +44,8 @@ namespace boofcv {
             this->offset = offset;
         }
 
+        virtual void reshape( uint32_t width , uint32_t offset ) = 0;
+
         uint32_t radius() const {
             return width/2;
         }
@@ -80,7 +82,7 @@ namespace boofcv {
         Kernel1D() {
         }
 
-        void reshape( uint32_t width , uint32_t offset ) {
+        void reshape( uint32_t width , uint32_t offset ) override {
             this->width = width;
             this->offset = offset;
             this->data.resize(width);
@@ -137,6 +139,15 @@ namespace boofcv {
                     *ptr++ = y;
                 }
             }
+        }
+
+        Kernel2D() {
+        }
+
+        void reshape( uint32_t width , uint32_t offset ) override {
+            this->width = width;
+            this->offset = offset;
+            this->data.resize(width*width);
         }
 
         uint32_t dimension() const override  {
@@ -238,6 +249,28 @@ namespace boofcv {
             std::uniform_real_distribution<E> dis(min_value, max_value);
 
             for( uint32_t i = 0; i < kernel.width; i++ ) {
+                kernel.data[i] = dis(rng);
+            }
+        }
+
+        template<class E, class RNG>
+        static void fill_uniform( Kernel2D<E>& kernel , E min_value , E max_value , RNG& rng, typename std::enable_if<std::is_integral<E>::value >::type* = 0) {
+
+            std::uniform_int_distribution<E> dis(min_value, max_value-1);
+
+            uint32_t N = kernel.width*kernel.width;
+            for( uint32_t i = 0; i < N; i++ ) {
+                kernel.data[i] = dis(rng);
+            }
+        }
+
+        template<class E, class RNG>
+        static void fill_uniform( Kernel2D<E>& kernel , E min_value , E max_value , RNG& rng, typename std::enable_if<std::is_floating_point<E>::value >::type* = 0) {
+
+            std::uniform_real_distribution<E> dis(min_value, max_value);
+
+            uint32_t N = kernel.width*kernel.width;
+            for( uint32_t i = 0; i < N; i++ ) {
                 kernel.data[i] = dis(rng);
             }
         }
@@ -949,6 +982,89 @@ namespace boofcv {
                     for( uint32_t k = 0; k < kernel.width; k++ ) {
                         total += input.data[indexSrc]* kernel.data[k];
                         indexSrc += input.stride;
+                    }
+                    output.data[indexDst++] = (R)total;
+                }
+            }
+        }
+
+        template<class E>
+        static void convolve( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel ,
+                              const Gray<E>& input, const Gray<E>& output ,
+                              typename TypeInfo<E>::signed_type divisor ,
+                              typename std::enable_if<std::is_integral<E>::value >::type* = 0 )
+        {
+            typedef typename TypeInfo<E>::signed_type signed_type;
+            typedef typename TypeInfo<E>::sum_type sum_type;
+            signed_type halfDivisor = divisor/2;
+
+            uint32_t offsetL = kernel.offset;
+            uint32_t offsetR = kernel.width-kernel.offset-1;
+
+            for( uint32_t y = offsetL; y < input.height-offsetR; y++ ) {
+                uint32_t indexDst = output.offset + y*output.stride+offsetL;
+                for( uint32_t x = offsetL; x < input.width-offsetR; x++ ) {
+                    signed_type total = 0;
+                    signed_type* kernel_ptr = kernel.data.data;
+                    for( uint32_t ki = 0; ki < kernel.width; ki++ ) {
+                        E* input_ptr = &input.data[input.offset + (y+ki-offsetL)*input.stride + x-offsetL];
+                        for( uint32_t kj = 0; kj <  kernel.width; kj++ ) {
+                            total += *input_ptr++ * *kernel_ptr++;
+                        }
+                    }
+                    output.data[indexDst++] = (E)((total+halfDivisor)/divisor);
+                }
+            }
+        }
+
+        template<class E>
+        static void convolve( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel ,
+                              const Gray<E>& input, const Gray<E>& output ,
+                              typename TypeInfo<E>::signed_type divisor ,
+                              typename std::enable_if<std::is_floating_point<E>::value >::type* = 0 )
+        {
+            typedef typename TypeInfo<E>::signed_type signed_type;
+            typedef typename TypeInfo<E>::sum_type sum_type;
+
+            uint32_t offsetL = kernel.offset;
+            uint32_t offsetR = kernel.width-kernel.offset-1;
+
+            for( uint32_t y = offsetL; y < input.height-offsetR; y++ ) {
+                uint32_t indexDst = output.offset + y*output.stride+offsetL;
+                for( uint32_t x = offsetL; x < input.width-offsetR; x++ ) {
+                    signed_type total = 0;
+                    signed_type* kernel_ptr = kernel.data.data;
+                    for( uint32_t ki = 0; ki < kernel.width; ki++ ) {
+                        E* input_ptr = &input.data[input.offset + (y+ki-offsetL)*input.stride + x-offsetL];
+                        for( uint32_t kj = 0; kj <  kernel.width; kj++ ) {
+                            total += *input_ptr++ * *kernel_ptr++;
+                        }
+                    }
+                    output.data[indexDst++] = (E)(total/divisor);
+                }
+            }
+        }
+
+        template<typename E, typename R>
+        static void convolve( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel ,
+                              const Gray<E>& input, const Gray<R>& output )
+        {
+            typedef typename TypeInfo<E>::signed_type signed_type;
+            typedef typename TypeInfo<E>::sum_type sum_type;
+
+            uint32_t offsetL = kernel.offset;
+            uint32_t offsetR = kernel.width-kernel.offset-1;
+
+            for( uint32_t y = offsetL; y < input.height-offsetR; y++ ) {
+                uint32_t indexDst = output.offset + y*output.stride+offsetL;
+                for( uint32_t x = offsetL; x < input.width-offsetR; x++ ) {
+                    signed_type total = 0;
+                    signed_type* kernel_ptr = kernel.data.data;
+                    for( uint32_t ki = 0; ki < kernel.width; ki++ ) {
+                        E* input_ptr = &input.data[input.offset + (y+ki-offsetL)*input.stride + x-offsetL];
+                        for( uint32_t kj = 0; kj <  kernel.width; kj++ ) {
+                            total += (*input_ptr++) * (*kernel_ptr++);
+                        }
                     }
                     output.data[indexDst++] = (R)total;
                 }
