@@ -907,9 +907,9 @@ namespace boofcv {
 
         template<class E>
         static void vertical( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
-                                const Gray<E>& input, const Gray<E>& output ,
-                                typename TypeInfo<E>::signed_type divisor ,
-                                typename std::enable_if<std::is_integral<E>::value >::type* = 0 )
+                              const Gray<E>& input, const Gray<E>& output ,
+                              typename TypeInfo<E>::signed_type divisor ,
+                              typename std::enable_if<std::is_integral<E>::value >::type* = 0 )
         {
             typedef typename TypeInfo<E>::signed_type signed_type;
             typedef typename TypeInfo<E>::sum_type sum_type;
@@ -936,9 +936,9 @@ namespace boofcv {
 
         template<class E>
         static void vertical( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
-                                const Gray<E>& input, const Gray<E>& output ,
-                                typename TypeInfo<E>::signed_type divisor ,
-                                typename std::enable_if<std::is_floating_point<E>::value >::type* = 0 )
+                              const Gray<E>& input, const Gray<E>& output ,
+                              typename TypeInfo<E>::signed_type divisor ,
+                              typename std::enable_if<std::is_floating_point<E>::value >::type* = 0 )
         {
             typedef typename TypeInfo<E>::signed_type signed_type;
             typedef typename TypeInfo<E>::sum_type sum_type;
@@ -1067,6 +1067,149 @@ namespace boofcv {
                         }
                     }
                     output.data[indexDst++] = (R)total;
+                }
+            }
+        }
+    };
+
+    /**
+     * Convolution code which can handle the image border. This code is difficult to optimize
+     * because of the special case which need to be handled. Which is why it's handled
+     * seperately from the inner image which can be highly optimized.
+     */
+    class ConvolveImage_Border {
+    public:
+        template<class E, class R>
+        static void horizontal( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
+                                const ImageBorder<E>& input, const Gray<R>& output )
+        {
+            typedef typename TypeInfo<E>::signed_type signed_type;
+            typedef typename TypeInfo<E>::sum_type sum_type;
+
+            uint32_t offset = kernel.offset;
+            uint32_t borderRight = kernel.width-offset-1;
+
+            for (uint32_t y = 0; y < output.height; y++) {
+                int indexDest = output.offset + y * output.stride;
+
+                for ( uint32_t x = 0; x < offset; x++ ) {
+                    signed_type total = 0;
+                    signed_type *kernel_ptr = kernel.data.data;
+                    for (int k = 0; k < kernel.width; k++) {
+                        total += input.get(x+k-offset,y) * *kernel_ptr++;
+                    }
+                    output.data[indexDest++] = static_cast<R>(total);
+                }
+
+                indexDest = output.offset + y * output.stride + output.width-borderRight;
+                for ( uint32_t x = output.width-borderRight; x < output.width; x++ ) {
+                    signed_type total = 0;
+                    signed_type *kernel_ptr = kernel.data.data;
+                    for (int k = 0; k < kernel.width; k++) {
+                        total += input.get(x+k-offset,y) * *kernel_ptr++;
+                    }
+                    output.data[indexDest++] = static_cast<R>(total);
+                }
+            }
+        }
+
+        template<class E, class R>
+        static void vertical( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
+                              const ImageBorder<E>& input, const Gray<R>& output )
+        {
+            typedef typename TypeInfo<E>::signed_type signed_type;
+            typedef typename TypeInfo<E>::sum_type sum_type;
+
+            int borderBottom = kernel.width-kernel.offset-1;
+
+            for ( uint32_t x = 0; x < output.width; x++ ) {
+                int indexDest = output.offset + x;
+
+                for (uint32_t y = 0; y < kernel.offset; y++, indexDest += output.stride) {
+                    signed_type total = 0;
+                    signed_type *kernel_ptr = kernel.data.data;
+                    for (uint32_t k = 0; k < kernel.width; k++) {
+                        total += input.get(x,y+k-kernel.offset) * *kernel_ptr++;
+                    }
+                    output.data[indexDest] = static_cast<R>(total);
+                }
+
+                indexDest = output.offset + (output.height-borderBottom) * output.stride + x;
+                for (uint32_t y = output.height-borderBottom; y < output.height; y++, indexDest += output.stride) {
+                    signed_type total = 0;
+                    signed_type *kernel_ptr = kernel.data.data;
+                    for (uint32_t k = 0; k < kernel.width; k++ ) {
+                        total += input.get(x,y+k-kernel.offset) * *kernel_ptr++;
+                    }
+                    output.data[indexDest] = static_cast<R>(total);
+                }
+            }
+        }
+
+        template<class E, class R>
+        static void convolve( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel ,
+                              const ImageBorder<E>& input, const Gray<R>& output )
+        {
+            typedef typename TypeInfo<E>::signed_type signed_type;
+            typedef typename TypeInfo<E>::sum_type sum_type;
+
+            // signed so that logic of inner loops isn't messed up
+            int32_t offsetL = kernel.offset;
+            int32_t offsetR = kernel.width-offsetL-1;
+
+            // convolve along the left and right borders
+            for (uint32_t y = 0; y < output.height; y++) {
+                uint32_t indexDest = output.offset + y * output.stride;
+
+                for ( uint32_t x = 0; x < offsetL; x++ ) {
+                    signed_type total = 0;
+                    signed_type *kernel_ptr = kernel.data.data;
+                    for( int32_t i = -offsetL; i <= offsetR; i++ ) {
+                        for (int32_t j = -offsetL; j <= offsetR; j++) {
+                            total += input.get(x+j,y+i) * *kernel_ptr++;
+                        }
+                    }
+                    output.data[indexDest++] = static_cast<R>(total);
+                }
+
+                indexDest = output.offset + y * output.stride + output.width-offsetR;
+                for ( uint32_t x = output.width-offsetR; x < output.width; x++ ) {
+                    signed_type total = 0;
+                    signed_type *kernel_ptr = kernel.data.data;
+                    for( int32_t i = -offsetL; i <= offsetR; i++ ) {
+                        for (int32_t j = -offsetL; j <= offsetR; j++) {
+                            total += input.get(x+j,y+i) * *kernel_ptr++;
+                        }
+                    }
+                    output.data[indexDest++] = static_cast<R>(total);
+                }
+            }
+
+            // convolve along the top and bottom borders
+            for ( uint32_t x = offsetL; x < output.width-offsetR; x++ ) {
+                uint32_t indexDest = output.offset + x;
+
+                for (uint32_t y = 0; y < offsetL; y++, indexDest += output.stride) {
+                    signed_type total = 0;
+                    signed_type *kernel_ptr = kernel.data.data;
+                    for( int32_t i = -offsetL; i <= offsetR; i++ ) {
+                        for (int32_t j = -offsetL; j <= offsetR; j++) {
+                            total += input.get(x+j,y+i) * *kernel_ptr++;
+                        }
+                    }
+                    output.data[indexDest] = static_cast<R>(total);
+                }
+
+                indexDest = output.offset + (output.height-offsetR) * output.stride + x;
+                for (uint32_t y = output.height-offsetR; y < output.height; y++, indexDest += output.stride) {
+                    signed_type total = 0;
+                    signed_type *kernel_ptr = kernel.data.data;
+                    for( int32_t i = -offsetL; i <= offsetR; i++ ) {
+                        for (int32_t j = -offsetL; j <= offsetR; j++) {
+                            total += input.get(x+j,y+i) * *kernel_ptr++;
+                        }
+                    }
+                    output.data[indexDest] = static_cast<R>(total);
                 }
             }
         }
