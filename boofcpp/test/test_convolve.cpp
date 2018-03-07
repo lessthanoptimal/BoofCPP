@@ -7,7 +7,6 @@
 using namespace std;
 using namespace boofcv;
 
-
 U8 horizontal_norm(uint32_t x , uint32_t y , const Kernel1D<S32>& kernel , const Gray<U8>& image )
 {
     S32 total = 0;

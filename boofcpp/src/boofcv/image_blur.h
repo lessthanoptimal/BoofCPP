@@ -3,6 +3,7 @@
 
 #include "convolve.h"
 #include "sanity_checks.h"
+#include <math.h>
 
 namespace boofcv {
     /**
@@ -224,6 +225,29 @@ namespace boofcv {
 
             ConvolveImageMean::horizontal(input, storage, radius);
             ConvolveImageMean::vertical(storage, output, radius);
+        }
+
+        /**
+         * Applies a Gaussian filter.
+         *
+         * @param input Input image.  Not modified.
+         * @param output Storage for output image.
+         * @param sigma Distribution's sigma. If <= 0 then sigma is determined from width
+         * @param width Width of the kernel. If <= 0 then width is determined from sigma
+         * @param storage Storage for intermediate results.
+         * @return Output blurred image.
+         */
+        template<class E>
+        static void gaussian(const Gray<E> &input, Gray<E> &output, double sigma, int32_t width, Gray<E> &storage) {
+            typedef typename TypeInfo<E>::signed_type signed_type;
+
+            output.reshape(input.width, input.height);
+            storage.reshape(input.width, input.height);
+
+            Kernel1D<signed_type> kernel = FactoryKernel::gaussian1D<signed_type>(sigma,width);
+
+            ConvolveNormalized::horizontal(kernel, input, storage);
+            ConvolveNormalized::vertical(kernel, storage, output);
         }
     };
 }

@@ -82,6 +82,18 @@ public:
         check_equals(expected,found);
     }
 
+    void gaussian( int32_t kernel_width ) {
+
+        kernel = FactoryKernel::gaussian1D<signed_type>(-1,kernel_width);
+
+        Gray<E> tmp(input.width,input.height);
+        ConvolveNormalizedNaive::horizontal(kernel,input,tmp);
+        ConvolveNormalizedNaive::vertical(kernel,tmp,expected);
+        BlurImageOps::gaussian(input,found,-1,kernel_width,tmp);
+
+        check_equals(expected,found);
+    }
+
     void checkResults_inner() {
         check_equals_inner(expected,found,borderX0,borderX1,borderY0,borderY1);
     }
@@ -204,5 +216,21 @@ TEST(BlurImageOps, mean) {
         compare.mean();
         compare.setMeanRadius(5);
         compare.mean();
+    }
+}
+
+TEST(BlurImageOps, gaussian) {
+    CompareToNormalized<U8> compare;
+
+    for( uint32_t i = 0; i < 3; i++ ) {
+        uint32_t w = 3+i;
+        uint32_t h = 4+i;
+//        printf("mean i = %d  %dx%d\n",i,w,h);
+
+        compare.setImageSize(w,h);
+        compare.gaussian(3);
+        compare.gaussian(5);
+        compare.gaussian(7);
+        compare.gaussian(4);
     }
 }
