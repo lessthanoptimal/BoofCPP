@@ -39,6 +39,14 @@ namespace boofcv {
             return this->width*this->height;
         }
 
+        uint32_t getWidth() const {
+            return width;
+        }
+
+        uint32_t getHeight() const {
+            return width;
+        }
+
         /**
          * Changes the image's shapes. Value of pixels after this function is called is undefined.
          * @param width New image width
@@ -148,8 +156,8 @@ namespace boofcv {
 
             uint32_t desired_length = width*height;
             if( desired_length > this->data_length ) {
-                delete []data;
-                data = new T[desired_length]();
+                delete []this->data;
+                this->data = new T[desired_length]();
                 this->data_length = desired_length;
             }
             this->width = width;

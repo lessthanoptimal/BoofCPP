@@ -711,6 +711,19 @@ public:
         checkResults_border();
     }
 
+    void horizontal() {
+        ImageBorderValue<E> border(0);
+        border.setImage(input);
+
+//        ConvolveNaive::horizontal(kernel,border,expected);
+        ConvolveImage::horizontal(kernel,border,found);
+
+        borderX0=borderX1=0;
+        borderY0=borderY1=0;
+
+//        checkResults_inner();
+    }
+
     void vertical_inner() {
         ImageBorderValue<E> border(0);
         border.setImage(input);
@@ -735,6 +748,19 @@ public:
         borderX0=borderX1=0;
         borderY0 = kernel.offset;
         borderY1 = kernel.width-1-kernel.offset;
+
+        checkResults_border();
+    }
+
+    void vertical() {
+        ImageBorderValue<E> border(0);
+        border.setImage(input);
+
+        ConvolveNaive::vertical(kernel,border,expected);
+        ConvolveImage::vertical(kernel,border,found);
+
+        borderX0=borderX1=0;
+        borderY0=borderY1=0;
 
         checkResults_border();
     }
@@ -765,6 +791,19 @@ public:
         borderX1 = kernel2.width-1-kernel2.offset;
         borderY0 = kernel2.offset;
         borderY1 = kernel2.width-1-kernel2.offset;
+
+        checkResults_border();
+    }
+
+    void convolve() {
+        ImageBorderValue<E> border(0);
+        border.setImage(input);
+
+        ConvolveNaive::convolve(kernel2,border,expected);
+        ConvolveImage::convolve(kernel2,border,found);
+
+        borderX0=borderX1=0;
+        borderY0=borderY1=0;
 
         checkResults_border();
     }
@@ -1305,4 +1344,112 @@ TEST(ConvolveNormalized, convolve_with1D) {
         compare.setKernel(7,4);
         compare.normalized_convolve_1D();
     }
+}
+
+TEST(ConvolveImage, horizontal_U8) {
+    CompareToNaive<U8> compare;
+
+    // pathological case where the kernel is larger than the image
+    compare.setImageSize(5,6);
+    compare.setKernel(7,3);compare.horizontal();
+    compare.setKernel(7,1);compare.horizontal();
+    compare.setKernel(7,6);compare.horizontal();
+
+    compare.setImageSize(15,16);
+    compare.setKernel(3,1);compare.horizontal();
+    compare.setKernel(7,2);compare.horizontal();
+
+    compare.setImageSize(15,16);
+    compare.setKernel(3,1);compare.horizontal();
+    compare.setKernel(7,2);compare.horizontal();
+}
+
+TEST(ConvolveImage, horizontal_F32) {
+    CompareToNaive<F32> compare;
+
+    // pathological case where the kernel is larger than the image
+    compare.setImageSize(5,6);
+    compare.setKernel(7,3);compare.horizontal();
+    compare.setKernel(7,1);compare.horizontal();
+    compare.setKernel(7,6);compare.horizontal();
+
+    compare.setImageSize(15,16);
+    compare.setKernel(3,1);compare.horizontal();
+    compare.setKernel(7,2);compare.horizontal();
+
+    compare.setImageSize(15,16);
+    compare.setKernel(3,1);compare.horizontal();
+    compare.setKernel(7,2);compare.horizontal();
+}
+
+TEST(ConvolveImage, vertical_U8) {
+    CompareToNaive<U8> compare;
+
+    // pathological case where the kernel is larger than the image
+    compare.setImageSize(5,6);
+    compare.setKernel(7,3);compare.vertical();
+    compare.setKernel(7,1);compare.vertical();
+    compare.setKernel(7,6);compare.vertical();
+
+    compare.setImageSize(15,16);
+    compare.setKernel(3,1);compare.vertical();
+    compare.setKernel(7,2);compare.vertical();
+
+    compare.setImageSize(15,16);
+    compare.setKernel(3,1);compare.vertical();
+    compare.setKernel(7,2);compare.vertical();
+}
+
+TEST(ConvolveImage, vertical_F32) {
+    CompareToNaive<F32> compare;
+
+    // pathological case where the kernel is larger than the image
+    compare.setImageSize(5,6);
+    compare.setKernel(7,3);compare.vertical();
+    compare.setKernel(7,1);compare.vertical();
+    compare.setKernel(7,6);compare.vertical();
+
+    compare.setImageSize(15,16);
+    compare.setKernel(3,1);compare.vertical();
+    compare.setKernel(7,2);compare.vertical();
+
+    compare.setImageSize(15,16);
+    compare.setKernel(3,1);compare.vertical();
+    compare.setKernel(7,2);compare.vertical();
+}
+
+TEST(ConvolveImage, convolve_U8) {
+    CompareToNaive<U8> compare;
+
+    // pathological case where the kernel is larger than the image
+    compare.setImageSize(5,6);
+    compare.setKernel(7,3);compare.convolve();
+    compare.setKernel(7,1);compare.convolve();
+    compare.setKernel(7,6);compare.convolve();
+
+    compare.setImageSize(15,16);
+    compare.setKernel(3,1);compare.convolve();
+    compare.setKernel(7,2);compare.convolve();
+
+    compare.setImageSize(15,16);
+    compare.setKernel(3,1);compare.convolve();
+    compare.setKernel(7,2);compare.convolve();
+}
+
+TEST(ConvolveImage, convolve_F32) {
+    CompareToNaive<F32> compare;
+
+    // pathological case where the kernel is larger than the image
+    compare.setImageSize(5,6);
+    compare.setKernel(7,3);compare.convolve();
+    compare.setKernel(7,1);compare.convolve();
+    compare.setKernel(7,6);compare.convolve();
+
+    compare.setImageSize(15,16);
+    compare.setKernel(3,1);compare.convolve();
+    compare.setKernel(7,2);compare.convolve();
+
+    compare.setImageSize(15,16);
+    compare.setKernel(3,1);compare.convolve();
+    compare.setKernel(7,2);compare.convolve();
 }

@@ -57,8 +57,8 @@ namespace boofcv {
         ASSERT_EQ(expected.width , found.width);
         ASSERT_EQ(expected.height , found.height);
 
-        for( uint32_t y = 0; y < expected.height; y++ ) {
-            for( uint32_t x = 0; x < expected.width; x++ ) {
+        for( int32_t y = 0; y < expected.height; y++ ) {
+            for( int32_t x = 0; x < expected.width; x++ ) {
                 if( x < borderX0 || y < borderY0 || x >= expected.width - borderX1 || y >= expected.height - borderY1 )
                 {
                     bool matches = std::abs(expected.at(x,y)-found.at(x,y)) <= tol;
@@ -82,8 +82,8 @@ namespace boofcv {
         ASSERT_EQ(expected.width , found.width);
         ASSERT_EQ(expected.height , found.height);
 
-        for( uint32_t y = 0; y < expected.height; y++ ) {
-            for( uint32_t x = 0; x < expected.width; x++ ) {
+        for( int32_t y = 0; y < expected.height; y++ ) {
+            for( int32_t x = 0; x < expected.width; x++ ) {
                 if( x >= borderX0 && y >= borderY0 && x < expected.width - borderX1 && y < expected.height - borderY1 )
                 {
                     bool matches = std::abs(expected.at(x,y)-found.at(x,y)) <= tol;

@@ -18,6 +18,14 @@ namespace boofcv {
 
         }
 
+        uint32_t getWidth() const {
+            return image->width;
+        }
+
+        uint32_t getHeight() const {
+            return image->height;
+        }
+
         void setImage( const Gray<E>& image ) {
             this->image = &image;
         }
