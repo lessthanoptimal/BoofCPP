@@ -64,7 +64,7 @@ namespace boofcv {
     class GrowArray {
     public:
 
-        T* data;
+        T* data = nullptr;
         uint32_t size;
         uint32_t array_length;
         // value that new elements are set to
