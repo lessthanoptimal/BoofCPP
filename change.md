@@ -9,6 +9,6 @@ YEAR/MONTH/DAY
 * image blur
 * binary contour / blob detection
 
-- TODO Gaussian blur
 - TODO JNI convolve normalized
 - TODO JNI convolve 
+- TODO JNI gaussian

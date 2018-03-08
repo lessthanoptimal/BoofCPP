@@ -319,9 +319,9 @@ namespace boofcv {
             Kernel1D<E> ret((uint32_t)width);
             int radius = width/2;
 
-            double adjust = width%2==0?0:0.5;
+            double adjust = width%2==1?0:0.5;
             for (int i = 0; i < width; i++) {
-                ret.data[i] = static_cast<E>(computePDF(0, sigma, i-radius-adjust));
+                ret.data[i] = static_cast<E>(computePDF(0, sigma, i-radius+adjust));
             }
 
             normalize(ret);
