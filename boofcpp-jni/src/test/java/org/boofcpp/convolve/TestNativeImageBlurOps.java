@@ -25,7 +25,7 @@ public class TestNativeImageBlurOps {
     }
 
     @Test
-    public void compareMeanToBoof() {
+    public void compareMean() {
         NativeImageBlurOps nativeBlur = new NativeImageBlurOps();
 
         for( Class type : types ) {
@@ -49,6 +49,45 @@ public class TestNativeImageBlurOps {
                 BoofTesting.assertEquals(expected, found, GrlConstants.TEST_F32);
 //                }
             }
+        }
+    }
+
+    @Test
+    public void compareGaussian() {
+        NativeImageBlurOps nativeBlur = new NativeImageBlurOps();
+
+        width = 6;height=7;
+
+        for( Class type : types ) {
+            ImageGray input = GeneralizedImageOps.createSingleBand(type,width,height);
+            ImageGray found = GeneralizedImageOps.createSingleBand(type,width,height);
+            ImageGray expected = GeneralizedImageOps.createSingleBand(type,width,height);
+            ImageGray storage = GeneralizedImageOps.createSingleBand(type,width,height);
+
+            GImageMiscOps.fillUniform(input,rand,0,255);
+
+            for( int radius : new int[]{1,2,5,12} ) {
+                nativeBlur.processGaussian(input,found,-1,radius,storage);
+                GBlurImageOps.gaussian(input,expected,-1,radius,storage);
+
+//                System.out.println("Radius "+radius+"  "+type.getSimpleName());
+//                ((GrayU8)found).print();
+//                System.out.println();
+//                ((GrayU8)expected).print();
+
+                System.out.println();
+
+                BoofTesting.assertEquals(expected, found, GrlConstants.TEST_F32);
+            }
+
+            // check with sigma specified and radius not
+            nativeBlur.processGaussian(input,found,1.5,-1,storage);
+            GBlurImageOps.gaussian(input,expected,1.5,-1,storage);
+//            System.out.println("Sigma");
+//            ((GrayU8)found).print();
+//            System.out.println();
+//            ((GrayU8)expected).print();
+            BoofTesting.assertEquals(expected, found, GrlConstants.TEST_F32);
         }
     }
 }

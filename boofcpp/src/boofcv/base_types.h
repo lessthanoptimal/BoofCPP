@@ -5,6 +5,8 @@
 #include <stdexcept>
 #include <cstring>
 #include <initializer_list>
+#include <limits>
+#include <cmath>
 
 namespace boofcv {
     typedef uint8_t U8;
@@ -189,6 +191,20 @@ namespace boofcv {
             memmove(this->data,src,sizeof(T)*length);
         }
     };
+
+        /**
+         * Selects a reasonable tolerance for equality
+         * @tparam E
+         * @return tolerance for equality
+         */
+        template<typename E>
+        E test_tolerance() {
+            if( std::numeric_limits<E>::is_exact ) {
+                return (E)0;
+            } else {
+                return std::sqrt(std::numeric_limits<E>::epsilon());
+            }
+        }
 
 }
 

@@ -312,7 +312,7 @@ namespace boofcv {
                                       typename std::enable_if<std::is_floating_point<E>::value>::type* = 0 )
         {
             if( width <= 0 )
-                width = radiusForSigma(sigma,0);
+                width = radiusForSigma(sigma,0)*2+1;
             else if( sigma <= 0 )
                 sigma = sigmaForRadius(width/2,0);
 
@@ -369,7 +369,7 @@ namespace boofcv {
             Kernel1D<E> output(original.width, original.offset);
 
             F64 max = original.element_abs_max();
-            F64 min = std::max(original.element_abs_min(),minFrac);
+            F64 min = std::max(original.element_abs_min(),max*minFrac);
 
             for( int i = 0; i < original.width; i++ ) {
                 output[i] = static_cast<E>(original[i]/min);

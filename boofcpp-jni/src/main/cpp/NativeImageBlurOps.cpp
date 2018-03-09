@@ -43,4 +43,44 @@ JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeImageBlurOps_nativeMean(
     }
 }
 
+JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeImageBlurOps_nativeGaussian(
+        JNIEnv *env, jobject obj, jobject jinput, jobject joutput, jdouble sigma, jint radius, jobject jstorage) {
+
+    jclass objClass = env->GetObjectClass(obj);
+    jfieldID fid = env->GetFieldID(objClass, "isInteger", "Z");
+    jboolean isInteger = env->GetBooleanField(obj, fid);
+
+    int32_t width = radius > 0 ? 2*radius+1 : -1;
+
+    if( isInteger ) {
+        ImageAndInfo<Gray<U8>,JImageInfo> input = wrapCriticalGrayU8(env,jinput);
+        ImageAndInfo<Gray<U8>,JImageInfo> output = wrapCriticalGrayU8(env,joutput);
+        ImageAndInfo<Gray<U8>,JImageInfo> storage = wrapCriticalGrayU8(env,jstorage);
+
+        input.image.data = (U8*)env->GetPrimitiveArrayCritical((jarray)input.info.jdata, 0);
+        output.image.data = (U8*)env->GetPrimitiveArrayCritical((jarray)output.info.jdata, 0);
+        storage.image.data = (U8*)env->GetPrimitiveArrayCritical((jarray)storage.info.jdata, 0);
+
+        BlurImageOps::gaussian(input.image,output.image,(double)sigma,(int32_t)width,storage.image);
+
+        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.image.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)storage.info.jdata, storage.image.data, 0);
+    } else {
+        ImageAndInfo<Gray<F32>,JImageInfo> input = wrapCriticalGrayF32(env,jinput);
+        ImageAndInfo<Gray<F32>,JImageInfo> output = wrapCriticalGrayF32(env,joutput);
+        ImageAndInfo<Gray<F32>,JImageInfo> storage = wrapCriticalGrayF32(env,jstorage);
+
+        input.image.data = (F32*)env->GetPrimitiveArrayCritical((jarray)input.info.jdata, 0);
+        output.image.data = (F32*)env->GetPrimitiveArrayCritical((jarray)output.info.jdata, 0);
+        storage.image.data = (F32*)env->GetPrimitiveArrayCritical((jarray)storage.info.jdata, 0);
+
+        BlurImageOps::gaussian(input.image,output.image,(double)sigma,(int32_t)width,storage.image);
+
+        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.image.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)storage.info.jdata, storage.image.data, 0);
+    }
+}
+
 }

@@ -226,7 +226,7 @@ namespace boofcv {
 
             for (uint32_t y = 0; y < input.height; y++) {
                 for( uint32_t x = 0; x < input.width; x++ ) {
-                    uint32_t startX,endX;
+                    int32_t startX,endX;
                     if( x < kernel.offset ) {
                         startX = 0;
                         endX = kernel.width-(kernel.offset-x);
@@ -240,7 +240,7 @@ namespace boofcv {
                     signed_type total = 0;
                     signed_type weight = 0;
 
-                    for( uint32_t j = startX; j < endX; j++ ) {
+                    for( int32_t j = startX; j < endX; j++ ) {
                         signed_type v = kernel[j-x+kernel.offset];
                         total += input.unsafe_at(j,y)*v;
                         weight += v;
@@ -259,7 +259,7 @@ namespace boofcv {
 
             for (uint32_t y = 0; y < input.height; y++) {
                 for( uint32_t x = 0; x < input.width; x++ ) {
-                    uint32_t startX,endX;
+                    int32_t startX,endX;
                     if( x < kernel.offset ) {
                         startX = 0;
                         endX = kernel.width-(kernel.offset-x);
@@ -273,7 +273,7 @@ namespace boofcv {
                     signed_type total = 0;
                     signed_type weight = 0;
 
-                    for( uint32_t j = startX; j < endX; j++ ) {
+                    for( int32_t j = startX; j < endX; j++ ) {
                         signed_type v = kernel[j-x+kernel.offset];
                         total += input.unsafe_at(j,y)*v;
                         weight += v;
@@ -292,7 +292,7 @@ namespace boofcv {
 
             for (uint32_t y = 0; y < input.height; y++) {
                 for( uint32_t x = 0; x < input.width; x++ ) {
-                    uint32_t startY,endY;
+                    int32_t startY,endY;
                     if( y < kernel.offset ) {
                         startY = 0;
                         endY = kernel.width-(kernel.offset-y);
@@ -306,7 +306,7 @@ namespace boofcv {
                     signed_type total = 0;
                     signed_type weight = 0;
 
-                    for( uint32_t i = startY; i < endY; i++ ) {
+                    for( int32_t i = startY; i < endY; i++ ) {
                         E v = kernel.at(i-y+kernel.offset);
                         total += input.unsafe_at(x,i)*v;
                         weight += v;
@@ -325,7 +325,7 @@ namespace boofcv {
 
             for (uint32_t y = 0; y < input.height; y++) {
                 for( uint32_t x = 0; x < input.width; x++ ) {
-                    uint32_t startY,endY;
+                    int32_t startY,endY;
                     if( y < kernel.offset ) {
                         startY = 0;
                         endY = kernel.width-(kernel.offset-y);
@@ -339,7 +339,7 @@ namespace boofcv {
                     signed_type total = 0;
                     signed_type weight = 0;
 
-                    for( uint32_t i = startY; i < endY; i++ ) {
+                    for( int32_t i = startY; i < endY; i++ ) {
                         E v = kernel.at(i-y+kernel.offset);
                         total += input.unsafe_at(x,i)*v;
                         weight += v;

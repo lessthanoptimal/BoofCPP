@@ -54,6 +54,7 @@ public class BoofCPP {
         BOverrideFactoryThresholdBinary.localMean = NativeLocalMean::new;
 
         BOverrideBlurImageOps.mean = new NativeImageBlurOps();
+        BOverrideBlurImageOps.gaussian = new NativeImageBlurOps();
 
         BOverrideConvolveNormalized.horizontal = new NativeImageConvolveNormalized();
         BOverrideConvolveNormalized.vertical = new NativeImageConvolveNormalized();

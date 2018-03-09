@@ -8,20 +8,6 @@
 namespace boofcv {
 
     /**
-     * Selects a reasonable tolerance for equality
-     * @tparam E
-     * @return tolerance for equality
-     */
-    template<typename E>
-    E test_tolerance() {
-        if( std::numeric_limits<E>::is_exact ) {
-            return (E)0;
-        } else {
-            return std::sqrt(std::numeric_limits<E>::epsilon());
-        }
-    }
-
-    /**
      * Returns a subimage which is equivalent to the input image. There will be a memory leak unless you
      * set "subimage" to false in the returned subimage
      */

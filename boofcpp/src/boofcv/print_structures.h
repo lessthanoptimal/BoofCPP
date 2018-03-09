@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include "convolve.h"
 #include "sanity_checks.h"
-#include "testing_utils.h"
 
 namespace boofcv {
     template<typename E>

@@ -1,7 +1,7 @@
 include 'boofcpp-jni'
 
 if (System.getenv()['ANDROID_HOME']) {
-    include 'boofcpp-android'
+//    include 'boofcpp-android'
 } else {
     logger.warn('Skipping Android because ANDROID_HOME has not been set!')
 }
