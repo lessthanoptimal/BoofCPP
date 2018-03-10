@@ -35,8 +35,10 @@ include_directories(${CMAKE_SOURCE_DIR}/boofcpp/src)
 #add_library(benchmark_common SHARED ${BENCHMARK_COMMON} ${IMAGE_LIBS})
 
 add_executable(thresholding src/thresholding.cpp ${BENCHMARK_COMMON})
-
 list(APPEND BechmarkList thresholding)
+
+add_executable(convolution src/convolution.cpp ${BENCHMARK_COMMON})
+list(APPEND BechmarkList convolution)
 
 
 FOREACH(FILENAME ${BechmarkList})

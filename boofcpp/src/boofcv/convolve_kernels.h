@@ -247,7 +247,7 @@ namespace boofcv {
         }
 
         template<class E>
-        static void normalize( Kernel1D<E>& kernel , typename std::enable_if<std::is_integral<E>::value>::type* = 0 ) {
+        static void normalize( KernelBase<E>& kernel , typename std::enable_if<std::is_integral<E>::value>::type* = 0 ) {
             // do nothing. Work around for template
         }
 
@@ -255,10 +255,9 @@ namespace boofcv {
          * Scales the kernel so that it's sum adds up to one.
          */
         template<class E>
-        static void normalize( Kernel1D<E>& kernel , typename std::enable_if<std::is_floating_point<E>::value>::type* = 0 ) {
+        static void normalize( KernelBase<E>& kernel , typename std::enable_if<std::is_floating_point<E>::value>::type* = 0 ) {
 
             typename Kernel1D<E>::sum_type sum = kernel.sum();
-
 
             for( uint32_t i = 0; i < kernel.width; i++ ) {
                 kernel.data[i] /= sum;
@@ -329,6 +328,24 @@ namespace boofcv {
             return ret;
         }
 
+        template< class E >
+        static Kernel2D<E> gaussian2D(double sigma, int32_t width,
+                                      typename std::enable_if<std::is_floating_point<E>::value>::type* = 0 )
+        {
+            Kernel1D<E> seed = gaussian1D<E>(sigma,width);
+            Kernel2D<E> output(width,width/2);
+
+            for( int i = 0; i < width; i++ ) {
+                for( int j = 0; j < width; j++ ) {
+                    output.at(i,j) = seed.at(i)*seed.at(j);
+                }
+            }
+
+            normalize(output);
+
+            return output;
+        }
+
         /**
          * <p>
          * Creates a floating point Gaussian kernel with the sigma and radius.
@@ -343,6 +360,14 @@ namespace boofcv {
         static Kernel1D<E> gaussian1D(double sigma, int32_t width,
                                       typename std::enable_if<std::is_integral<E>::value>::type* = 0 ) {
             Kernel1D<F64> kernel_float = gaussian1D<F64>(sigma, width);
+
+            return float_to_int<E>(kernel_float,1.0/100.0);
+        }
+
+        template< class E>
+        static Kernel2D<E> gaussian2D(double sigma, int32_t width,
+                                      typename std::enable_if<std::is_integral<E>::value>::type* = 0 ) {
+            Kernel2D<F64> kernel_float = gaussian2D<F64>(sigma, width);
 
             return float_to_int<E>(kernel_float,1.0/100.0);
         }
@@ -373,6 +398,25 @@ namespace boofcv {
 
             for( int i = 0; i < original.width; i++ ) {
                 output[i] = static_cast<E>(original[i]/min);
+            }
+
+            return output;
+        }
+
+        template< class E>
+        static Kernel2D<E> float_to_int( const Kernel2D<F64>& original , F64 minFrac,
+                                         typename std::enable_if<std::is_integral<E>::value>::type* = 0)
+        {
+
+            Kernel2D<E> output(original.width, original.offset);
+
+            F64 max = original.element_abs_max();
+            F64 min = std::max(original.element_abs_min(),max*minFrac);
+
+            for( uint32_t i = 0; i < original.width; i++ ) {
+                for( uint32_t j = 0; j < original.width; j++ ) {
+                    output.at(j,i) = static_cast<E>(original.at(j,i) / min);
+                }
             }
 
             return output;
