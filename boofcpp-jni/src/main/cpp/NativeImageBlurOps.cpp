@@ -23,9 +23,9 @@ JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeImageBlurOps_nativeMean(
 
         BlurImageOps::mean(input.image,output.image,(uint32_t)radius,storage.image);
 
-        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, JNI_ABORT);
         env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.image.data, 0);
-        env->ReleasePrimitiveArrayCritical((jarray)storage.info.jdata, storage.image.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)storage.info.jdata, storage.image.data, JNI_ABORT);
     } else {
         ImageAndInfo<Gray<F32>,JImageInfo> input = wrapCriticalGrayF32(env,jinput);
         ImageAndInfo<Gray<F32>,JImageInfo> output = wrapCriticalGrayF32(env,joutput);
@@ -37,9 +37,9 @@ JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeImageBlurOps_nativeMean(
 
         BlurImageOps::mean(input.image,output.image,(uint32_t)radius,storage.image);
 
-        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, JNI_ABORT);
         env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.image.data, 0);
-        env->ReleasePrimitiveArrayCritical((jarray)storage.info.jdata, storage.image.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)storage.info.jdata, storage.image.data, JNI_ABORT);
     }
 }
 
@@ -63,9 +63,9 @@ JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeImageBlurOps_nativeGaussi
 
         BlurImageOps::gaussian(input.image,output.image,(double)sigma,(int32_t)width,storage.image);
 
-        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, JNI_ABORT);
         env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.image.data, 0);
-        env->ReleasePrimitiveArrayCritical((jarray)storage.info.jdata, storage.image.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)storage.info.jdata, storage.image.data, JNI_ABORT);
     } else {
         ImageAndInfo<Gray<F32>,JImageInfo> input = wrapCriticalGrayF32(env,jinput);
         ImageAndInfo<Gray<F32>,JImageInfo> output = wrapCriticalGrayF32(env,joutput);
@@ -77,9 +77,9 @@ JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeImageBlurOps_nativeGaussi
 
         BlurImageOps::gaussian(input.image,output.image,(double)sigma,(int32_t)width,storage.image);
 
-        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, JNI_ABORT);
         env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.image.data, 0);
-        env->ReleasePrimitiveArrayCritical((jarray)storage.info.jdata, storage.image.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)storage.info.jdata, storage.image.data, JNI_ABORT);
     }
 }
 

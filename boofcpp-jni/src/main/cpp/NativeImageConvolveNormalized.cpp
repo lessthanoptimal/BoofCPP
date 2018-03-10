@@ -24,7 +24,7 @@ JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeImageConvolveNormalized_n
 
         ConvolveNormalized::horizontal(*kernel, input.image,output.image);
 
-        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, JNI_ABORT);
         env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.image.data, 0);
         delete kernel;
     } else {
@@ -37,7 +37,7 @@ JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeImageConvolveNormalized_n
 
         ConvolveNormalized::horizontal(*kernel, input.image,output.image);
 
-        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, JNI_ABORT);
         env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.image.data, 0);
         delete kernel;
     }
@@ -60,7 +60,7 @@ JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeImageConvolveNormalized_n
 
         ConvolveNormalized::vertical(*kernel, input.image,output.image);
 
-        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, JNI_ABORT);
         env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.image.data, 0);
         delete kernel;
     } else {
@@ -73,7 +73,7 @@ JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeImageConvolveNormalized_n
 
         ConvolveNormalized::vertical(*kernel, input.image,output.image);
 
-        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, JNI_ABORT);
         env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.image.data, 0);
         delete kernel;
     }

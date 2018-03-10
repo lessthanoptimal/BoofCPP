@@ -2,6 +2,8 @@
 #include <convolve.h>
 #include "JNIBoofCPP.h"
 
+#include <time.h>
+
 #include <stdio.h>
 
 using namespace boofcv;
@@ -50,7 +52,13 @@ JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeConvolveImage_nativeHoriz
             input.image.data = (U8*)env->GetPrimitiveArrayCritical((jarray)input.info.jdata, 0);
             output.image.data = (S16*)env->GetPrimitiveArrayCritical((jarray)output.info.jdata, 0);
 
+            // Trying to figure out why this runs slower than a C++ application
+            // JNI overhead appears to be negligible based on the printed times below
+//            clock_t t;
+//            t = clock();
             ConvolveImage::horizontal(*kernel, *border.get(),output.image);
+//            t = clock() - t;
+//            printf("horizontal time %f kernel %d\n",(float)1000*t/CLOCKS_PER_SEC,kernel->width);
 
             env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.image.data, 0);
         } else if( outputBits == 32 ) {
@@ -65,7 +73,7 @@ JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeConvolveImage_nativeHoriz
             throw std::runtime_error("Can only handle 16-bit or 32-bit integer output images currently");
         }
 
-        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, JNI_ABORT);
         delete kernel;
     } else {
         if( inputBits != 32 || outputBits != 32 ) {
@@ -82,7 +90,7 @@ JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeConvolveImage_nativeHoriz
 
         ConvolveImage::horizontal(*kernel, *border.get(),output.image);
 
-        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, JNI_ABORT);
         env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.image.data, 0);
         delete kernel;
     }
@@ -128,7 +136,7 @@ JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeConvolveImage_nativeVerti
             throw std::runtime_error("Can only handle 16-bit or 32-bit integer output currently");
         }
 
-        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, JNI_ABORT);
         delete kernel;
     } else {
         if( inputBits != 32 || outputBits != 32 ) {
@@ -145,7 +153,7 @@ JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeConvolveImage_nativeVerti
 
         ConvolveImage::vertical(*kernel, *border.get(),output.image);
 
-        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, JNI_ABORT);
         env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.image.data, 0);
         delete kernel;
     }
@@ -191,7 +199,7 @@ JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeConvolveImage_nativeConvo
             throw std::runtime_error("Can only handle 16-bit or 32-bit integer output images currently");
         }
 
-        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, JNI_ABORT);
         delete kernel;
     } else {
         if( inputBits != 32 || outputBits != 32 ) {
@@ -208,7 +216,7 @@ JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeConvolveImage_nativeConvo
 
         ConvolveImage::convolve(*kernel, *border.get(),output.image);
 
-        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, 0);
+        env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, JNI_ABORT);
         env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.image.data, 0);
         delete kernel;
     }

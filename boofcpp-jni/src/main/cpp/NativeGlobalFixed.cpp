@@ -62,13 +62,13 @@ JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeGlobalFixed_nativeproces
             input.image.data = (U8*)env->GetPrimitiveArrayCritical((jarray)input.info.jdata, 0);
             output.image.data = (U8*)env->GetPrimitiveArrayCritical((jarray)output.info.jdata, 0);
             ((GlobalFixedBinaryFilter<U8>*)nativePtr)->process(input.image, output.image);
-            env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, 0);
+            env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, JNI_ABORT);
         } else {
             ImageAndInfo<Gray<F32>,JImageInfo> input = wrapCriticalGrayF32(env,jinput);
             input.image.data = (F32*)env->GetPrimitiveArrayCritical((jarray)input.info.jdata, 0);
              output.image.data = (U8*)env->GetPrimitiveArrayCritical((jarray)output.info.jdata, 0);
             ((GlobalFixedBinaryFilter<F32> *)nativePtr)->process(input.image, output.image);
-            env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, 0);
+            env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, JNI_ABORT);
         }
     } catch( ... ) {
         printf("Exception!!\n");

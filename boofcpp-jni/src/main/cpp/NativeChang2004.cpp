@@ -48,7 +48,7 @@ JNIEXPORT void JNICALL Java_org_boofcpp_contour_NativeChang2004_native_1process
 
     contour->process(input.image, label.image);
 
-    env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, 0);
+    env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, JNI_ABORT);
     env->ReleasePrimitiveArrayCritical((jarray)label.info.jdata, label.image.data, 0);
 
     jfieldID fidPoints = safe_GetFieldID(env, objClass, "storagePoints", "Lorg/ddogleg/struct/GrowQueue_I32;");
