@@ -587,18 +587,20 @@ namespace boofcv {
             signed_type halfDivisor = divisor/2;
 
             for( uint32_t i = 0; i < input.height; i++ ) {
-                uint32_t indexDst = output.offset + i*output.stride + kernel.offset;
-                int32_t j = input.offset + i*input.stride;
-                int32_t jEnd = j+input.width-(kernel.width-1);
+                E* output_ptr = &output.data[output.offset + i*output.stride + kernel.offset];
+                E* input_row_ptr = &input.data[input.offset + i*input.stride];
+                E* input_end_ptr = &input_row_ptr[input.width-(kernel.width-1)];
 
-                for( ; j < jEnd; j++ ) {
-                    signed_type total = 0;
-                    E* input_ptr = &input.data[j];
+                while( input_row_ptr != input_end_ptr) {
+                    E* input_ptr = input_row_ptr++;
                     signed_type* kernel_ptr = kernel.data.data;
-                    for( uint32_t k = kernel.width; k; k-- ) {
+                    signed_type* kernel_end = &kernel_ptr[kernel.width];
+
+                    signed_type total = 0;
+                    while( kernel_ptr != kernel_end ) {
                         total += (*input_ptr++) * (*kernel_ptr++);
                     }
-                    output.data[indexDst++] = (E)((total+halfDivisor)/divisor);
+                    *output_ptr++ = static_cast<E>((total+halfDivisor)/divisor);
                 }
             }
         }
@@ -637,18 +639,20 @@ namespace boofcv {
             typedef typename TypeInfo<E>::sum_type sum_type;
 
             for( uint32_t i = 0; i < input.height; i++ ) {
-                uint32_t indexDst = output.offset + i*output.stride + kernel.offset;
-                int32_t j = input.offset + i*input.stride;
-                int32_t jEnd = j+input.width-(kernel.width-1);
+                R* output_ptr = &output.data[output.offset + i*output.stride + kernel.offset];
+                E* input_row_ptr = &input.data[input.offset + i*input.stride];
+                E* input_end_ptr = &input_row_ptr[input.width-(kernel.width-1)];
 
-                for( ; j < jEnd; j++ ) {
-                    signed_type total = 0;
-                    E* input_ptr = &input.data[j];
+                while( input_row_ptr != input_end_ptr) {
+                    E* input_ptr = input_row_ptr++;
                     signed_type* kernel_ptr = kernel.data.data;
-                    for( uint32_t k = kernel.width; k; k-- ) {
+                    signed_type* kernel_end = &kernel_ptr[kernel.width];
+
+                    signed_type total = 0;
+                    while( kernel_ptr != kernel_end ) {
                         total += (*input_ptr++) * (*kernel_ptr++);
                     }
-                    output.data[indexDst++] = (R)total;
+                    *output_ptr++ = static_cast<R>(total);
                 }
             }
         }
@@ -663,21 +667,25 @@ namespace boofcv {
             typedef typename TypeInfo<E>::sum_type sum_type;
             signed_type halfDivisor = divisor/2;
 
-            uint32_t yEnd = input.height-(kernel.width-kernel.offset-1);
+            int32_t yEnd = input.height-(kernel.width-kernel.offset-1);
 
-            for( uint32_t y = kernel.offset; y < yEnd; y++ ) {
-                uint32_t indexDst = output.offset+y*output.stride;
-                int32_t i = input.offset + (y-kernel.offset)*input.stride;
-                int32_t iEnd = i+input.width;
+            for( int32_t y = kernel.offset; y < yEnd; y++ ) {
+                E* output_ptr = &output.data[output.offset+y*output.stride];
 
-                for( ; i < iEnd; i++ ) {
+                E* input_col_ptr = &input.data[input.offset + (y-kernel.offset)*input.stride];
+                E* input_end_ptr = &input_col_ptr[input.width];
+
+                while( input_col_ptr != input_end_ptr ){
+                    E* input_ptr = input_col_ptr++;
+                    signed_type* kernel_ptr = kernel.data.data;
+                    signed_type* kernel_end = &kernel_ptr[kernel.width];
+
                     signed_type total = 0;
-                    uint32_t indexSrc = i;
-                    for( uint32_t k = 0; k < kernel.width; k++ ) {
-                        total += input.data[indexSrc]* kernel.data[k];
-                        indexSrc += input.stride;
+                    while( kernel_ptr != kernel_end ) {
+                        total += (*input_ptr) * (*kernel_ptr++);
+                        input_ptr += input.stride;
                     }
-                    output.data[indexDst++] = (E)((total+halfDivisor)/divisor);
+                    *output_ptr++ = static_cast<E>((total+halfDivisor)/divisor);
                 }
             }
         }
@@ -717,21 +725,25 @@ namespace boofcv {
             typedef typename TypeInfo<E>::signed_type signed_type;
             typedef typename TypeInfo<E>::sum_type sum_type;
 
-            uint32_t yEnd = input.height-(kernel.width-kernel.offset-1);
+            int32_t yEnd = input.height-(kernel.width-kernel.offset-1);
 
-            for( uint32_t y = kernel.offset; y < yEnd; y++ ) {
-                uint32_t indexDst = output.offset+y*output.stride;
-                int32_t i = input.offset + (y-kernel.offset)*input.stride;
-                int32_t iEnd = i+input.width;
+            for( int32_t y = kernel.offset; y < yEnd; y++ ) {
+                R* output_ptr = &output.data[output.offset+y*output.stride];
 
-                for( ; i < iEnd; i++ ) {
+                E* input_col_ptr = &input.data[input.offset + (y-kernel.offset)*input.stride];
+                E* input_end_ptr = &input_col_ptr[input.width];
+
+                while( input_col_ptr != input_end_ptr ){
+                    E* input_ptr = input_col_ptr++;
+                    signed_type* kernel_ptr = kernel.data.data;
+                    signed_type* kernel_end = &kernel_ptr[kernel.width];
+
                     signed_type total = 0;
-                    uint32_t indexSrc = i;
-                    for( uint32_t k = 0; k < kernel.width; k++ ) {
-                        total += input.data[indexSrc]* kernel.data[k];
-                        indexSrc += input.stride;
+                    while( kernel_ptr != kernel_end ) {
+                        total += (*input_ptr) * (*kernel_ptr++);
+                        input_ptr += input.stride;
                     }
-                    output.data[indexDst++] = (R)total;
+                    *output_ptr++ = static_cast<R>(total);
                 }
             }
         }
@@ -837,30 +849,28 @@ namespace boofcv {
             int32_t offset = kernel.offset;
             int32_t borderRight = kernel.width-offset-1;
 
-            for (uint32_t y = 0; y < output.height; y++) {
-                uint32_t indexDest = output.offset + y * output.stride;
-
+            for (uint32_t y = 0; y < output.height; y++)
+            {
+                R* output_ptr = &output.data[output.offset + y * output.stride];
                 for ( int32_t x = 0; x < offset; x++ ) {
                     signed_type total = 0;
                     signed_type *kernel_ptr = kernel.data.data;
                     for (int32_t k = 0; k < kernel.width; k++) {
                         total += input.get(x+k-offset,y) * *kernel_ptr++;
                     }
-                    if( indexDest >= output.width*output.height )
-                        printf("Egads\n");
-                    output.data[indexDest++] = static_cast<R>(total);
+                    *output_ptr++ = static_cast<R>(total);
                 }
 
-                indexDest = output.offset + y * output.stride + output.width-borderRight;
+                output_ptr = &output.data[output.offset + y * output.stride + output.width-borderRight];
                 for ( int32_t x = output.width-borderRight; x < output.width; x++ ) {
                     signed_type total = 0;
                     signed_type *kernel_ptr = kernel.data.data;
-                    for (int32_t k = 0; k < kernel.width; k++) {
-                        total += input.get(x+k-offset,y) * *kernel_ptr++;
+                    int32_t xx = x-offset; // No noticeable change. Keeping it here to avoid doing it again.
+                    int32_t xx_end = xx + kernel.width;
+                    while( xx != xx_end ) {
+                        total += input.get(xx++,y) * *kernel_ptr++;
                     }
-                    if( indexDest >= output.width*output.height )
-                        printf("Egads\n");
-                    output.data[indexDest++] = static_cast<R>(total);
+                    *output_ptr++ = static_cast<R>(total);
                 }
             }
         }
