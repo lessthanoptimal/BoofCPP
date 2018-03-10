@@ -96,6 +96,10 @@ public class TestNativeConvolveImage {
     public void compareConvolve() {
         NativeConvolveImage nativeConv = new NativeConvolveImage();
 
+        // faster test
+        int width = this.width/2;
+        int height = this.height/2;
+
         for( Class type : types ) {
             Class typeOutput = GImageDerivativeOps.getDerivativeType(type);
             ImageGray input = GeneralizedImageOps.createSingleBand(type,width,height);
