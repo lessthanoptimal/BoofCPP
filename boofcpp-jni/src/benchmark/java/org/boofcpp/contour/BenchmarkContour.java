@@ -39,8 +39,6 @@ public class BenchmarkContour {
     BinaryContourFinder algNative = new NativeChang2004();
     BinaryContourFinder algJava = new BinaryContourFinderChang2004();
 
-
-
     static {
         BoofCPP.loadlib();
     }
