@@ -1,6 +1,6 @@
 package org.boofcpp.convolve;
 
-import boofcv.alg.filter.convolve.BOverrideConvolveNormalized;
+import boofcv.alg.filter.convolve.BOverrideConvolveImageNormalized;
 import boofcv.struct.convolve.Kernel1D;
 import boofcv.struct.convolve.Kernel2D;
 import boofcv.struct.image.ImageBase;
@@ -9,9 +9,9 @@ import org.boofcpp.NativeBase;
 
 public class NativeImageConvolveNormalized extends NativeBase
         implements
-        BOverrideConvolveNormalized.Horizontal,
-        BOverrideConvolveNormalized.Vertical,
-        BOverrideConvolveNormalized.Convolve
+        BOverrideConvolveImageNormalized.Horizontal,
+        BOverrideConvolveImageNormalized.Vertical,
+        BOverrideConvolveImageNormalized.Convolve
 {
     private RuntimeException notSupported = new RuntimeException("Only gray images supported");
 

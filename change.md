@@ -4,11 +4,12 @@ YEAR/MONTH/DAY
 
 2018/
 
-* thresholding
-* image convolution
+* image thresholding
+* image convolution 
+  * standard
+  * normalized
 * image blur
+  * mean
+  * gaussian
 * binary contour / blob detection
 
-- TODO JNI convolve normalized
-- TODO JNI convolve 
-- TODO JNI gaussian

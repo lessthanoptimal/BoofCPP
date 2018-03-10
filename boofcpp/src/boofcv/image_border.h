@@ -3,6 +3,7 @@
 
 #include "image_types.h"
 #include "sanity_checks.h"
+#include <memory>
 
 namespace boofcv {
 
@@ -162,14 +163,14 @@ namespace boofcv {
     public:
 
         template< class E >
-        static ImageBorder<Gray<E>> create_SB( BorderType type ) {
+        static std::shared_ptr<ImageBorder<E>> create_SB( BorderType type ) {
             switch( type ) {
                 case EXTENDED:
-                    return ImageBorderExtend<E>();
+                    return std::make_shared<ImageBorderExtend<E>>();
                 case REFLECT:
-                    return ImageBorderReflect<E>();
+                    return std::make_shared<ImageBorderReflect<E>>();
                 case WRAP:
-                    return ImageBorderWrap<E>();
+                    return std::make_shared<ImageBorderWrap<E>>();
                 case ZERO:
                     return value_SB((E)0);
 
@@ -180,8 +181,8 @@ namespace boofcv {
 
 
         template< class E>
-        static ImageBorder<Gray<E>> value_SB( E v ) {
-            return ImageBorderValue<E>(v);
+        static std::shared_ptr<ImageBorder<E>> value_SB( E v ) {
+            return std::make_shared<ImageBorderValue<E>>(v);
         }
 
         // TODO This doesn't seem to work well in C++. Is there a way to do this?

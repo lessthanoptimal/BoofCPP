@@ -1,11 +1,13 @@
 package org.boofcpp;
 
 import boofcv.alg.filter.blur.BOverrideBlurImageOps;
-import boofcv.alg.filter.convolve.BOverrideConvolveNormalized;
+import boofcv.alg.filter.convolve.BOverrideConvolveImage;
+import boofcv.alg.filter.convolve.BOverrideConvolveImageNormalized;
 import boofcv.factory.filter.binary.BOverrideFactoryBinaryContourFinder;
 import boofcv.factory.filter.binary.BOverrideFactoryThresholdBinary;
 import cz.adamh.utils.NativeUtils;
 import org.boofcpp.contour.NativeChang2004;
+import org.boofcpp.convolve.NativeConvolveImage;
 import org.boofcpp.convolve.NativeImageBlurOps;
 import org.boofcpp.convolve.NativeImageConvolveNormalized;
 import org.boofcpp.threshold.*;
@@ -56,8 +58,16 @@ public class BoofCPP {
         BOverrideBlurImageOps.mean = new NativeImageBlurOps();
         BOverrideBlurImageOps.gaussian = new NativeImageBlurOps();
 
-        BOverrideConvolveNormalized.horizontal = new NativeImageConvolveNormalized();
-        BOverrideConvolveNormalized.vertical = new NativeImageConvolveNormalized();
+        BOverrideConvolveImageNormalized.horizontal = new NativeImageConvolveNormalized();
+        BOverrideConvolveImageNormalized.vertical = new NativeImageConvolveNormalized();
+
+//        BOverrideConvolveImageMean.horizontal = ?;
+//        BOverrideConvolveImageMean.horizontal = ?;
+
+        BOverrideConvolveImage.horizontal = new NativeConvolveImage();
+        BOverrideConvolveImage.vertical = new NativeConvolveImage();
+        BOverrideConvolveImage.convolve = new NativeConvolveImage();
+
 
         BOverrideFactoryBinaryContourFinder.chang2004 = NativeChang2004::new;
     }

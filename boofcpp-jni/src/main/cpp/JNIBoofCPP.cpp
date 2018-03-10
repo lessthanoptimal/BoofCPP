@@ -264,6 +264,10 @@ JImageInfo extractInfoCriticalU8( JNIEnv *env, jobject& jimage ) {
     return extractInfoCritical(env,jimage,"[B");
 }
 
+JImageInfo extractInfoCriticalS16( JNIEnv *env, jobject& jimage ) {
+    return extractInfoCritical(env,jimage,"[S");
+}
+
 JImageInfo extractInfoCriticalS32( JNIEnv *env, jobject& jimage ) {
     return extractInfoCritical(env,jimage,"[I");
 }
@@ -304,6 +308,19 @@ ImageAndInfo<boofcv::Gray<boofcv::U8>,JImageInfo> wrapCriticalGrayU8( JNIEnv *en
 
     output.info = inputInfo;
     output.image = Gray<U8>((U8*)nullptr,(uint32_t)inputInfo.dataLength,
+                            (uint32_t)inputInfo.width,(uint32_t)inputInfo.height,
+                            (uint32_t)inputInfo.offset,(uint32_t)inputInfo.stride);
+
+    return output;
+}
+
+ImageAndInfo<boofcv::Gray<boofcv::S16>,JImageInfo> wrapCriticalGrayS16( JNIEnv *env, jobject& jimage ) {
+    ImageAndInfo<boofcv::Gray<boofcv::S16>,JImageInfo> output;
+
+    JImageInfo inputInfo = extractInfoCriticalS16(env,jimage);
+
+    output.info = inputInfo;
+    output.image = Gray<S16>((S16*)nullptr,(uint32_t)inputInfo.dataLength,
                             (uint32_t)inputInfo.width,(uint32_t)inputInfo.height,
                             (uint32_t)inputInfo.offset,(uint32_t)inputInfo.stride);
 
@@ -387,4 +404,46 @@ boofcv::Kernel1D<F32>* extractKernel1D_F32( JNIEnv *env, jobject& jkernel ) {
 
     // return the results
     return kernel1D;
+}
+
+boofcv::Kernel2D<boofcv::S32>* extractKernel2D_S32( JNIEnv *env, jobject& jkernel ) {
+    jclass objClass = env->GetObjectClass(jkernel);
+    jint width = safe_GetInt(env,objClass,jkernel, "width");
+    jint offset = safe_GetInt(env,objClass,jkernel, "offset");
+
+    jfieldID fid = env->GetFieldID(objClass, "data", "[I");
+    jobject  jarray = env->GetObjectField (jkernel, fid);
+    jint* data = env->GetIntArrayElements((jintArray)jarray, 0);
+    jint length = env->GetArrayLength((jintArray)jarray);
+
+    // copy the Java array into the kernel
+    auto kernel2D = new boofcv::Kernel2D<S32>((uint32_t)width,(uint32_t)offset);
+    kernel2D->data.set((S32*)data,(uint32_t)length);
+
+    // release java objects
+    env->ReleaseIntArrayElements((jintArray)jarray, data, 0);
+
+    // return the results
+    return kernel2D;
+}
+
+boofcv::Kernel2D<boofcv::F32>* extractKernel2D_F32( JNIEnv *env, jobject& jkernel ) {
+    jclass objClass = env->GetObjectClass(jkernel);
+    jint width = safe_GetInt(env,objClass,jkernel, "width");
+    jint offset = safe_GetInt(env,objClass,jkernel, "offset");
+
+    jfieldID fid = env->GetFieldID(objClass, "data", "[F");
+    jobject  jarray = env->GetObjectField (jkernel, fid);
+    jfloat* data = env->GetFloatArrayElements((jfloatArray)jarray, 0);
+    jint length = env->GetArrayLength((jfloatArray)jarray);
+
+    // copy the Java array into the kernel
+    auto kernel2D = new boofcv::Kernel2D<F32>((uint32_t)width,(uint32_t)offset);
+    kernel2D->data.set((F32*)data,(uint32_t)length);
+
+    // release java objects
+    env->ReleaseFloatArrayElements((jfloatArray)jarray, data, 0);
+
+    // return the results
+    return kernel2D;
 }

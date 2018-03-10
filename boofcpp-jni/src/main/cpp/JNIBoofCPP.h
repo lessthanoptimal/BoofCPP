@@ -83,11 +83,14 @@ void copy_into_java( JNIEnv *env, const boofcv::PackedSet<boofcv::Point2D<boofcv
 jclass safe_FindClass( JNIEnv *env, const char* name );
 jfieldID safe_GetFieldID( JNIEnv *env, jclass& objClass, const char* name , const char* type);
 jmethodID safe_GetMethodID( JNIEnv *env, jclass& objClass, const char* name , const char* type);
+jdouble safe_GetDouble( JNIEnv *env, jclass& objClass, jobject& obj, const char* name );
+jint safe_GetInt( JNIEnv *env, jclass& objClass, jobject& obj, const char* name );
 
 JImageInfoU8 extractInfoU8( JNIEnv *env, jobject& jimage );
 JImageInfoF32 extractInfoF32( JNIEnv *env, jobject& jimage );
 
 JImageInfo extractInfoCriticalU8( JNIEnv *env, jobject& jimage );
+JImageInfo extractInfoCriticalS16( JNIEnv *env, jobject& jimage );
 JImageInfo extractInfoCriticalS32( JNIEnv *env, jobject& jimage );
 JImageInfo extractInfoCriticalF32( JNIEnv *env, jobject& jimage );
 
@@ -95,6 +98,7 @@ ImageAndInfo<boofcv::Gray<boofcv::U8>,JImageInfoU8> wrapGrayU8( JNIEnv *env, job
 ImageAndInfo<boofcv::Gray<boofcv::F32>,JImageInfoF32> wrapGrayF32( JNIEnv *env, jobject& jimage );
 
 ImageAndInfo<boofcv::Gray<boofcv::U8>,JImageInfo> wrapCriticalGrayU8( JNIEnv *env, jobject& jimage );
+ImageAndInfo<boofcv::Gray<boofcv::S16>,JImageInfo> wrapCriticalGrayS16( JNIEnv *env, jobject& jimage );
 ImageAndInfo<boofcv::Gray<boofcv::S32>,JImageInfo> wrapCriticalGrayS32( JNIEnv *env, jobject& jimage );
 ImageAndInfo<boofcv::Gray<boofcv::F32>,JImageInfo> wrapCriticalGrayF32( JNIEnv *env, jobject& jimage );
 
@@ -103,5 +107,8 @@ boofcv::ConfigLength extractConfigLength( JNIEnv *env, jobject& jconfig );
 // Returns a convolution corner from a java object. The kernel needs to be deleted when finished
 boofcv::Kernel1D<boofcv::S32>* extractKernel1D_S32( JNIEnv *env, jobject& jkernel );
 boofcv::Kernel1D<boofcv::F32>* extractKernel1D_F32( JNIEnv *env, jobject& jkernel );
+
+boofcv::Kernel2D<boofcv::S32>* extractKernel2D_S32( JNIEnv *env, jobject& jkernel );
+boofcv::Kernel2D<boofcv::F32>* extractKernel2D_F32( JNIEnv *env, jobject& jkernel );
 
 #endif
