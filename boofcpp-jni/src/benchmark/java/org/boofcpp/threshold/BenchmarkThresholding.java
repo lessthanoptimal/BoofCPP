@@ -66,35 +66,35 @@ public class BenchmarkThresholding {
         output = new GrayU8(input.width,input.height);
     }
 
-//    @Benchmark
-//    public void global_fixed_native() { global_fixed_native.process(input,output); }
-//
-//    @Benchmark
-//    public void global_fixed_java() { global_fixed_java.process(input,output); }
-//
-//    @Benchmark
-//    public void global_otsu_native() { global_otsu_native.process(input,output); }
-//
-//    @Benchmark
-//    public void global_otsu_java() { global_otsu_java.process(input,output); }
-//
-//    @Benchmark
-//    public void local_mean_native() { local_mean_native.process(input,output); }
-//
-//    @Benchmark
-//    public void local_mean_java() { local_mean_java.process(input,output); }
-//
-//    @Benchmark
-//    public void block_minmax_native() { block_minmax_native.process(input,output); }
-//
-//    @Benchmark
-//    public void block_minmax_java() {  block_minmax_java.process(input,output); }
-//
-//    @Benchmark
-//    public void block_mean_native() { block_mean_native.process(input,output); }
-//
-//    @Benchmark
-//    public void block_mean_java() { block_mean_java.process(input,output); }
+    @Benchmark
+    public void global_fixed_native() { global_fixed_native.process(input,output); }
+
+    @Benchmark
+    public void global_fixed_java() { global_fixed_java.process(input,output); }
+
+    @Benchmark
+    public void global_otsu_native() { global_otsu_native.process(input,output); }
+
+    @Benchmark
+    public void global_otsu_java() { global_otsu_java.process(input,output); }
+
+    @Benchmark
+    public void local_mean_native() { local_mean_native.process(input,output); }
+
+    @Benchmark
+    public void local_mean_java() { local_mean_java.process(input,output); }
+
+    @Benchmark
+    public void block_minmax_native() { block_minmax_native.process(input,output); }
+
+    @Benchmark
+    public void block_minmax_java() {  block_minmax_java.process(input,output); }
+
+    @Benchmark
+    public void block_mean_native() { block_mean_native.process(input,output); }
+
+    @Benchmark
+    public void block_mean_java() { block_mean_java.process(input,output); }
 
     @Benchmark
     public void block_otsu_native() { block_otsu_native.process(input,output); }
