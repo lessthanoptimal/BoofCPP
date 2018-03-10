@@ -577,6 +577,22 @@ namespace boofcv {
     public:
 
         template<class E>
+        static void horizontal_unrolled( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
+                                         const Gray<E>& input, Gray<E>& output ,
+                                         typename TypeInfo<E>::signed_type divisor)
+        {
+            switch( kernel.width ) {
+                case 3:horizontal(kernel,input,output,divisor);return;
+                case 5:horizontal(kernel,input,output,divisor);return;
+                case 7:horizontal(kernel,input,output,divisor);return;
+                case 9:horizontal(kernel,input,output,divisor);return;
+                case 11:horizontal(kernel,input,output,divisor);return;
+                case 13:horizontal(kernel,input,output,divisor);return;
+            }
+            horizontal(kernel,input,output,divisor);
+        }
+
+        template<class E>
         static void horizontal( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
                                 const Gray<E>& input, Gray<E>& output ,
                                 typename TypeInfo<E>::signed_type divisor ,
@@ -632,6 +648,21 @@ namespace boofcv {
         }
 
         template<typename E, typename R>
+        static void horizontal_unrolled( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
+                                         const Gray<E>& input, Gray<R>& output )
+        {
+            switch( kernel.width ) {
+                case 3:horizontal(kernel,input,output);return;
+                case 5:horizontal(kernel,input,output);return;
+                case 7:horizontal(kernel,input,output);return;
+                case 9:horizontal(kernel,input,output);return;
+                case 11:horizontal(kernel,input,output);return;
+                case 13:horizontal(kernel,input,output);return;
+            }
+            horizontal(kernel,input,output);
+        }
+
+        template<typename E, typename R>
         static void horizontal( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
                                 const Gray<E>& input, Gray<R>& output )
         {
@@ -655,6 +686,22 @@ namespace boofcv {
                     *output_ptr++ = static_cast<R>(total);
                 }
             }
+        }
+
+        template<typename E>
+        static void vertical_unrolled( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
+                                       const Gray<E>& input, Gray<E>& output ,
+                                       typename TypeInfo<E>::signed_type divisor )
+        {
+            switch( kernel.width ) {
+                case 3:vertical(kernel,input,output,divisor);return;
+                case 5:vertical(kernel,input,output,divisor);return;
+                case 7:vertical(kernel,input,output,divisor);return;
+                case 9:vertical(kernel,input,output,divisor);return;
+                case 11:vertical(kernel,input,output,divisor);return;
+                case 13:vertical(kernel,input,output,divisor);return;
+            }
+            vertical(kernel,input,output,divisor);
         }
 
         template<class E>
@@ -716,6 +763,21 @@ namespace boofcv {
                     output.data[indexDst++] = (E)(total/divisor);
                 }
             }
+        }
+
+        template<typename E, typename R>
+        static void vertical_unrolled( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
+                                       const Gray<E>& input, Gray<R>& output )
+        {
+            switch( kernel.width ) {
+                case 3:vertical(kernel,input,output);return;
+                case 5:vertical(kernel,input,output);return;
+                case 7:vertical(kernel,input,output);return;
+                case 9:vertical(kernel,input,output);return;
+                case 11:vertical(kernel,input,output);return;
+                case 13:vertical(kernel,input,output);return;
+            }
+            vertical(kernel,input,output);
         }
 
         template<typename E, typename R>
@@ -991,7 +1053,7 @@ namespace boofcv {
             if( kernel.width >= output.width ) {
                 ConvolveNaive::horizontal(kernel, input, output);
             } else {
-                ConvolveImage_Inner::horizontal(kernel, *input.image, output);
+                ConvolveImage_Inner::horizontal_unrolled(kernel, *input.image, output);
                 ConvolveImage_Border::horizontal(kernel, input, output);
             }
         }
@@ -1005,7 +1067,7 @@ namespace boofcv {
             if( kernel.width >= output.height ) {
                 ConvolveNaive::vertical(kernel, input, output);
             } else {
-                ConvolveImage_Inner::vertical(kernel, *input.image, output);
+                ConvolveImage_Inner::vertical_unrolled(kernel, *input.image, output);
                 ConvolveImage_Border::vertical(kernel, input, output);
             }
         }

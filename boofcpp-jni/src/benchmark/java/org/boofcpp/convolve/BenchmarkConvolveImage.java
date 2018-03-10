@@ -38,7 +38,7 @@ public class BenchmarkConvolveImage {
     Kernel1D_S32 kernel1D = FactoryKernelGaussian.gaussian1D(GrayU8.class,-1,5);
     Kernel2D_S32 kernel2D = FactoryKernelGaussian.gaussian2D(GrayU8.class,-1,5);
 
-    ImageBorder<GrayU8> border = FactoryImageBorder.single(GrayU8.class, BorderType.REFLECT);
+    ImageBorder<GrayU8> border = FactoryImageBorder.single(GrayU8.class, BorderType.EXTENDED);
 
     NativeConvolveImage nativeOps = new NativeConvolveImage();
 
