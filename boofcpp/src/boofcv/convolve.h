@@ -1102,7 +1102,7 @@ namespace boofcv {
             if( kernel.width >= input.width ) {
                 ConvolveNormalizedNaive::horizontal(kernel, input, output);
             } else {
-                ConvolveImage_Inner::horizontal(kernel, input, output, kernel.sum());
+                ConvolveImage_Inner::horizontal_unrolled(kernel, input, output, kernel.sum());
                 ConvolveNormalized_JustBorder::horizontal(kernel, input, output);
             }
         }
@@ -1119,9 +1119,9 @@ namespace boofcv {
             } else {
                 signed_type sum = kernel.sum();
                 if( sum == (signed_type)1) {
-                    ConvolveImage_Inner::horizontal(kernel, input, output);
+                    ConvolveImage_Inner::horizontal_unrolled(kernel, input, output);
                 } else {
-                    ConvolveImage_Inner::horizontal(kernel, input, output, sum);
+                    ConvolveImage_Inner::horizontal_unrolled(kernel, input, output, sum);
                 }
                 ConvolveNormalized_JustBorder::horizontal(kernel, input, output);
             }
@@ -1136,7 +1136,7 @@ namespace boofcv {
             if( kernel.width >= input.height ) {
                 ConvolveNormalizedNaive::vertical(kernel, input, output);
             } else {
-                ConvolveImage_Inner::vertical(kernel, input, output, kernel.sum());
+                ConvolveImage_Inner::vertical_unrolled(kernel, input, output, kernel.sum());
                 ConvolveNormalized_JustBorder::vertical(kernel, input, output);
             }
         }
@@ -1153,9 +1153,9 @@ namespace boofcv {
             } else {
                 signed_type sum = kernel.sum();
                 if( sum == (signed_type)1) {
-                    ConvolveImage_Inner::vertical(kernel, input, output);
+                    ConvolveImage_Inner::vertical_unrolled(kernel, input, output);
                 } else {
-                    ConvolveImage_Inner::vertical(kernel, input, output, sum);
+                    ConvolveImage_Inner::vertical_unrolled(kernel, input, output, sum);
                 }
                 ConvolveNormalized_JustBorder::vertical(kernel, input, output);
             }
