@@ -2,23 +2,18 @@ package org.boofcpp.contour;
 
 import boofcv.abst.filter.binary.BinaryContourFinder;
 import boofcv.abst.filter.binary.BinaryContourFinderChang2004;
-import boofcv.abst.filter.binary.InputToBinary;
 import boofcv.alg.filter.binary.ContourPacked;
-import boofcv.alg.filter.binary.ThresholdImageOps;
 import boofcv.factory.filter.binary.FactoryThresholdBinary;
 import boofcv.io.image.ConvertBufferedImage;
 import boofcv.io.image.UtilImageIO;
-import boofcv.struct.ConfigLength;
 import boofcv.struct.image.GrayS32;
 import boofcv.struct.image.GrayU8;
 import georegression.struct.point.Point2D_I32;
 import org.boofcpp.BoofCPP;
-import org.boofcpp.threshold.*;
 import org.ddogleg.struct.FastQueue;
 import org.openjdk.jmh.annotations.*;
 
 import java.awt.image.BufferedImage;
-import java.net.URL;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -30,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 @Fork(value=2)
 public class BenchmarkContour {
 
-    private static final String IMAGE_PATH="/org/boofcpp/threshold/test_image.jpg";
+    public static final String IMAGE_PATH="datasets/test_image.jpg";
 
 
     GrayU8 binary;
@@ -43,12 +38,7 @@ public class BenchmarkContour {
         BoofCPP.loadlib();
     }
     public BenchmarkContour() {
-
-        URL url = getClass().getResource(IMAGE_PATH);
-        if( url == null )
-            throw new RuntimeException("Can't find resource! "+IMAGE_PATH);
-//        System.out.println("URL path "+url.getFile());
-        BufferedImage buffered = UtilImageIO.loadImage(url.getFile());
+        BufferedImage buffered = UtilImageIO.loadImage(IMAGE_PATH);
         if( buffered == null )
             throw new RuntimeException("Couldn't load the image");
         GrayU8 input=ConvertBufferedImage.convertFrom(buffered,(GrayU8)null);

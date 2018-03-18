@@ -1,21 +1,17 @@
 package org.boofcpp.convolve;
 
 import boofcv.alg.filter.convolve.GConvolveImageOps;
-import boofcv.core.image.border.BorderType;
-import boofcv.core.image.border.FactoryImageBorder;
-import boofcv.core.image.border.ImageBorder;
 import boofcv.factory.filter.kernel.FactoryKernelGaussian;
 import boofcv.io.image.ConvertBufferedImage;
 import boofcv.io.image.UtilImageIO;
 import boofcv.struct.convolve.Kernel1D_S32;
 import boofcv.struct.convolve.Kernel2D_S32;
-import boofcv.struct.image.GrayS16;
 import boofcv.struct.image.GrayU8;
 import org.boofcpp.BoofCPP;
+import org.boofcpp.contour.BenchmarkContour;
 import org.openjdk.jmh.annotations.*;
 
 import java.awt.image.BufferedImage;
-import java.net.URL;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -28,8 +24,6 @@ import java.util.concurrent.TimeUnit;
 @State(Scope.Benchmark)
 @Fork(value=1)
 public class BenchmarkConvolveNormalized {
-
-    private static final String IMAGE_PATH="/org/boofcpp/threshold/test_image.jpg";
 
     GrayU8 input;
     GrayU8 output;
@@ -45,11 +39,7 @@ public class BenchmarkConvolveNormalized {
 
     public BenchmarkConvolveNormalized() {
 
-        URL url = getClass().getResource(IMAGE_PATH);
-        if( url == null )
-            throw new RuntimeException("Can't find resource! "+IMAGE_PATH);
-//        System.out.println("URL path "+url.getFile());
-        BufferedImage buffered = UtilImageIO.loadImage(url.getFile());
+        BufferedImage buffered = UtilImageIO.loadImage(BenchmarkContour.IMAGE_PATH);
         if( buffered == null )
             throw new RuntimeException("Couldn't load the image");
         input= ConvertBufferedImage.convertFrom(buffered,(GrayU8)null);

@@ -7,10 +7,10 @@ import boofcv.io.image.UtilImageIO;
 import boofcv.struct.ConfigLength;
 import boofcv.struct.image.GrayU8;
 import org.boofcpp.BoofCPP;
+import org.boofcpp.contour.BenchmarkContour;
 import org.openjdk.jmh.annotations.*;
 
 import java.awt.image.BufferedImage;
-import java.net.URL;
 import java.util.concurrent.TimeUnit;
 
 @BenchmarkMode(Mode.AverageTime)
@@ -19,10 +19,8 @@ import java.util.concurrent.TimeUnit;
 @Measurement(iterations = 5)
 @State(Scope.Benchmark)
 @Fork(value=1)
-public class BenchmarkThresholding {
-
-    private static final String IMAGE_PATH="/org/boofcpp/threshold/test_image.jpg";
-
+public class BenchmarkThresholding
+{
     Class<GrayU8> type = GrayU8.class;
     GrayU8 input;
     GrayU8 output;
@@ -52,13 +50,9 @@ public class BenchmarkThresholding {
     static {
         BoofCPP.loadlib();
     }
-    public BenchmarkThresholding () {
-
-        URL url = getClass().getResource(IMAGE_PATH);
-        if( url == null )
-            throw new RuntimeException("Can't find resource! "+IMAGE_PATH);
-//        System.out.println("URL path "+url.getFile());
-        BufferedImage buffered = UtilImageIO.loadImage(url.getFile());
+    public BenchmarkThresholding ()
+    {
+        BufferedImage buffered = UtilImageIO.loadImage(BenchmarkContour.IMAGE_PATH);
         if( buffered == null )
             throw new RuntimeException("Couldn't load the image");
         input=ConvertBufferedImage.convertFrom(buffered,(GrayU8)null);
