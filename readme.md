@@ -1,3 +1,10 @@
+# WARNING
+
+BoofCPP is still in the early stages of development. Not all functions are optimized to be released for general 
+distribution. A couple of functions can even some times be slower than the Java version. Various optimization
+tricks are still being deployed, like getting the compiler to unroll inner loops under specific situations. It
+doesn't do that by default because when it's built as a library it doesn't know the size of a kernel, as an example.
+
 # Introduction
 
 BoofCPP is a partial port the Java computer vision library [BoofCV](http://boofcv.org) to C++11.
@@ -111,3 +118,13 @@ run much faster in C++ (e.g. a simple global threshold) while complex algorithm 
 It's worth mentioning that the reason Java was used as the language for
 BoofCV is because Java projects are easier to write and maintain as
 they get larger, plus the development tools are better.
+
+# Known Issues
+
+For the most part everything should "just work", but if there are any known issues they will be listed here.
+
+## IntelliJ
+
+IntelliJ doesn't like projects which mix together the Java and Android plugin. It's recommended that you go into 
+settings.gradle and comment out ```include 'boofcpp-android'```. If you don't do that it might appear to be work
+but will have erratic behavior.

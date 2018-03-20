@@ -4,6 +4,8 @@ allprojects {
 
     group = 'org.boofcpp'
     version = '0.29-SNAPSHOT'
+
+    ext.BOOFCV_VERSION = '0.29'
 }
 
 task wrapper(type: Wrapper) {

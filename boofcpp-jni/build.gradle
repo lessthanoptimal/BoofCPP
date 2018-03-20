@@ -38,7 +38,7 @@ sourceSets {
 
 dependencies {
     ['ip'].each { String a->
-        compile('org.boofcv:boofcv-'+a+':'+version)
+        compile('org.boofcv:boofcv-'+a+':'+BOOFCV_VERSION)
     }
 
     testCompile group: 'junit', name: 'junit', version: '4.12'
@@ -47,7 +47,7 @@ dependencies {
         benchmarkCompile('org.openjdk.jmh:jmh-'+a+':1.19')
     }
     ['io'].each { String a->
-        benchmarkCompile('org.boofcv:boofcv-'+a+':0.29-SNAPSHOT')
+        benchmarkCompile('org.boofcv:boofcv-'+a+':'+BOOFCV_VERSION)
     }
 }
 
