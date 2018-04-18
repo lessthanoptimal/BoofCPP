@@ -114,6 +114,20 @@ artifacts {
     }
 }
 
+task benchmarkRun(type: JavaExec, description: 'Executing JMH benchmarks') {
+    classpath = sourceSets.benchmark.runtimeClasspath + sourceSets.main.runtimeClasspath
+    main = 'org.openjdk.jmh.Main'
+
+    def include = project.properties.get('include', '.*Benchmark*');
+    def format = project.properties.get('format', 'json');
+    def resultFile = file("build/reports/benchmark/result.${format}")
+    resultFile.parentFile.mkdirs()
+
+    args include
+    args '-rf', format
+    args '-rff', resultFile
+}
+
 // if Maven central isn't setup in ~/.gradle/gradle.properties skip all of this
 if( project.hasProperty('ossrhUsername') ) {
     signing {

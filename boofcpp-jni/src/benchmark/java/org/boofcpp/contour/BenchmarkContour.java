@@ -5,10 +5,10 @@ import boofcv.abst.filter.binary.BinaryContourFinderChang2004;
 import boofcv.alg.filter.binary.ContourPacked;
 import boofcv.factory.filter.binary.FactoryThresholdBinary;
 import boofcv.io.image.ConvertBufferedImage;
-import boofcv.io.image.UtilImageIO;
 import boofcv.struct.image.GrayS32;
 import boofcv.struct.image.GrayU8;
 import georegression.struct.point.Point2D_I32;
+import org.boofcpp.BenchmarkUtils;
 import org.boofcpp.BoofCPP;
 import org.ddogleg.struct.FastQueue;
 import org.openjdk.jmh.annotations.*;
@@ -38,9 +38,8 @@ public class BenchmarkContour {
         BoofCPP.loadlib();
     }
     public BenchmarkContour() {
-        BufferedImage buffered = UtilImageIO.loadImage(IMAGE_PATH);
-        if( buffered == null )
-            throw new RuntimeException("Couldn't load the image");
+        BufferedImage buffered = BenchmarkUtils.loadImage(IMAGE_PATH);
+
         GrayU8 input=ConvertBufferedImage.convertFrom(buffered,(GrayU8)null);
 
         binary = input.createSameShape();

@@ -3,10 +3,10 @@ package org.boofcpp.convolve;
 import boofcv.alg.filter.convolve.GConvolveImageOps;
 import boofcv.factory.filter.kernel.FactoryKernelGaussian;
 import boofcv.io.image.ConvertBufferedImage;
-import boofcv.io.image.UtilImageIO;
 import boofcv.struct.convolve.Kernel1D_S32;
 import boofcv.struct.convolve.Kernel2D_S32;
 import boofcv.struct.image.GrayU8;
+import org.boofcpp.BenchmarkUtils;
 import org.boofcpp.BoofCPP;
 import org.boofcpp.contour.BenchmarkContour;
 import org.openjdk.jmh.annotations.*;
@@ -39,9 +39,7 @@ public class BenchmarkConvolveNormalized {
 
     public BenchmarkConvolveNormalized() {
 
-        BufferedImage buffered = UtilImageIO.loadImage(BenchmarkContour.IMAGE_PATH);
-        if( buffered == null )
-            throw new RuntimeException("Couldn't load the image");
+        BufferedImage buffered = BenchmarkUtils.loadImage(BenchmarkContour.IMAGE_PATH);
         input= ConvertBufferedImage.convertFrom(buffered,(GrayU8)null);
         output = input.createSameShape();
     }

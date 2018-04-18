@@ -3,9 +3,9 @@ package org.boofcpp.threshold;
 import boofcv.abst.filter.binary.InputToBinary;
 import boofcv.factory.filter.binary.FactoryThresholdBinary;
 import boofcv.io.image.ConvertBufferedImage;
-import boofcv.io.image.UtilImageIO;
 import boofcv.struct.ConfigLength;
 import boofcv.struct.image.GrayU8;
+import org.boofcpp.BenchmarkUtils;
 import org.boofcpp.BoofCPP;
 import org.boofcpp.contour.BenchmarkContour;
 import org.openjdk.jmh.annotations.*;
@@ -52,9 +52,7 @@ public class BenchmarkThresholding
     }
     public BenchmarkThresholding ()
     {
-        BufferedImage buffered = UtilImageIO.loadImage(BenchmarkContour.IMAGE_PATH);
-        if( buffered == null )
-            throw new RuntimeException("Couldn't load the image");
+        BufferedImage buffered = BenchmarkUtils.loadImage(BenchmarkContour.IMAGE_PATH);
         input=ConvertBufferedImage.convertFrom(buffered,(GrayU8)null);
 
         output = new GrayU8(input.width,input.height);
