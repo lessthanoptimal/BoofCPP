@@ -50,10 +50,10 @@ public class BenchmarkContour {
     }
 
     @Benchmark
-    public void chang_native() { algNative.process(binary,labeled); }
+    public void chang_process_native() { algNative.process(binary,labeled); }
 
     @Benchmark
-    public void chang_java() { algJava.process(binary,labeled); }
+    public void chang_process_java() { algJava.process(binary,labeled); }
 
     @Benchmark
     public void chang_load_native() { process_load(algNative); }

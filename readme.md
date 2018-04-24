@@ -28,17 +28,23 @@ building BoofCPP. Support is provided for the following architectures android-ar
 and windows-x86_64. Examples for how to add depedencies in a Gradle script are provided below.
 
 ```Gradle
-compile group: 'org.boofcpp', name: "boofcpp", version: '0.29-SNAPSHOT'
+compile group: 'org.boofcpp', name: "boofcpp-jni", version: '0.30-SNAPSHOT'
 ```
 
-That just includes the Java library. Now you need to tell it which architecture to include
+That just includes the Java library. For non-Android environments, you need to tell it which architecture to include
 by specifying an architecture in the classifier field, e.g.
 
 ```Gradle
-compile group: 'org.boofcpp', name: "boofcpp", version: '0.29-SNAPSHOT', classifier: "linux-x86_64"
+compile group: 'org.boofcpp', name: "boofcpp-jni", version: '0.30-SNAPSHOT', classifier: "linux-x86_64"
 ```
 
-C++ code is injected into BoofCV through its BOverride API. Before invoking certain functions or creating
+For Android you don't need to specify the binary type but you do need to include the Android specific dependency:
+```Gradle
+compile group: 'org.boofcpp', name: "boofcpp-android", version: '0.30-SNAPSHOT'
+```
+
+To use native libraries you need to do a very simple modification to your Java code. C++ code is injected into BoofCV 
+through its BOverride API. Before invoking certain functions or creating
 certain classes BoofCV will check to see if there exists a BOverride. If so it will invoke that instead.
 
 ```Java
@@ -71,13 +77,9 @@ cd boofcpp
 
 ## Android
 
-* The Android SDK must be installed
-* If the ANDROID_HOME environmental variable is not set then the android submodule is skipped.
-* Currently Android doesn't like JDK 1.9 so you will need to switch to JDK 1.8 if you are using that.
-
-To include debug symbols invoke 
 ```bash
-./gradlew installDebug
+cd boofcpp-android
+../gradlew install
 ```
 
 # Trouble Shooting
