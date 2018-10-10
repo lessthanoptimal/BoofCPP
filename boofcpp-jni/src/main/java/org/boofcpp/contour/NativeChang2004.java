@@ -1,6 +1,7 @@
 package org.boofcpp.contour;
 
 import boofcv.abst.filter.binary.BinaryContourFinder;
+import boofcv.abst.filter.binary.BinaryLabelContourFinder;
 import boofcv.alg.filter.binary.ContourPacked;
 import boofcv.struct.ConnectRule;
 import boofcv.struct.PackedSetsPoint2D_I32;
@@ -17,7 +18,7 @@ import java.util.List;
  *
  * @author Peter Abeles
  */
-public class NativeChang2004 implements BinaryContourFinder {
+public class NativeChang2004 implements BinaryLabelContourFinder {
 
     // Storage here to simplify JNI wrapper code
     protected FastQueue<ContourPacked> storageContours = new FastQueue<>(ContourPacked.class,true);

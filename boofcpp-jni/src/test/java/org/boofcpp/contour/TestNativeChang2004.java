@@ -1,7 +1,8 @@
 package org.boofcpp.contour;
 
 import boofcv.abst.filter.binary.BinaryContourFinder;
-import boofcv.abst.filter.binary.BinaryContourFinderChang2004;
+import boofcv.abst.filter.binary.BinaryLabelContourFinder;
+import boofcv.abst.filter.binary.BinaryLabelContourFinderChang2004;
 import boofcv.alg.filter.binary.ContourPacked;
 import boofcv.alg.misc.GImageMiscOps;
 import boofcv.alg.misc.ImageMiscOps;
@@ -69,7 +70,7 @@ public class TestNativeChang2004 {
      */
     @Test
     public void handle_image() {
-        BinaryContourFinder alg = new NativeChang2004();
+        BinaryLabelContourFinder alg = new NativeChang2004();
 
         GrayS32 labeled = binary.createSameShape(GrayS32.class);
 
@@ -104,8 +105,8 @@ public class TestNativeChang2004 {
      */
     @Test
     public void compareToJava() {
-        BinaryContourFinder algNative = new NativeChang2004();
-        BinaryContourFinder algJava = new BinaryContourFinderChang2004();
+        BinaryLabelContourFinder algNative = new NativeChang2004();
+        BinaryLabelContourFinder algJava = new BinaryLabelContourFinderChang2004();
 
         GrayS32 labeledNative = binary.createSameShape(GrayS32.class);
         GrayS32 labeledJava = binary.createSameShape(GrayS32.class);
@@ -127,7 +128,7 @@ public class TestNativeChang2004 {
         }
     }
 
-    private void compare(BinaryContourFinder algNative, BinaryContourFinder algJava, GrayS32 labeledNative, GrayS32 labeledJava) {
+    private void compare(BinaryLabelContourFinder algNative, BinaryLabelContourFinder algJava, GrayS32 labeledNative, GrayS32 labeledJava) {
         algNative.process(binary,labeledNative);
         algJava.process(binary,labeledJava);
 
@@ -161,7 +162,7 @@ public class TestNativeChang2004 {
         }
     }
 
-    private void comparePoints( BinaryContourFinder a , BinaryContourFinder b , int which )
+    private void comparePoints( BinaryLabelContourFinder a , BinaryLabelContourFinder b , int which )
     {
         FastQueue<Point2D_I32> pointsA = new FastQueue<>(Point2D_I32.class,true);
         FastQueue<Point2D_I32> pointsB = new FastQueue<>(Point2D_I32.class,true);

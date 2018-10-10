@@ -3,9 +3,9 @@ allprojects {
     apply plugin: 'eclipse'
 
     group = 'org.boofcpp'
-    version = '0.30-SNAPSHOT'
+    version = '0.30'
 
-    ext.BOOFCV_VERSION = '0.30-SNAPSHOT'
+    ext.BOOFCV_VERSION = '0.30'
 }
 
 task wrapper(type: Wrapper) {

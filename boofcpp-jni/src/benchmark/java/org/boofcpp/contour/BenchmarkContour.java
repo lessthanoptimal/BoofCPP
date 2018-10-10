@@ -1,7 +1,8 @@
 package org.boofcpp.contour;
 
 import boofcv.abst.filter.binary.BinaryContourFinder;
-import boofcv.abst.filter.binary.BinaryContourFinderChang2004;
+import boofcv.abst.filter.binary.BinaryLabelContourFinder;
+import boofcv.abst.filter.binary.BinaryLabelContourFinderChang2004;
 import boofcv.alg.filter.binary.ContourPacked;
 import boofcv.factory.filter.binary.FactoryThresholdBinary;
 import boofcv.io.image.ConvertBufferedImage;
@@ -31,8 +32,8 @@ public class BenchmarkContour {
     GrayU8 binary;
     GrayS32 labeled;
 
-    BinaryContourFinder algNative = new NativeChang2004();
-    BinaryContourFinder algJava = new BinaryContourFinderChang2004();
+    BinaryLabelContourFinder algNative = new NativeChang2004();
+    BinaryLabelContourFinder algJava = new BinaryLabelContourFinderChang2004();
 
     static {
         BoofCPP.loadlib();
@@ -61,7 +62,7 @@ public class BenchmarkContour {
     @Benchmark
     public void chang_load_java() { process_load(algJava); }
 
-    public void process_load(BinaryContourFinder alg) {
+    public void process_load(BinaryLabelContourFinder alg) {
         alg.process(binary,labeled);
         FastQueue<Point2D_I32> queue = new FastQueue<>(Point2D_I32.class,true);
 
