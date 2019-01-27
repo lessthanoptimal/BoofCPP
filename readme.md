@@ -135,6 +135,9 @@ Example Results: C++ Benchmark
           block_mean time = 13.440100 (ms)
           block_otsu time = 37.993999 (ms)
 ```
+NOTE: Most the performance difference between C++ and C++/JNI comes from being built as an application vs library.
+When built as an application the compiler can unroll loops and other optimizations much easier.
+
 # Trouble Shooting
 
 * When I load this project into IntelliJ the IDE becomes unstable
