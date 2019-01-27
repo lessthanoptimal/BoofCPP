@@ -28,19 +28,19 @@ building BoofCPP. Support is provided for the following architectures android-ar
 and windows-x86_64. Examples for how to add depedencies in a Gradle script are provided below.
 
 ```Gradle
-compile group: 'org.boofcpp', name: "boofcpp-jni", version: '0.30-SNAPSHOT'
+compile group: 'org.boofcpp', name: "boofcpp-jni", version: '0.30'
 ```
 
 That just includes the Java library. For non-Android environments, you need to tell it which architecture to include
 by specifying an architecture in the classifier field, e.g.
 
 ```Gradle
-compile group: 'org.boofcpp', name: "boofcpp-jni", version: '0.30-SNAPSHOT', classifier: "linux-x86_64"
+compile group: 'org.boofcpp', name: "boofcpp-jni", version: '0.30', classifier: "linux-x86_64"
 ```
 
 For Android you don't need to specify the binary type but you do need to include the Android specific dependency:
 ```Gradle
-compile group: 'org.boofcpp', name: "boofcpp-android", version: '0.30-SNAPSHOT'
+compile group: 'org.boofcpp', name: "boofcpp-android", version: '0.30'
 ```
 
 To use native libraries you need to do a very simple modification to your Java code. C++ code is injected into BoofCV 
@@ -54,16 +54,26 @@ BoofCPP.initialize()
 Now all functions which BoofCPP supports will be overrided. This will also override any previously loaded overrides.
 Initialize must be called before any image processing is done.
 
-# Building
+# Dependencies
 
-CMake is used to build the source code and BoofCPP should compile without issue on most
-platforms with a C++11 compiler. There are no external dependencies. To get
-the fastest code make sure you build it in release mode! By default it will
-build in debug mode. Debug mode is great for development but many times slower
-than release code.
-
+The main source code has no external dependencies, making it very easy to build. However unit tests and benchmarks
+have external dependencies. First make sure you have the gtest (unit tests) source code checked out:
 ```bash
 cd boofcpp
+git submodule update --init --recursive
+```
+Next install the following libraries required for benchmarking (Ubuntu 18.04):
+```bash
+sudo apt-get install libpng-dev libjpeg-dev
+``` 
+
+# Building
+
+If you followed the dependency installation instructions above it should build without any issues.
+To get the fastest code make sure you build it in release mode! By default it will
+build in debug mode. Debug mode is great for development but many times slower than release code.
+
+```bash
 mkdir build;cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
 make -j8
@@ -71,17 +81,60 @@ make -j8
 
 Then to install the Java and Android libraries invoke the following command:
 ```bash
-cd boofcpp
 ./gradlew install
 ```
 
 ## Android
 
 ```bash
-cd boofcpp-android
+cd boofcpp/boofcpp-android
 ../gradlew install
 ```
 
+# Performance Benchmarks
+
+The main benchmarks are done to directly compare Java and JNI code. There is also a second minimal set of C++ benchmarks
+as a form of sanity check to make sure JNI or simply building the C++ code as a library does slow it down too much.
+
+C++ Benchmark: boofcpp/benchmark
+Java/JNI Benchmark: boofcpp/boofcpp-jni/src/benchmark
+
+To run the C++ benchmark simply run the generated executable:
+```bash
+cd boofcpp/build/benchmark
+./threshold
+```
+
+The Java benchmark code is created using JMH (https://openjdk.java.net/projects/code-tools/jmh/). The easiest
+way to run it is to load the project in IntelliJ, install the JMH plugin, then run any of the benchmark class 
+by right clicking it.
+
+Example Results: Java/JNI Benchmark
+```
+Benchmark                                  Mode  Cnt    Score    Error  Units
+BenchmarkThresholding.block_mean_java      avgt    5   18.321 ±  0.244  ms/op
+BenchmarkThresholding.block_mean_native    avgt    5   12.769 ±  0.479  ms/op
+BenchmarkThresholding.block_minmax_java    avgt    5   19.762 ±  0.352  ms/op
+BenchmarkThresholding.block_minmax_native  avgt    5   21.616 ±  0.122  ms/op
+BenchmarkThresholding.block_otsu_java      avgt    5   48.116 ±  1.703  ms/op
+BenchmarkThresholding.block_otsu_native    avgt    5   35.232 ±  0.266  ms/op
+BenchmarkThresholding.global_fixed_java    avgt    5    9.888 ±  0.812  ms/op
+BenchmarkThresholding.global_fixed_native  avgt    5    1.260 ±  0.151  ms/op
+BenchmarkThresholding.global_otsu_java     avgt    5   21.899 ±  1.578  ms/op
+BenchmarkThresholding.global_otsu_native   avgt    5   13.223 ±  1.488  ms/op
+BenchmarkThresholding.local_mean_java      avgt    5  100.411 ± 21.708  ms/op
+BenchmarkThresholding.local_mean_native    avgt    5   71.637 ±  2.955  ms/op
+```
+
+Example Results: C++ Benchmark
+```
+        global_fixed time = 1.145900 (ms)
+         global_otsu time = 12.192900 (ms)
+          local_mean time = 64.670296 (ms)
+       block_min_max time = 20.870100 (ms)
+          block_mean time = 13.440100 (ms)
+          block_otsu time = 37.993999 (ms)
+```
 # Trouble Shooting
 
 * When I load this project into IntelliJ the IDE becomes unstable

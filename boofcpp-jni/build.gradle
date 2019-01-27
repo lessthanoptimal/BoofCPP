@@ -74,23 +74,22 @@ if( !file("$ext.build_location").exists() ) {
 }
 
 // Determine which architecture it is being bult on so that it knows what to name the classifier as.
+import static org.apache.tools.ant.taskdefs.condition.Os.*
+
 String osName = org.gradle.internal.os.OperatingSystem.current().getName()
 String osVersion = org.gradle.internal.os.OperatingSystem.current().getVersion()
-String jvmBits = System.getProperty("sun.arch.data.model")
-String cpuType = "x86" // not sure how to detect x86 vs arm
-println "  Platform:        $osName $osVersion $jvmBits-bits"
+println "  Platform:        $osName $osVersion ${OS_ARCH}"
 
-// yes it assumes x86. Not sure
 if (org.gradle.internal.os.OperatingSystem.current().isLinux()) {
-    ext.platform = "linux-${cpuType}_$jvmBits"
-} else if (org.gradle.internal.os.OperatingSystem.current().isUnix()) {
-    ext.platform = "unix-${cpuType}_$jvmBits"
-} else if (org.gradle.internal.os.OperatingSystem.current().isWindows()) {
-    ext.platform = "windows-${cpuType}_$jvmBits"
+    ext.platform = "linux-${OS_ARCH}"
 } else if (org.gradle.internal.os.OperatingSystem.current().isMacOsX()) {
-    ext.platform = "macos-${cpuType}_$jvmBits"
+    ext.platform = "macos-${OS_ARCH}"
+} else if (org.gradle.internal.os.OperatingSystem.current().isUnix()) {
+    ext.platform = "unix-${OS_ARCH}"
+} else if (org.gradle.internal.os.OperatingSystem.current().isWindows()) {
+    ext.platform = "windows-${OS_ARCH}"
 } else {
-    ext.platform = "unknown_${cpuType}_$jvmBits"
+    ext.platform = "unknown_${OS_ARCH}"
 }
 
 println "  Classifier name: $project.ext.platform"
