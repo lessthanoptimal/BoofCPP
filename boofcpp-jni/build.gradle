@@ -1,67 +1,45 @@
-apply plugin: 'java'
-apply plugin: 'maven'
-//apply plugin: 'maven-publish'
-apply plugin: 'signing'
-
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+java {
+    withJavadocJar()
+    withSourcesJar()
+    toolchain { languageVersion = JavaLanguageVersion.of(11) }
+}
 
 repositories {
     mavenLocal()
     mavenCentral()
 
-    maven {
-        url = "https://oss.sonatype.org/content/repositories/snapshots/"
-    }
+    maven { url = "https://oss.sonatype.org/content/repositories/snapshots/" }
 }
-
 
 // Fail on jar conflict
-configurations.all {
-    resolutionStrategy {
-        failOnVersionConflict()
-    }
-}
+configurations.configureEach { resolutionStrategy { failOnVersionConflict() } }
 
 sourceSets {
     benchmark {
-        java {
-            srcDir 'src/benchmark/java'
-        }
-        resources {
-            srcDir 'src/benchmark/resources'
-        }
-        compileClasspath += sourceSets.main.runtimeClasspath
+        java { srcDir 'src/benchmark/java' }
+        resources { srcDir 'src/benchmark/resources' }
     }
 }
 
 
 dependencies {
     ['ip'].each { String a->
-        compile('org.boofcv:boofcv-'+a+':'+BOOFCV_VERSION)
+        api('org.boofcv:boofcv-'+a+':'+BOOFCV_VERSION)
     }
 
-    testCompile group: 'junit', name: 'junit', version: '4.12'
+    testImplementation group: 'junit', name: 'junit', version: '4.12'
 
     ['core','generator-annprocess'].each { String a->
-        benchmarkCompile('org.openjdk.jmh:jmh-'+a+':1.19')
+        benchmarkImplementation('org.openjdk.jmh:jmh-'+a+':1.19')
     }
     ['io'].each { String a->
-        benchmarkCompile('org.boofcv:boofcv-'+a+':'+BOOFCV_VERSION)
+        benchmarkImplementation('org.boofcv:boofcv-'+a+':'+BOOFCV_VERSION)
     }
 }
 
-task javadocJar(type: Jar) {
-    classifier = 'javadoc'
-    from javadoc
+javadoc {
+    configure(options) { failOnError = false }
 }
-
-task sourcesJar(type: Jar) {
-    classifier = 'sources'
-    from sourceSets.main.allSource
-}
-
-javadoc.failOnError = false
 
 // Get the location of the native code
 if( project.hasProperty("native_build_location")) {
@@ -125,56 +103,4 @@ task benchmarkRun(type: JavaExec, description: 'Executing JMH benchmarks') {
     args include
     args '-rf', format
     args '-rff', resultFile
-}
-
-// if Maven central isn't setup in ~/.gradle/gradle.properties skip all of this
-if( project.hasProperty('ossrhUsername') ) {
-    signing {
-        sign configurations.archives
-    }
-
-    uploadArchives {
-        repositories {
-            mavenDeployer {
-                beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
-
-                repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-                    authentication(userName: ossrhUsername, password: ossrhPassword)
-                }
-
-                snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
-                    authentication(userName: ossrhUsername, password: ossrhPassword)
-                }
-
-                pom.project {
-                    name 'BoofCPP'
-                    packaging 'pom'
-                    // optionally artifactId can be defined here
-                    description 'Partial port of BoofCV to C++11'
-                    url 'http://boofcv.org'
-
-                    scm {
-                        connection 'scm:git:git://github.com/lessthanoptimal/BoofCPP.git'
-                        developerConnection 'scm:git:git://github.com/lessthanoptimal/BoofCPP.git'
-                        url 'https://github.com/lessthanoptimal/BoofCV'
-                    }
-
-                    licenses {
-                        license {
-                            name 'The Apache Software License, Version 2.0'
-                            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                        }
-                    }
-
-                    developers {
-                        developer {
-                            id 'pabeles'
-                            name 'Peter Abeles'
-                            email 'peter.abeles@gmail.com'
-                        }
-                    }
-                }
-            }
-        }
-    }
 }

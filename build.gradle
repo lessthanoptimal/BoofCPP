@@ -1,14 +1,67 @@
 allprojects {
-    apply plugin: 'idea'
-    apply plugin: 'eclipse'
+    apply plugin: 'java-library'
+    apply plugin: 'maven-publish'
+    apply plugin: 'signing'
 
     group = 'org.boofcpp'
     version = '0.30'
 
     ext.BOOFCV_VERSION = '0.30'
+
+    // if Maven central isn't setup in ~/.gradle/gradle.properties fill in these variables to make it happy
+    if (!project.hasProperty('ossrhUsername')) {
+        ext.ossrhUsername = "dummy"
+        ext.ossrhPassword = "dummy"
+    }
+
+    publishing {
+        publications {
+            mavenJava(MavenPublication) {
+                from components.java
+                pom {
+                    name = 'BoofCPP'
+                    description = 'A C++ port of BoofCV'
+                    url = 'https://boofcv.org'
+                    licenses {
+                        license {
+                            name = 'The Apache License, Version 2.0'
+                            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                        }
+                    }
+                    developers {
+                        developer {
+                            id = 'pabeles'
+                            name = 'Peter Abeles'
+                            email = 'peter.abeles@gmail.com'
+                        }
+                    }
+                    scm {
+                        connection = 'scm:git:git://github.com/lessthanoptimal/BoofCPP.git'
+                        developerConnection = 'scm:git:git://github.com/lessthanoptimal/BoofCPP.git'
+                        url = 'https://github.com/lessthanoptimal/BoofCV'
+                    }
+                }
+            }
+        }
+        repositories {
+            maven {
+                def releasesRepoUrl = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+                def snapshotsRepoUrl = "https://oss.sonatype.org/content/repositories/snapshots/"
+                url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+                credentials {
+                    username ossrhUsername
+                    password ossrhPassword
+                }
+            }
+        }
+    }
+
+    if (ext.ossrhPassword != "dummy") {
+        signing { sign publishing.publications.mavenJava }
+    }
 }
 
-task wrapper(type: Wrapper) {
+wrapper {
     distributionType = Wrapper.DistributionType.BIN
-    gradleVersion = '4.10.2'
+    gradleVersion = '7.3.3'
 }
