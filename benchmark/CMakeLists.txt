@@ -40,6 +40,9 @@ list(APPEND BechmarkList thresholding)
 add_executable(convolution src/convolution.cpp ${BENCHMARK_COMMON})
 list(APPEND BechmarkList convolution)
 
+add_executable(float_ops src/float_ops.cpp ${BENCHMARK_COMMON})
+list(APPEND BechmarkList float_ops)
+
 
 FOREACH(FILENAME ${BechmarkList})
     target_link_libraries(${FILENAME} BoofCPP ${IMAGE_LIBS})

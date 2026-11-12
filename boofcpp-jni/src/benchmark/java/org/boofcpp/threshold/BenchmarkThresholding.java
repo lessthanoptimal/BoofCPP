@@ -34,21 +34,23 @@ public class BenchmarkThresholding
     InputToBinary<GrayU8> global_fixed_native = new NativeGlobalFixed<>(125,down, type);
     InputToBinary<GrayU8> global_fixed_java = FactoryThresholdBinary.globalFixed(125,down, type);
 
-    InputToBinary<GrayU8> global_otsu_native = new NativeGlobalOtsu<>(0,255,down, type);
-    InputToBinary<GrayU8> global_otsu_java = FactoryThresholdBinary.globalOtsu(0,255,down, type);
+    InputToBinary<GrayU8> global_otsu_native = new NativeGlobalOtsu<>(0,255,1.0,down, type);
+    InputToBinary<GrayU8> global_otsu_java = FactoryThresholdBinary.globalOtsu(0,255,1.0,down, type);
 
     InputToBinary<GrayU8> local_mean_native = new NativeLocalMean<>(regionWidth, scale, down, type);
     InputToBinary<GrayU8> local_mean_java = FactoryThresholdBinary.localMean(regionWidth, scale, down, type);
 
     InputToBinary<GrayU8> block_minmax_native = new NativeBlockMinMax<>(regionWidth, scale, down, 1, local_blocks,type);
-    InputToBinary<GrayU8> block_minmax_java = FactoryThresholdBinary.blockMinMax( regionWidth, scale, down, 1, local_blocks,type);
+    InputToBinary<GrayU8> block_minmax_java = FactoryThresholdBinary.blockMinMax( regionWidth, scale, down, local_blocks, 1, type);
     InputToBinary<GrayU8> block_mean_native = new NativeBlockMean<>(regionWidth, scale, down, local_blocks, type);
     InputToBinary<GrayU8> block_mean_java = FactoryThresholdBinary.blockMean( regionWidth, scale, down, local_blocks, type);
     InputToBinary<GrayU8> block_otsu_native = new NativeBlockOtsu<>(true, regionWidth, 0, scale, down, local_blocks, type);
-    InputToBinary<GrayU8> block_otsu_java = FactoryThresholdBinary.blockOtsu(true, regionWidth, 0, scale, down, local_blocks, type);
+    InputToBinary<GrayU8> block_otsu_java = FactoryThresholdBinary.blockOtsu(regionWidth, scale, down, local_blocks, true, 0, type);
 
     static {
         BoofCPP.loadlib();
+        // S0 baseline (BoofCV 0.32) had no concurrency; compare single-threaded Java
+        boofcv.concurrency.BoofConcurrency.USE_CONCURRENT = false;
     }
     public BenchmarkThresholding ()
     {

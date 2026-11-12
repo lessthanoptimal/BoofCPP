@@ -32,6 +32,8 @@ public class BenchmarkImageBlurOps {
 
     static {
         BoofCPP.loadlib();
+        // S0 baseline (BoofCV 0.32) had no concurrency; compare single-threaded Java
+        boofcv.concurrency.BoofConcurrency.USE_CONCURRENT = false;
     }
 
     public BenchmarkImageBlurOps() {
@@ -44,17 +46,17 @@ public class BenchmarkImageBlurOps {
 
     @Benchmark
     public void mean_native() {
-        nativeOps.processMean(input,output,radius,storage);
+        nativeOps.processMeanWeighted(input,output,radius,radius,storage);
     }
 
     @Benchmark
     public void gaussian_native() {
-        nativeOps.processGaussian(input,output,-1,radius,storage);
+        nativeOps.processGaussian(input,output,-1,radius,-1,radius,storage);
     }
 
     @Benchmark
     public void mean() {
-        GBlurImageOps.mean(input,output,radius,storage);
+        GBlurImageOps.mean(input,output,radius,storage,null);
     }
 
     @Benchmark

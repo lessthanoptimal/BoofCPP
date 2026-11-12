@@ -35,6 +35,8 @@ public class BenchmarkConvolveNormalized {
 
     static {
         BoofCPP.loadlib();
+        // S0 baseline (BoofCV 0.32) had no concurrency; compare single-threaded Java
+        boofcv.concurrency.BoofConcurrency.USE_CONCURRENT = false;
     }
 
     public BenchmarkConvolveNormalized() {
