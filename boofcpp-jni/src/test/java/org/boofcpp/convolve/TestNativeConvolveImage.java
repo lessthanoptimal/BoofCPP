@@ -45,8 +45,10 @@ public class TestNativeConvolveImage {
 
             GImageMiscOps.fillUniform(input,rand,0,255);
 
+            input = BoofTesting.createSubImageOf(input); // non-zero offset/stride
 
-            for( int radius : new int[]{1,2,5,24} ) {
+
+            for( int radius : new int[]{1,2,3,4,5,24} ) {
                 for(BorderType borderType : borderTypes) {
 
                     ImageBorder border = FactoryImageBorder.single(borderType,type);
@@ -74,8 +76,10 @@ public class TestNativeConvolveImage {
 
             GImageMiscOps.fillUniform(input,rand,0,255);
 
+            input = BoofTesting.createSubImageOf(input); // non-zero offset/stride
 
-            for( int radius : new int[]{1,2,5,24} ) {
+
+            for( int radius : new int[]{1,2,3,4,5,24} ) {
                 for(BorderType borderType : borderTypes) {
 
                     ImageBorder border = FactoryImageBorder.single(borderType,type);
@@ -108,8 +112,10 @@ public class TestNativeConvolveImage {
 
             GImageMiscOps.fillUniform(input,rand,0,255);
 
+            input = BoofTesting.createSubImageOf(input); // non-zero offset/stride
 
-            for( int radius : new int[]{1,2,5,24} ) {
+
+            for( int radius : new int[]{1,2,3,4,5,24} ) {
                 for(BorderType borderType : borderTypes) {
 
                     ImageBorder border = FactoryImageBorder.single(borderType,type);

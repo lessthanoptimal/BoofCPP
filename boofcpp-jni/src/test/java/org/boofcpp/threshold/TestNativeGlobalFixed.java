@@ -26,15 +26,19 @@ public class TestNativeGlobalFixed {
 
     @Test
     public void compareToBoofCV() {
-        double threshold = 125;
-
+        // Even and odd shapes (partial blocks), whole image and sub-image (offset/stride)
+        for (int[] shape : new int[][]{{400,300},{401,297}})
+        for (boolean sub : new boolean[]{false,true})
         for( Class imageType : types ) {
-            ImageGray input = GeneralizedImageOps.createSingleBand(imageType,400,300);
+            ImageGray input = GeneralizedImageOps.createSingleBand(imageType,shape[0],shape[1]);
             GImageMiscOps.fillUniform(input,rand,0,255);
+            if (sub) input = BoofTesting.createSubImageOf(input);
 
             GrayU8 found = new GrayU8(1,1);
             GrayU8 expected = new GrayU8( input.width, input.height);
 
+            // includes fractional and outside of pixel range thresholds
+            for (double threshold : new double[]{125, 125.5, -1, 0, 255, 300})
             for (boolean down : new boolean[]{true, false}) {
                 InputToBinary alg = new NativeGlobalFixed(threshold, down, imageType);
                 InputToBinary check = FactoryThresholdBinary.globalFixed(threshold, down, imageType);
