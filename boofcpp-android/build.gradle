@@ -1,75 +1,123 @@
-apply plugin: 'com.android.library'
-apply plugin: 'com.github.dcendents.android-maven'
-apply plugin: 'maven'
+// Builds the native library for Android ABIs and packages it as an AAR.
+// Versions follow BoofCV's integration/boofcv-android. Requires an Android SDK with the NDK installed.
+plugins {
+    id 'com.android.library'
+    id 'maven-publish'
+    id 'signing'
+}
+
+repositories {
+    google()
+    mavenCentral()
+}
+
+group = 'org.boofcpp'
+version = rootProject.version
 
 android {
-    compileSdkVersion 26
+    namespace = 'org.boofcpp'
+    compileSdk = 35
+    // Default NDK of AGP 8.9
+    ndkVersion = '27.0.12077973'
 
     defaultConfig {
-        minSdkVersion 21
-        targetSdkVersion 26
-        versionCode 1
-        versionName "1.0"
+        minSdk = 22
+        targetSdk = 33
 
         externalNativeBuild {
             cmake {
-                cppFlags '-std=c++11',"-fexceptions","-frtti"
+                cppFlags '-std=c++11', '-fexceptions', '-frtti'
+                // 16 KB page size support, required for Android 15+ devices (default starting with NDK r28)
+                arguments '-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON'
             }
         }
     }
+
     buildTypes {
         release {
-            minifyEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            minifyEnabled = false
+            // AGP 8 defaults to RelWithDebInfo (-O2). Use Release so the -O3 in CMakeLists.txt is applied
+            externalNativeBuild {
+                cmake {
+                    arguments '-DCMAKE_BUILD_TYPE=Release'
+                }
+            }
         }
-
         debug {
-            debuggable true
+            debuggable = true
         }
     }
 
     externalNativeBuild {
         cmake {
-            path "CMakeLists.txt"
+            path = file('CMakeLists.txt')
+            version = '3.22.1'
         }
     }
+
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
-    lintOptions {
-        abortOnError false
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
+    lint {
+        abortOnError = false
+    }
+
+    publishing {
+        singleVariant('release') {
+            withSourcesJar()
+        }
+    }
 }
 
-//packagingOptions{
-//    doNotStrip "*/armeabi/*.so"
-//    doNotStrip "*/armeabi-v7a/*.so"
-//    doNotStrip "*/x86/*.so"
-//}
-
-repositories {
-    google()
-    jcenter()
-    mavenLocal()
-}
-
-dependencies {
-    compile fileTree(include: ['*.jar'], dir: 'libs')
-    compile 'com.android.support:appcompat-v7:26.1.0'
-}
-
-buildscript {
+publishing {
+    publications {
+        release(MavenPublication) {
+            groupId = project.group
+            artifactId = project.name
+            version = project.version
+            afterEvaluate { from components.release }
+            pom {
+                name = 'BoofCPP Android'
+                description = 'Native libraries of BoofCPP for Android'
+                url = 'https://boofcv.org'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'pabeles'
+                        name = 'Peter Abeles'
+                        email = 'peter.abeles@gmail.com'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:git://github.com/lessthanoptimal/BoofCPP.git'
+                    developerConnection = 'scm:git:git://github.com/lessthanoptimal/BoofCPP.git'
+                    url = 'https://github.com/lessthanoptimal/BoofCPP'
+                }
+            }
+        }
+    }
     repositories {
-        google()
-        jcenter()
+        maven {
+            def releasesRepoUrl = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+            def snapshotsRepoUrl = "https://oss.sonatype.org/content/repositories/snapshots/"
+            url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+            credentials {
+                username = project.findProperty('ossrhUsername') ?: 'dummy'
+                password = project.findProperty('ossrhPassword') ?: 'dummy'
+            }
+        }
     }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:3.0.1'
-        classpath 'com.github.dcendents:android-maven-gradle-plugin:1.5'
+}
 
-        // NOTE: Do not place your application dependencies here; they belong
-        // in the individual module build.gradle files
-    }
+// Only sign when real credentials are present
+def ossrhPassword = project.findProperty('ossrhPassword')
+if (ossrhPassword != null && ossrhPassword != 'dummy') {
+    signing { sign publishing.publications.release }
 }

@@ -1,7 +1,33 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    // Same Android Gradle Plugin version as BoofCV (settings.gradle.kts)
+    plugins {
+        id 'com.android.library' version '8.9.0'
+    }
+}
+
 include 'boofcpp-jni'
 
-if (System.getenv()['ANDROID_HOME']) {
-//    include 'boofcpp-android'
+// The Android module is optional so that the rest of the project builds without an Android SDK.
+// The SDK is located the same way the Android Gradle Plugin does it.
+static boolean hasAndroidSdk(File rootDir) {
+    def env = System.getenv()
+    if (env['ANDROID_HOME'] || env['ANDROID_SDK_ROOT'])
+        return true
+    def local = new File(rootDir, 'local.properties')
+    if (!local.exists())
+        return false
+    def props = new Properties()
+    local.withInputStream { props.load(it) }
+    return props.getProperty('sdk.dir') != null
+}
+
+if (hasAndroidSdk(rootDir)) {
+    include 'boofcpp-android'
 } else {
-    logger.warn('Skipping Android because ANDROID_HOME has not been set!')
+    logger.warn('Skipping boofcpp-android because no Android SDK was found (ANDROID_HOME, ANDROID_SDK_ROOT or local.properties sdk.dir)')
 }

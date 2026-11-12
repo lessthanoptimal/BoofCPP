@@ -13,3 +13,6 @@ Makefile
 *.dylib
 *.o
 *.cmake
+boofcpp-android/.cxx/
+boofcpp-android/build/
+local.properties

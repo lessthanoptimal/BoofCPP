@@ -1,4 +1,6 @@
-allprojects {
+// The Android module uses the Android Gradle Plugin, which can't be combined with java-library. It has its own
+// build and publishing configuration in boofcpp-android/build.gradle
+configure(allprojects.findAll { it.name != 'boofcpp-android' }) {
     apply plugin: 'java-library'
     apply plugin: 'maven-publish'
     apply plugin: 'signing'
