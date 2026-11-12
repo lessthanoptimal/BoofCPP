@@ -132,6 +132,53 @@ TEST(ThresholdOps, threshold) {
     }
 }
 
+/**
+ * A threshold wider than the pixel type must not wrap around. Matches Java where an int threshold is used
+ */
+TEST(ThresholdOps, threshold_outside_range) {
+    Gray<U8> img(4,5);
+    Gray<U8> out(4,5);
+    img.at(1,2) = 255;
+    img.at(2,2) = 150;
+
+    ThresholdOps::threshold(img,(int32_t)300,true,out);
+    for( uint32_t i = 0; i < out.total_pixels(); i++ ) EXPECT_EQ(1,out.data[i]);
+    ThresholdOps::threshold(img,(int32_t)300,false,out);
+    for( uint32_t i = 0; i < out.total_pixels(); i++ ) EXPECT_EQ(0,out.data[i]);
+    ThresholdOps::threshold(img,(int32_t)-1,true,out);
+    for( uint32_t i = 0; i < out.total_pixels(); i++ ) EXPECT_EQ(0,out.data[i]);
+    ThresholdOps::threshold(img,(int32_t)-1,false,out);
+    for( uint32_t i = 0; i < out.total_pixels(); i++ ) EXPECT_EQ(1,out.data[i]);
+}
+
+/**
+ * Scale should adjust the Otsu threshold the same way as BoofCV's GlobalBinaryFilter
+ */
+TEST(GlobalOtsuBinaryFilter, scale) {
+    Gray<U8> img(20,10);
+    for( uint32_t i = 0; i < img.total_pixels(); i++ ) img.data[i] = static_cast<U8>((i*37)%256);
+    Gray<U8> found(20,10);
+    Gray<U8> expected(20,10);
+
+    double otsu = ThresholdOps::computeOtsu(img,(U8)0,(U8)255,false);
+
+    for( double scale : {1.0, 0.0, 0.5, 1.2, 3.0} ) {
+        for( bool down : {true, false} ) {
+            GlobalOtsuBinaryFilter<U8> alg(0,255,down,scale);
+            alg.process(img,found);
+
+            double s = down ? scale : (scale <= 0.0 ? 0.0 : 1.0/scale);
+            auto threshold = static_cast<int32_t>(otsu*s);
+            for( uint32_t i = 0; i < img.total_pixels(); i++ ) {
+                int v = img.data[i];
+                expected.data[i] = static_cast<U8>(down ? v <= threshold : v > threshold);
+            }
+            for( uint32_t i = 0; i < img.total_pixels(); i++ )
+                ASSERT_EQ(expected.data[i],found.data[i]) << "scale=" << scale << " down=" << down;
+        }
+    }
+}
+
 TEST(ThresholdOps, computeOtsu) {
     // This is intentionally omitted and is handled by comparing it to Java
     // a port of the java unit test would be complex

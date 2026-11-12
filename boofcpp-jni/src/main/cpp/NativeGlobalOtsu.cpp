@@ -6,16 +6,16 @@ using namespace boofcv;
 
 extern "C" {
 JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeGlobalOtsu_nativeinit(
-    JNIEnv *env, jobject obj, jdouble minValue, jdouble maxValue, jboolean down ) {
+    JNIEnv *env, jobject obj, jdouble minValue, jdouble maxValue, jdouble scale, jboolean down ) {
 
     jclass objClass = env->GetObjectClass(obj);
     jfieldID fid = env->GetFieldID(objClass, "isInteger", "Z");
     jboolean isInteger = env->GetBooleanField(obj, fid);
     jlong ptr;
     if( isInteger ) {
-        ptr = (jlong)new GlobalOtsuBinaryFilter<U8>((U8)minValue,(U8)maxValue, (bool) down);
+        ptr = (jlong)new GlobalOtsuBinaryFilter<U8>((U8)minValue,(U8)maxValue, (bool) down, (double)scale);
     } else {
-        ptr = (jlong)new GlobalOtsuBinaryFilter<F32>((F32)minValue,(F32)maxValue, (bool) down);
+        ptr = (jlong)new GlobalOtsuBinaryFilter<F32>((F32)minValue,(F32)maxValue, (bool) down, (double)scale);
     }
     fid = env->GetFieldID(objClass, "nativePtr", "J");
     env->SetLongField(obj, fid, ptr);

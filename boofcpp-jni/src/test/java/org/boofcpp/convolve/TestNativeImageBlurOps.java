@@ -6,7 +6,7 @@ import boofcv.core.image.GeneralizedImageOps;
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
-import boofcv.testing.BoofTesting;
+import boofcv.BoofTesting;
 import georegression.misc.GrlConstants;
 import org.boofcpp.BoofCPP;
 import org.junit.Test;
@@ -39,9 +39,9 @@ public class TestNativeImageBlurOps {
             for( int radius : new int[]{1,2,5,24} ) {
 //                for (int i = 0; i < 5; i++) {
 //                long time0 = System.currentTimeMillis();
-                nativeBlur.processMean(input,found,radius,storage);
+                nativeBlur.processMeanWeighted(input,found,radius,radius,storage);
 //                long time1 = System.currentTimeMillis();
-                GBlurImageOps.mean(input,expected,radius,storage);
+                GBlurImageOps.mean(input,expected,radius,storage,null);
 //                long time2 = System.currentTimeMillis();
 
 //                System.out.println(input.getDataType() + " radius " + radius + " native " + (time1 - time0) + "  java " + (time2 - time1));
@@ -67,7 +67,7 @@ public class TestNativeImageBlurOps {
             GImageMiscOps.fillUniform(input,rand,0,255);
 
             for( int radius : new int[]{1,2,5,12} ) {
-                nativeBlur.processGaussian(input,found,-1,radius,storage);
+                nativeBlur.processGaussian(input,found,-1,radius,-1,radius,storage);
                 GBlurImageOps.gaussian(input,expected,-1,radius,storage);
 
 //                System.out.println("Radius "+radius+"  "+type.getSimpleName());
@@ -81,7 +81,7 @@ public class TestNativeImageBlurOps {
             }
 
             // check with sigma specified and radius not
-            nativeBlur.processGaussian(input,found,1.5,-1,storage);
+            nativeBlur.processGaussian(input,found,1.5,-1,1.5,-1,storage);
             GBlurImageOps.gaussian(input,expected,1.5,-1,storage);
 //            System.out.println("Sigma");
 //            ((GrayU8)found).print();

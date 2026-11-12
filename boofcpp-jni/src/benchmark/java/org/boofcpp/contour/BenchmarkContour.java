@@ -11,7 +11,7 @@ import boofcv.struct.image.GrayU8;
 import georegression.struct.point.Point2D_I32;
 import org.boofcpp.BenchmarkUtils;
 import org.boofcpp.BoofCPP;
-import org.ddogleg.struct.FastQueue;
+import org.ddogleg.struct.DogArray;
 import org.openjdk.jmh.annotations.*;
 
 import java.awt.image.BufferedImage;
@@ -64,7 +64,7 @@ public class BenchmarkContour {
 
     public void process_load(BinaryLabelContourFinder alg) {
         alg.process(binary,labeled);
-        FastQueue<Point2D_I32> queue = new FastQueue<>(Point2D_I32.class,true);
+        DogArray<Point2D_I32> queue = new DogArray<>(Point2D_I32::new);
 
         List<ContourPacked> list = algNative.getContours();
         for (int i = 0; i < list.size(); i++) {

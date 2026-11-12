@@ -7,7 +7,7 @@ import boofcv.factory.filter.binary.FactoryThresholdBinary;
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
-import boofcv.testing.BoofTesting;
+import boofcv.BoofTesting;
 import org.boofcpp.BoofCPP;
 import org.junit.Test;
 

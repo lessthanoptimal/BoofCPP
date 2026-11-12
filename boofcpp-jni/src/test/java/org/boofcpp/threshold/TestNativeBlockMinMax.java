@@ -8,7 +8,7 @@ import boofcv.struct.ConfigLength;
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
-import boofcv.testing.BoofTesting;
+import boofcv.BoofTesting;
 import org.boofcpp.BoofCPP;
 import org.junit.Test;
 
@@ -44,7 +44,7 @@ public class TestNativeBlockMinMax {
             for( boolean down : new boolean[]{true,false}) {
                 for( boolean useLocal : new boolean[]{true,false}) {
                     InputToBinary alg = new NativeBlockMinMax(regionWidth, scale, down,minSpread, useLocal, type);
-                    InputToBinary check = FactoryThresholdBinary.blockMinMax(regionWidth, scale, down,minSpread, useLocal, type);
+                    InputToBinary check = FactoryThresholdBinary.blockMinMax(regionWidth, scale, down, useLocal, minSpread, type);
 
 //                    long time0 = System.currentTimeMillis();
                     check.process(input, expected);

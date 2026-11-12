@@ -8,7 +8,7 @@ import boofcv.struct.ConfigLength;
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
-import boofcv.testing.BoofTesting;
+import boofcv.BoofTesting;
 import org.boofcpp.BoofCPP;
 import org.junit.Test;
 
@@ -48,7 +48,7 @@ public class TestNativeBlockOtsu {
 
 //                        for (int i = 0; i < 5; i++) {
                         InputToBinary alg_native = new NativeBlockOtsu(otsu2, regionWidth, tuning, scale, down, useLocal, type);
-                        InputToBinary alg_java = FactoryThresholdBinary.blockOtsu(otsu2, regionWidth, tuning, scale, down, useLocal, type);
+                        InputToBinary alg_java = FactoryThresholdBinary.blockOtsu(regionWidth, scale, down, useLocal, otsu2, tuning, type);
 
 //                        long time0 = System.currentTimeMillis();
                         alg_native.process(input, found);

@@ -4,6 +4,7 @@
 #include "convolve.h"
 #include "sanity_checks.h"
 #include <math.h>
+#include <vector>
 
 namespace boofcv {
     /**
@@ -170,6 +171,127 @@ namespace boofcv {
             }
         }
 
+        /**
+         * Image border for mean filter along x-axis. Floating point images. Port of BoofCV
+         * ImplConvolveMean.horizontalBorder(GrayF32) so that the order of floating point operations is identical:
+         * running sum of pixels inside the image divided by the number of pixels.
+         */
+        template< class E>
+        static void border_horizontal(const Gray<E>& input, Gray<E>& output, uint32_t radius )
+        {
+            const int32_t offset = radius;
+            const int32_t length = radius*2 + 1;
+            const int32_t offsetR = length - offset - 1;
+            const int32_t width = input.width;
+            const E* dataSrc = input.data;
+            E* dataDst = output.data;
+
+            for( uint32_t y = 0; y < input.height; y++ ) {
+                int32_t indexDest = output.offset + y*output.stride;
+                int32_t j = input.offset + y*input.stride;
+
+                E total = 0;
+                int32_t count = length - offset;
+                int32_t jEnd = j + count;
+                if( offset > 0 ) {
+                    for( int32_t indexSrc = j; indexSrc < jEnd; indexSrc++ ) {
+                        total += dataSrc[indexSrc];
+                    }
+                    dataDst[indexDest++] = total/count;
+                }
+                while( ++count < length ) {
+                    total += dataSrc[jEnd++];
+                    dataDst[indexDest++] = total/count;
+                }
+
+                jEnd = j + width;
+                count = offset + offsetR;
+                j += width - count;
+                indexDest += width - count;
+                total = 0;
+                if( offsetR > 0 ) {
+                    for( int32_t indexSrc = j; indexSrc < jEnd; indexSrc++ ) {
+                        total += dataSrc[indexSrc];
+                    }
+                    dataDst[indexDest++] = total/count;
+                }
+                while( --count > offset ) {
+                    total -= dataSrc[j++];
+                    dataDst[indexDest++] = total/count;
+                }
+            }
+        }
+
+        /**
+         * Image border for mean filter along y-axis. Floating point images. Port of BoofCV
+         * ImplConvolveMean.verticalBorder(GrayF32) so that the order of floating point operations is identical.
+         */
+        template< class E>
+        static void border_vertical(const Gray<E>& input, Gray<E>& output, uint32_t radius )
+        {
+            const int32_t offset = radius;
+            const int32_t length = radius*2 + 1;
+            const int32_t height = input.height;
+            const int32_t x0 = 0, x1 = input.width;
+            const E* dataSrc = input.data;
+            E* dataDst = output.data;
+            std::vector<E> totals(x1 - x0);
+
+            // Image Top
+            for( int32_t count = length - offset; count < length; count++ ) {
+                const int32_t indexInRow = input.offset + x0;
+                if( count == length - offset ) {
+                    int32_t indexIn = indexInRow;
+                    for( int32_t x = x0; x < x1; x++ ) {
+                        totals[x - x0] = dataSrc[indexIn++];
+                    }
+                    for( int32_t y = 1; y < count; y++ ) {
+                        indexIn = indexInRow + y*input.stride;
+                        for( int32_t x = x0; x < x1; x++ ) {
+                            totals[x - x0] += dataSrc[indexIn++];
+                        }
+                    }
+                } else {
+                    int32_t indexIn0 = indexInRow + (count - 1)*input.stride;
+                    int32_t end = indexIn0 + x1 - x0;
+                    for( int32_t i = indexIn0; i < end; i++ ) {
+                        totals[i - indexIn0] += dataSrc[i];
+                    }
+                }
+                int32_t indexOut = output.offset + (count - (length - offset))*output.stride;
+                for( int32_t x = x0; x < x1; x++ ) {
+                    dataDst[indexOut + x] = totals[x - x0]/count;
+                }
+            }
+            // Image Bottom
+            for( int32_t yStart = height - length + 1; yStart < height - offset; yStart++ ) {
+                const int32_t indexInRow = input.offset + x0;
+                if( yStart == height - length + 1 ) {
+                    int32_t indexIn = indexInRow + yStart*input.stride;
+                    for( int32_t x = x0; x < x1; x++ ) {
+                        totals[x - x0] = dataSrc[indexIn++];
+                    }
+                    for( int32_t y = yStart + 1; y < height; y++ ) {
+                        indexIn = indexInRow + y*input.stride;
+                        for( int32_t x = x0; x < x1; x++ ) {
+                            totals[x - x0] += dataSrc[indexIn++];
+                        }
+                    }
+                } else {
+                    int32_t indexIn0 = indexInRow + (yStart - 1)*input.stride;
+                    int32_t indexIn1 = indexIn0 + x1 - x0;
+                    for( int32_t i = indexIn0; i < indexIn1; i++ ) {
+                        totals[i - indexIn0] -= dataSrc[i];
+                    }
+                }
+                int32_t count = height - yStart;
+                int32_t indexOut = output.offset + (yStart + offset)*output.stride;
+                for( int32_t x = x0; x < x1; x++ ) {
+                    dataDst[indexOut + x] = totals[x - x0]/count;
+                }
+            }
+        }
+
         template< class E>
         static void horizontal(const Gray<E>& input, Gray<E>& output, uint32_t radius )
         {
@@ -181,7 +303,10 @@ namespace boofcv {
             if( kernel.width > input.width ) {
                 ConvolveNormalized::horizontal(kernel,input,output);
             } else {
-                ConvolveNormalized_JustBorder::horizontal(kernel, input ,output );
+                if( std::is_floating_point<E>::value )
+                    border_horizontal(input, output, radius);
+                else
+                    ConvolveNormalized_JustBorder::horizontal(kernel, input ,output );
                 inner_horizontal(input, output, radius);
             }
         }
@@ -194,10 +319,13 @@ namespace boofcv {
             typedef typename TypeInfo<E>::signed_type signed_type;
 
             Kernel1D<signed_type> kernel = FactoryKernel::mean1D<signed_type>(radius*2+1);
-            if( kernel.width > input.width ) {
+            if( kernel.width > input.height ) { // Java: length > input.height
                 ConvolveNormalized::vertical(kernel,input,output);
             } else {
-                ConvolveNormalized_JustBorder::vertical(kernel, input ,output );
+                if( std::is_floating_point<E>::value )
+                    border_vertical(input, output, radius);
+                else
+                    ConvolveNormalized_JustBorder::vertical(kernel, input ,output );
                 inner_vertical(input, output, radius);
             }
         }

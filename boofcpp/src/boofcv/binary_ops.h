@@ -1,6 +1,9 @@
 #ifndef BOOFCPP_BINARY_OPS_H
 #define BOOFCPP_BINARY_OPS_H
 
+#include <limits>
+#include <type_traits>
+#include "image_misc_ops.h"
 #include "base_types.h"
 #include "image_types.h"
 #include "config_types.h"
@@ -128,13 +131,15 @@ namespace boofcv
           * to 'threshold' are set to 1 and the others set to 0.
           *
           * @tparam T data type of image
+          * @tparam TH data type of the threshold. Can be wider than T, e.g. int for U8 images, so that a threshold
+          *            outside of the pixel range is compared the same way as in Java.
           * @param input Input image that is to be thresholded
           * @param threshold The threshold
           * @param down direction of the threshold
           * @param output Storage for binary thresholded image
           */
-        template<class T>
-        static void threshold( const Gray<T> &input , T threshold , bool down , Gray<U8> &output ) {
+        template<class T, class TH = T>
+        static void threshold( const Gray<T> &input , TH threshold , bool down , Gray<U8> &output ) {
             output.reshape(input.width,input.height);
 
             if( down ) {
@@ -249,15 +254,41 @@ namespace boofcv
         T min_value;
         T max_value;
         bool down;
+        // Scales the threshold. Same meaning as in BoofCV's GlobalBinaryFilter
+        double scale;
 
-        GlobalOtsuBinaryFilter( T min_value , T max_value, bool down ) :
-                min_value(min_value), max_value(max_value) , down(down)
+        GlobalOtsuBinaryFilter( T min_value , T max_value, bool down, double scale = 1.0 ) :
+                min_value(min_value), max_value(max_value) , down(down), scale(scale)
         {  }
 
         void process(const Gray<T>& input , Gray<U8>& output ) override {
-            T threshold = ThresholdOps::computeOtsu(input,min_value,max_value,false);
-            ThresholdOps::threshold(input,threshold,down,output);
+            // Same math as BoofCV GlobalBinaryFilter.process()
+            double adjusted_scale = down ? scale : (scale <= 0.0 ? 0.0 : 1.0/scale);
+            double threshold = ThresholdOps::computeOtsu(input,min_value,max_value,false)*adjusted_scale;
+            apply(input, threshold, output, std::is_integral<T>());
         }
+
+    private:
+        // Integer images: Java casts the threshold to int. A threshold outside the pixel range would wrap if cast to
+        // T, so those cases are handled here. This keeps the inner loop in T, which the compiler can vectorize.
+        void apply(const Gray<T>& input, double threshold_d, Gray<U8>& output, std::true_type) {
+            auto threshold = static_cast<int64_t>(threshold_d);
+            if( threshold < std::numeric_limits<T>::min() ) {
+                output.reshape(input.width,input.height);
+                ImageMiscOps::fill(output,static_cast<U8>(down ? 0 : 1));
+            } else if( threshold >= std::numeric_limits<T>::max() ) {
+                output.reshape(input.width,input.height);
+                ImageMiscOps::fill(output,static_cast<U8>(down ? 1 : 0));
+            } else {
+                ThresholdOps::threshold(input,static_cast<T>(threshold),down,output);
+            }
+        }
+
+        // Floating point images: Java casts the threshold to float
+        void apply(const Gray<T>& input, double threshold_d, Gray<U8>& output, std::false_type) {
+            ThresholdOps::threshold(input,static_cast<float>(threshold_d),down,output);
+        }
+    public:
     };
 
     template<class T>

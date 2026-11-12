@@ -3,13 +3,14 @@ package org.boofcpp.contour;
 import boofcv.abst.filter.binary.BinaryContourFinder;
 import boofcv.abst.filter.binary.BinaryLabelContourFinder;
 import boofcv.alg.filter.binary.ContourPacked;
+import boofcv.struct.ConfigLength;
 import boofcv.struct.ConnectRule;
 import boofcv.struct.PackedSetsPoint2D_I32;
 import boofcv.struct.image.GrayS32;
 import boofcv.struct.image.GrayU8;
 import georegression.struct.point.Point2D_I32;
-import org.ddogleg.struct.FastQueue;
-import org.ddogleg.struct.GrowQueue_I32;
+import org.ddogleg.struct.DogArray;
+import org.ddogleg.struct.DogArray_I32;
 
 import java.util.List;
 
@@ -21,14 +22,18 @@ import java.util.List;
 public class NativeChang2004 implements BinaryLabelContourFinder {
 
     // Storage here to simplify JNI wrapper code
-    protected FastQueue<ContourPacked> storageContours = new FastQueue<>(ContourPacked.class,true);
+    protected DogArray<ContourPacked> storageContours = new DogArray<>(ContourPacked::new);
     protected PackedSetsPoint2D_I32 packedPoints = new PackedSetsPoint2D_I32(4000);
 
     // use this to transfer information about points. More memory but many fewer JNI calls and
     // simpler JNI code
-    protected GrowQueue_I32 storagePoints = new GrowQueue_I32();
+    protected DogArray_I32 storagePoints = new DogArray_I32();
 
     protected long nativePtr;
+
+    // Contour length limits. Resolved to pixels for each image, same as LinearContourLabelChang2004
+    protected ConfigLength minContour = ConfigLength.fixed(0);
+    protected ConfigLength maxContour = ConfigLength.fixed(-1);
 
     public NativeChang2004() {
         native_init();
@@ -39,6 +44,10 @@ public class NativeChang2004 implements BinaryLabelContourFinder {
         storageContours.reset();
         packedPoints.reset();
         labeled.reshape(binary.width,binary.height);
+        // Uses BoofCV's own ConfigLength math so the threshold in pixels is identical to Java
+        double totalLength = Math.sqrt(binary.width*binary.height);
+        nativeSetMinContour(minContour.computeNegMaxI(totalLength));
+        nativeSetMaxContour(maxContour.computeNegMaxI(totalLength));
         native_process(binary, labeled);
     }
 
@@ -57,7 +66,7 @@ public class NativeChang2004 implements BinaryLabelContourFinder {
     }
 
     @Override
-    public void loadContour(int contourID, FastQueue<Point2D_I32> storage) {
+    public void loadContour(int contourID, DogArray<Point2D_I32> storage) {
         packedPoints.getSet(contourID,storage);
     }
 
@@ -73,16 +82,34 @@ public class NativeChang2004 implements BinaryLabelContourFinder {
     public native boolean isSaveInternalContours();
 
     @Override
-    public native void setMinContour(int length);
+    public void setMinContour(ConfigLength length) { minContour.setTo(length); }
 
     @Override
-    public native int getMinContour();
+    public ConfigLength getMinContour(ConfigLength length) {
+        if (length == null)
+            length = new ConfigLength();
+        length.setTo(minContour);
+        return length;
+    }
 
     @Override
-    public native void setMaxContour(int length);
+    public void setMaxContour(ConfigLength length) { maxContour.setTo(length); }
 
     @Override
-    public native int getMaxContour();
+    public ConfigLength getMaxContour(ConfigLength length) {
+        if (length == null)
+            length = new ConfigLength();
+        length.setTo(maxContour);
+        return length;
+    }
+
+    public native void nativeSetMinContour(int length);
+
+    public native int nativeGetMinContour();
+
+    public native void nativeSetMaxContour(int length);
+
+    public native int nativeGetMaxContour();
 
     @Override
     public native void setConnectRule(ConnectRule rule);
