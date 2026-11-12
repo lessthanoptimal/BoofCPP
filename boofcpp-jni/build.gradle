@@ -1,7 +1,7 @@
 java {
     withJavadocJar()
     withSourcesJar()
-    toolchain { languageVersion = JavaLanguageVersion.of(11) }
+    toolchain { languageVersion = JavaLanguageVersion.of(17) }
 }
 
 repositories {
@@ -27,7 +27,9 @@ dependencies {
         api('org.boofcv:boofcv-'+a+':'+BOOFCV_VERSION)
     }
 
-    testImplementation group: 'junit', name: 'junit', version: '4.12'
+    testImplementation group: 'junit', name: 'junit', version: '4.13.2'
+    testRuntimeOnly 'org.junit.vintage:junit-vintage-engine:5.10.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.10.2'
 
     ['core','generator-annprocess'].each { String a->
         benchmarkImplementation('org.openjdk.jmh:jmh-'+a+':1.19')
@@ -73,27 +75,23 @@ if (org.gradle.internal.os.OperatingSystem.current().isLinux()) {
 println "  Classifier name: $project.ext.platform"
 println "  Native location: $project.ext.build_location"
 
-task nativeJar(type: Jar) {
-    classifier "$project.ext.platform"
+tasks.register('nativeJar', Jar) {
+    archiveClassifier = "$project.ext.platform"
 //    from file("$project.ext.build_location/boofcpp/")
-    from file("$project.ext.build_location/jni/")
+    from file("$project.ext.build_location/boofcpp-jni/")
 //    include 'libBoofCPP.*'
     include 'libJNIBoofCPP.*'
 }
 
-artifacts {
-    archives sourcesJar
-//        archives javadocJar
-
-    archives(nativeJar.archivePath) {
-        type "jar"
-        builtBy nativeJar
-    }
+// Attach the native jar to the Maven publication
+afterEvaluate {
+    publishing.publications.mavenJava.artifact(tasks.named('nativeJar'))
 }
 
-task benchmarkRun(type: JavaExec, description: 'Executing JMH benchmarks') {
+tasks.register('benchmarkRun', JavaExec) {
+    description = 'Executing JMH benchmarks'
     classpath = sourceSets.benchmark.runtimeClasspath + sourceSets.main.runtimeClasspath
-    main = 'org.openjdk.jmh.Main'
+    mainClass = 'org.openjdk.jmh.Main'
 
     def include = project.properties.get('include', '.*Benchmark*');
     def format = project.properties.get('format', 'json');
@@ -104,3 +102,6 @@ task benchmarkRun(type: JavaExec, description: 'Executing JMH benchmarks') {
     args '-rf', format
     args '-rff', resultFile
 }
+
+// Same bytecode target as BoofCV
+tasks.withType(JavaCompile).configureEach { options.release = 11 }
