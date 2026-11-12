@@ -5,11 +5,12 @@ import boofcv.alg.misc.GImageMiscOps;
 import boofcv.core.image.GeneralizedImageOps;
 import boofcv.factory.filter.kernel.FactoryKernelGaussian;
 import boofcv.struct.convolve.Kernel1D;
+import boofcv.struct.convolve.Kernel1D_F32;
+import boofcv.struct.convolve.Kernel1D_S32;
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
 import boofcv.BoofTesting;
-import georegression.misc.GrlConstants;
 import org.boofcpp.BoofCPP;
 import org.junit.Test;
 
@@ -40,9 +41,9 @@ public class TestNativeImageConvolveNormalized {
             input = BoofTesting.createSubImageOf(input); // non-zero offset/stride
 
 
-            for( int radius : new int[]{1,2,3,4,5,24} ) {
-//                for (int i = 0; i < 5; i++) {
-                Kernel1D kernel = FactoryKernelGaussian.gaussian1D(type, -1, radius);
+            for( int radius : new int[]{1,2,3,4,5,24} )
+            for( int kscale : new int[]{1,2} ) {
+                Kernel1D kernel = scale(FactoryKernelGaussian.gaussian1D(type, -1, radius),kscale);
 
 //                long time0 = System.currentTimeMillis();
                 nativeConv.horizontal(kernel, input, found);
@@ -52,7 +53,7 @@ public class TestNativeImageConvolveNormalized {
 
 //                System.out.println(input.getDataType() + " radius " + radius + " native " + (time1 - time0) + "  java " + (time2 - time1));
 
-                BoofTesting.assertEquals(expected, found, GrlConstants.TEST_F32);
+                BoofTesting.assertEquals(expected, found, 0); // bit identical to BoofCV
 //                }
             }
 
@@ -72,15 +73,30 @@ public class TestNativeImageConvolveNormalized {
 
             input = BoofTesting.createSubImageOf(input); // non-zero offset/stride
 
-            for( int radius : new int[]{1,2,5} ) {
-                Kernel1D kernel = FactoryKernelGaussian.gaussian1D(type,-1,radius);
+            for( int radius : new int[]{1,2,3,4,5,24} )
+            for( int kscale : new int[]{1,2} ) {
+                Kernel1D kernel = scale(FactoryKernelGaussian.gaussian1D(type,-1,radius),kscale);
 
                 nativeConv.vertical(kernel,input,found);
                 GConvolveImageOps.verticalNormalized(kernel,input,expected);
 
-                BoofTesting.assertEquals(expected, found, GrlConstants.TEST_F32);
+                BoofTesting.assertEquals(expected, found, 0); // bit identical to BoofCV
             }
 
         }
+    }
+
+    /**
+     * Scales the kernel so that its sum is no longer one. BoofCV then normalizes the kernel before convolving.
+     */
+    static Kernel1D scale( Kernel1D kernel, int scale ) {
+        if( kernel instanceof Kernel1D_F32 ) {
+            float[] d = ((Kernel1D_F32)kernel).data;
+            for (int i = 0; i < d.length; i++) d[i] *= scale;
+        } else {
+            int[] d = ((Kernel1D_S32)kernel).data;
+            for (int i = 0; i < d.length; i++) d[i] *= scale;
+        }
+        return kernel;
     }
 }

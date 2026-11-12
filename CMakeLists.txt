@@ -9,6 +9,10 @@ project(boofcpp_all)
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
+# Results must be bit identical to Java, which never fuses multiply and add. Without this, compilers targeting
+# hardware with FMA (e.g. arm64 / Android, or -march=native) can contract a*b+c and change floating point results.
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffp-contract=off")
+
 # Remove any ambiguity about what mode it is in
 IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
     message("-- Debug Mode --")
