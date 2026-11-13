@@ -4,16 +4,16 @@ import boofcv.alg.filter.convolve.GConvolveImageOps;
 import boofcv.alg.filter.derivative.GImageDerivativeOps;
 import boofcv.alg.misc.GImageMiscOps;
 import boofcv.core.image.GeneralizedImageOps;
-import boofcv.core.image.border.BorderType;
+import boofcv.struct.border.BorderType;
 import boofcv.core.image.border.FactoryImageBorder;
-import boofcv.core.image.border.ImageBorder;
+import boofcv.struct.border.ImageBorder;
 import boofcv.factory.filter.kernel.FactoryKernelGaussian;
 import boofcv.struct.convolve.Kernel1D;
 import boofcv.struct.convolve.Kernel2D;
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
-import boofcv.testing.BoofTesting;
+import boofcv.BoofTesting;
 import georegression.misc.GrlConstants;
 import org.boofcpp.BoofCPP;
 import org.junit.Test;
@@ -49,7 +49,7 @@ public class TestNativeConvolveImage {
             for( int radius : new int[]{1,2,5,24} ) {
                 for(BorderType borderType : borderTypes) {
 
-                    ImageBorder border = FactoryImageBorder.single(type,borderType);
+                    ImageBorder border = FactoryImageBorder.single(borderType,type);
 
                     Kernel1D kernel = FactoryKernelGaussian.gaussian1D(type, -1, radius);
 
@@ -78,7 +78,7 @@ public class TestNativeConvolveImage {
             for( int radius : new int[]{1,2,5,24} ) {
                 for(BorderType borderType : borderTypes) {
 
-                    ImageBorder border = FactoryImageBorder.single(type,borderType);
+                    ImageBorder border = FactoryImageBorder.single(borderType,type);
 
                     Kernel1D kernel = FactoryKernelGaussian.gaussian1D(type, -1, radius);
 
@@ -112,7 +112,7 @@ public class TestNativeConvolveImage {
             for( int radius : new int[]{1,2,5,24} ) {
                 for(BorderType borderType : borderTypes) {
 
-                    ImageBorder border = FactoryImageBorder.single(type,borderType);
+                    ImageBorder border = FactoryImageBorder.single(borderType,type);
 
                     Kernel2D kernel = FactoryKernelGaussian.gaussian2D(type, -1, radius);
 

@@ -6,12 +6,13 @@ import boofcv.abst.filter.binary.BinaryLabelContourFinderChang2004;
 import boofcv.alg.filter.binary.ContourPacked;
 import boofcv.alg.misc.GImageMiscOps;
 import boofcv.alg.misc.ImageMiscOps;
+import boofcv.struct.ConfigLength;
 import boofcv.struct.ConnectRule;
 import boofcv.struct.image.GrayS32;
 import boofcv.struct.image.GrayU8;
 import georegression.struct.point.Point2D_I32;
 import org.boofcpp.BoofCPP;
-import org.ddogleg.struct.FastQueue;
+import org.ddogleg.struct.DogArray;
 import org.junit.Test;
 
 import java.util.List;
@@ -44,8 +45,8 @@ public class TestNativeChang2004 {
 
         assertEquals(ConnectRule.FOUR,alg.getConnectRule());
         assertTrue(alg.isSaveInternalContours());
-        assertEquals(0,alg.getMinContour());
-        assertEquals(Integer.MAX_VALUE,alg.getMaxContour());
+        assertEquals(0,alg.getMinContour(null).computeNegMaxI(100));
+        assertEquals(Integer.MAX_VALUE,alg.getMaxContour(null).computeNegMaxI(100));
     }
 
     @Test
@@ -58,11 +59,11 @@ public class TestNativeChang2004 {
         alg.setSaveInnerContour(false);
         assertFalse(alg.isSaveInternalContours());
 
-        alg.setMinContour(24);
-        assertEquals(24,alg.getMinContour());
+        alg.setMinContour(ConfigLength.fixed(24));
+        assertEquals(24,alg.getMinContour(null).computeNegMaxI(100));
 
-        alg.setMaxContour(1045);
-        assertEquals(1045,alg.getMaxContour());
+        alg.setMaxContour(ConfigLength.fixed(1045));
+        assertEquals(1045,alg.getMaxContour(null).computeNegMaxI(100));
     }
 
     /**
@@ -80,19 +81,19 @@ public class TestNativeChang2004 {
 
         assertTrue(contours.size()>0);
 
-        FastQueue<Point2D_I32> storage = new FastQueue<>(Point2D_I32.class,true);
+        DogArray<Point2D_I32> storage = new DogArray<>(Point2D_I32::new);
         alg.loadContour(0,storage);
 
         assertTrue(storage.size>0);
 
         for (int i = 0; i < storage.size; i++) {
-            storage.get(i).set(i,i+1);
+            storage.get(i).setTo(i,i+1);
         }
         int before = storage.size;
 
         alg.writeContour(0,storage.toList());
 
-        storage = new FastQueue<>(Point2D_I32.class,true);
+        storage = new DogArray<>(Point2D_I32::new);
         alg.loadContour(0,storage);
         assertEquals(before,storage.size);
         for (int i = 0; i < storage.size; i++) {
@@ -116,11 +117,11 @@ public class TestNativeChang2004 {
             algJava.setConnectRule(cr);
 
             for (int min : new int[]{0,15}) {
-                algNative.setMinContour(min);
-                algJava.setMinContour(min);
+                algNative.setMinContour(ConfigLength.fixed(min));
+                algJava.setMinContour(ConfigLength.fixed(min));
                 for( int max : new int[]{Integer.MAX_VALUE,50}) {
-                    algNative.setMaxContour(max);
-                    algJava.setMaxContour(max);
+                    algNative.setMaxContour(ConfigLength.fixed(max));
+                    algJava.setMaxContour(ConfigLength.fixed(max));
 
                     compare(algNative, algJava, labeledNative, labeledJava);
                 }
@@ -164,8 +165,8 @@ public class TestNativeChang2004 {
 
     private void comparePoints( BinaryLabelContourFinder a , BinaryLabelContourFinder b , int which )
     {
-        FastQueue<Point2D_I32> pointsA = new FastQueue<>(Point2D_I32.class,true);
-        FastQueue<Point2D_I32> pointsB = new FastQueue<>(Point2D_I32.class,true);
+        DogArray<Point2D_I32> pointsA = new DogArray<>(Point2D_I32::new);
+        DogArray<Point2D_I32> pointsB = new DogArray<>(Point2D_I32::new);
 
         a.loadContour(which,pointsA);
         b.loadContour(which,pointsB);

@@ -9,7 +9,7 @@
 #include <geometry_types.h>
 #include <packed_sets.h>
 
-class WrapJGrowQueue_I32 {
+class WrapJDogArray_I32 {
 public:
     JNIEnv *env;
     jobject jobj;
@@ -24,9 +24,9 @@ public:
 
     jmethodID methodResize;
 
-    WrapJGrowQueue_I32(JNIEnv *env, jobject jobj);
+    WrapJDogArray_I32(JNIEnv *env, jobject jobj);
 
-    ~WrapJGrowQueue_I32();
+    ~WrapJDogArray_I32();
 
     // there can't be any JNI call's between these two
     void criticalGet();

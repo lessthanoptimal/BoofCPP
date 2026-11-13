@@ -1,9 +1,9 @@
 package org.boofcpp.convolve;
 
 import boofcv.alg.filter.convolve.GConvolveImageOps;
-import boofcv.core.image.border.BorderType;
+import boofcv.struct.border.BorderType;
 import boofcv.core.image.border.FactoryImageBorder;
-import boofcv.core.image.border.ImageBorder;
+import boofcv.struct.border.ImageBorder;
 import boofcv.factory.filter.kernel.FactoryKernelGaussian;
 import boofcv.io.image.ConvertBufferedImage;
 import boofcv.struct.convolve.Kernel1D_S32;

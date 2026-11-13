@@ -5,11 +5,11 @@
 using namespace boofcv;
 
 
-WrapJGrowQueue_I32::WrapJGrowQueue_I32(JNIEnv *env, jobject jobj)
+WrapJDogArray_I32::WrapJDogArray_I32(JNIEnv *env, jobject jobj)
 : env(env), jobj(jobj), data(nullptr), size(0)
 {
     objClass = env->GetObjectClass(jobj);
-    methodResize =  safe_GetMethodID(env, objClass, "resize", "(I)V");
+    methodResize =  safe_GetMethodID(env, objClass, "resize", "(I)Lorg/ddogleg/struct/DogArray_I32;");
     fid_data = safe_GetFieldID(env,objClass,"data","[I");
     fid_size = safe_GetFieldID(env,objClass,"size","I");
 
@@ -22,34 +22,34 @@ WrapJGrowQueue_I32::WrapJGrowQueue_I32(JNIEnv *env, jobject jobj)
     this->size = env->GetIntField(jobj,fid_size);
     this->data = nullptr;
 
-//    printf("WrapJGrowQueue_I32 array_length=%d size=%d\n",this->array_length,this->size);
+//    printf("WrapJDogArray_I32 array_length=%d size=%d\n",this->array_length,this->size);
 }
 
-WrapJGrowQueue_I32::~WrapJGrowQueue_I32() {
+WrapJDogArray_I32::~WrapJDogArray_I32() {
     if( this->data != nullptr ) {
         throw std::runtime_error("You didn't release the critical array!");
     }
 }
 
-void WrapJGrowQueue_I32::criticalGet() {
+void WrapJDogArray_I32::criticalGet() {
     this->data = (jint *)env->GetPrimitiveArrayCritical(array_object, 0);
 }
 
-void WrapJGrowQueue_I32::criticalRelease() {
+void WrapJDogArray_I32::criticalRelease() {
     this->env->ReleasePrimitiveArrayCritical(array_object, this->data, 0);
     this->data = nullptr;
 }
 
-void WrapJGrowQueue_I32::regularGet() {
+void WrapJDogArray_I32::regularGet() {
     this->data = (jint *)env->GetIntArrayElements((jintArray)array_object, 0);
 }
 
-void WrapJGrowQueue_I32::regularRelease() {
+void WrapJDogArray_I32::regularRelease() {
     this->env->ReleaseIntArrayElements((jintArray)array_object, this->data, 0);
     this->data = nullptr;
 }
 
-void WrapJGrowQueue_I32::setTo( const std::vector<uint32_t>& input ) {
+void WrapJDogArray_I32::setTo( const std::vector<uint32_t>& input ) {
     if( input.size() != this->size ) {
         resize((uint32_t)input.size());
     }
@@ -69,7 +69,7 @@ void WrapJGrowQueue_I32::setTo( const std::vector<uint32_t>& input ) {
     }
 }
 
-void WrapJGrowQueue_I32::resize( uint32_t desired ) {
+void WrapJDogArray_I32::resize( uint32_t desired ) {
     if( desired == this->size )
         return;
     if( this->data != nullptr ) {
@@ -78,7 +78,7 @@ void WrapJGrowQueue_I32::resize( uint32_t desired ) {
 
 //    printf("ENTER resize. desired = %d\n",desired);
 
-    env->CallVoidMethod(jobj,methodResize,(jint)desired);
+    env->DeleteLocalRef(env->CallObjectMethod(jobj,methodResize,(jint)desired));
     this->size = desired;
 
     // See if the array has been resized
@@ -97,8 +97,8 @@ void copy_into_java( JNIEnv *env,
 {
     jclass class_packed = env->GetObjectClass(dst);
     jfieldID field_blockLength = safe_GetFieldID(env,class_packed, "blockLength", "I");
-    jfieldID field_blocks = safe_GetFieldID(env,class_packed, "blocks", "Lorg/ddogleg/struct/FastQueue;");
-    jfieldID field_sets = safe_GetFieldID(env,class_packed, "sets", "Lorg/ddogleg/struct/FastQueue;");
+    jfieldID field_blocks = safe_GetFieldID(env,class_packed, "blocks", "Lorg/ddogleg/struct/DogArray;");
+    jfieldID field_sets = safe_GetFieldID(env,class_packed, "sets", "Lorg/ddogleg/struct/DogArray;");
 
     jint blockLength = env->GetIntField(dst,field_blockLength);
 
@@ -111,11 +111,11 @@ void copy_into_java( JNIEnv *env,
     jobject object_sets = env->GetObjectField (dst, field_sets);
     jclass class_fastqueue = env->GetObjectClass(object_blocks);
 
-    jmethodID method_resize =  safe_GetMethodID(env, class_fastqueue, "resize", "(I)V");
+    jmethodID method_resize =  safe_GetMethodID(env, class_fastqueue, "resize", "(I)Lorg/ddogleg/struct/DogArray;");
     jmethodID method_get =  safe_GetMethodID(env, class_fastqueue, "get", "(I)Ljava/lang/Object;");
 
-    env->CallVoidMethod(object_blocks,method_resize,(jint)src._number_of_blocks);
-    env->CallVoidMethod(object_sets,method_resize,(jint)src.set_info.size());
+    env->DeleteLocalRef(env->CallObjectMethod(object_blocks,method_resize,(jint)src._number_of_blocks));
+    env->DeleteLocalRef(env->CallObjectMethod(object_sets,method_resize,(jint)src.set_info.size()));
 
     for( uint32_t block_idx = 0; block_idx < src._number_of_blocks; block_idx++ ) {
         jobject the_array = env->CallObjectMethod(object_blocks,method_get,(jint)block_idx);
@@ -130,7 +130,7 @@ void copy_into_java( JNIEnv *env,
     }
 
     jclass class_blockindexlength = env->FindClass("boofcv/struct/BlockIndexLength");
-    jmethodID method_bil_set =  safe_GetMethodID(env, class_blockindexlength, "set", "(III)V");
+    jmethodID method_bil_set =  safe_GetMethodID(env, class_blockindexlength, "setTo", "(III)V");
 
     for( uint32_t i = 0; i < src.set_info.size(); i++ ) {
         const PackedSetInfo& set_info = src.set_info[i];

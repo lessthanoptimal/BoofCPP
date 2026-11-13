@@ -8,9 +8,9 @@ import boofcv.struct.image.ImageType;
 
 public class NativeGlobalOtsu<T extends ImageGray<T>> extends NativeThresholdBase<T>
 {
-    public NativeGlobalOtsu(double minValue, double maxValue, boolean down, Class<T> imageType ) {
+    public NativeGlobalOtsu(double minValue, double maxValue, double scale, boolean down, Class<T> imageType ) {
         super(imageType);
-        nativeinit(minValue,maxValue,down);
+        nativeinit(minValue,maxValue,scale,down);
     }
 
     @Override
@@ -27,5 +27,5 @@ public class NativeGlobalOtsu<T extends ImageGray<T>> extends NativeThresholdBas
 
     public native void nativeprocess(T input, GrayU8 output);
     public native void nativedestroy();
-    public native void nativeinit(double minValue, double maxValue, boolean down);
+    public native void nativeinit(double minValue, double maxValue, double scale, boolean down);
 }

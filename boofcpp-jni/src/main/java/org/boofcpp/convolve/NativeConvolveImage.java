@@ -2,6 +2,8 @@ package org.boofcpp.convolve;
 
 import boofcv.alg.filter.convolve.BOverrideConvolveImage;
 import boofcv.core.image.border.*;
+import boofcv.struct.border.*;
+import boofcv.core.image.ImageBorderValue;
 import boofcv.struct.convolve.Kernel1D;
 import boofcv.struct.convolve.Kernel2D;
 import boofcv.struct.image.ImageBase;

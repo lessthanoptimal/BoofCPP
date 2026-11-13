@@ -6,7 +6,7 @@ allprojects {
     group = 'org.boofcpp'
     version = '0.30'
 
-    ext.BOOFCV_VERSION = '0.30'
+    ext.BOOFCV_VERSION = '1.6.1-SNAPSHOT'
 
     // if Maven central isn't setup in ~/.gradle/gradle.properties fill in these variables to make it happy
     if (!project.hasProperty('ossrhUsername')) {

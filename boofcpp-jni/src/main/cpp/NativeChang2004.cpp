@@ -51,9 +51,9 @@ JNIEXPORT void JNICALL Java_org_boofcpp_contour_NativeChang2004_native_1process
     env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, JNI_ABORT);
     env->ReleasePrimitiveArrayCritical((jarray)label.info.jdata, label.image.data, 0);
 
-    jfieldID fidPoints = safe_GetFieldID(env, objClass, "storagePoints", "Lorg/ddogleg/struct/GrowQueue_I32;");
+    jfieldID fidPoints = safe_GetFieldID(env, objClass, "storagePoints", "Lorg/ddogleg/struct/DogArray_I32;");
     jobject jpoints = env->GetObjectField(obj,fidPoints);
-    WrapJGrowQueue_I32 grow_queue(env,jpoints);
+    WrapJDogArray_I32 grow_queue(env,jpoints);
 
     jmethodID midAdd =  safe_GetMethodID(env, objClass, "addContour", "(II)V");
 
@@ -92,7 +92,7 @@ JNIEXPORT jboolean JNICALL Java_org_boofcpp_contour_NativeChang2004_isSaveIntern
     return (jboolean)contour->saveInternalContours;
 }
 
-JNIEXPORT void JNICALL Java_org_boofcpp_contour_NativeChang2004_setMinContour
+JNIEXPORT void JNICALL Java_org_boofcpp_contour_NativeChang2004_nativeSetMinContour
         (JNIEnv *env, jobject obj, jint size)
 {
     jclass objClass = env->GetObjectClass(obj);
@@ -102,7 +102,7 @@ JNIEXPORT void JNICALL Java_org_boofcpp_contour_NativeChang2004_setMinContour
     contour->minContourSize = static_cast<uint32_t>(size);
 }
 
-JNIEXPORT jint JNICALL Java_org_boofcpp_contour_NativeChang2004_getMinContour
+JNIEXPORT jint JNICALL Java_org_boofcpp_contour_NativeChang2004_nativeGetMinContour
         (JNIEnv *env, jobject obj)
 {
     jclass objClass = env->GetObjectClass(obj);
@@ -112,7 +112,7 @@ JNIEXPORT jint JNICALL Java_org_boofcpp_contour_NativeChang2004_getMinContour
     return static_cast<jint>(contour->minContourSize);
 }
 
-JNIEXPORT void JNICALL Java_org_boofcpp_contour_NativeChang2004_setMaxContour
+JNIEXPORT void JNICALL Java_org_boofcpp_contour_NativeChang2004_nativeSetMaxContour
         (JNIEnv *env, jobject obj, jint size)
 {
     jclass objClass = env->GetObjectClass(obj);
@@ -122,7 +122,7 @@ JNIEXPORT void JNICALL Java_org_boofcpp_contour_NativeChang2004_setMaxContour
     contour->maxContourSize = static_cast<uint32_t>(size);
 }
 
-JNIEXPORT jint JNICALL Java_org_boofcpp_contour_NativeChang2004_getMaxContour
+JNIEXPORT jint JNICALL Java_org_boofcpp_contour_NativeChang2004_nativeGetMaxContour
         (JNIEnv *env, jobject obj)
 {
     jclass objClass = env->GetObjectClass(obj);
