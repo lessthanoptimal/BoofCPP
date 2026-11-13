@@ -37,6 +37,8 @@ public class BenchmarkContour {
 
     static {
         BoofCPP.loadlib();
+        // S0 baseline (BoofCV 0.32) had no concurrency; compare single-threaded Java
+        boofcv.concurrency.BoofConcurrency.USE_CONCURRENT = false;
     }
     public BenchmarkContour() {
         BufferedImage buffered = BenchmarkUtils.loadImage(IMAGE_PATH);
@@ -44,7 +46,7 @@ public class BenchmarkContour {
         GrayU8 input=ConvertBufferedImage.convertFrom(buffered,(GrayU8)null);
 
         binary = input.createSameShape();
-        FactoryThresholdBinary.globalOtsu(0,255,true,GrayU8.class)
+        FactoryThresholdBinary.globalOtsu(0,255,1.0,true,GrayU8.class)
                 .process(input,binary);
 
         labeled = binary.createSameShape(GrayS32.class);

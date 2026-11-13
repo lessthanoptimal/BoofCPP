@@ -18,6 +18,8 @@ sourceSets {
     benchmark {
         java { srcDir 'src/benchmark/java' }
         resources { srcDir 'src/benchmark/resources' }
+        compileClasspath += main.output + main.compileClasspath
+        runtimeClasspath += main.output + main.runtimeClasspath
     }
 }
 
@@ -34,6 +36,7 @@ dependencies {
     ['core','generator-annprocess'].each { String a->
         benchmarkImplementation('org.openjdk.jmh:jmh-'+a+':1.19')
     }
+    benchmarkAnnotationProcessor('org.openjdk.jmh:jmh-generator-annprocess:1.19')
     ['io'].each { String a->
         benchmarkImplementation('org.boofcv:boofcv-'+a+':'+BOOFCV_VERSION)
     }

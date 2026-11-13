@@ -35,12 +35,14 @@ public class BenchmarkConvolveImage {
     Kernel1D_S32 kernel1D = FactoryKernelGaussian.gaussian1D(GrayU8.class,-1,5);
     Kernel2D_S32 kernel2D = FactoryKernelGaussian.gaussian2D(GrayU8.class,-1,5);
 
-    ImageBorder<GrayU8> border = FactoryImageBorder.single(GrayU8.class, BorderType.EXTENDED);
+    ImageBorder<GrayU8> border = FactoryImageBorder.single(BorderType.EXTENDED, GrayU8.class);
 
     NativeConvolveImage nativeOps = new NativeConvolveImage();
 
     static {
         BoofCPP.loadlib();
+        // S0 baseline (BoofCV 0.32) had no concurrency; compare single-threaded Java
+        boofcv.concurrency.BoofConcurrency.USE_CONCURRENT = false;
     }
 
     public BenchmarkConvolveImage() {
