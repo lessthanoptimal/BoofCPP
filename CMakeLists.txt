@@ -1,5 +1,9 @@
-cmake_minimum_required(VERSION 3.2.2)
+cmake_minimum_required(VERSION 3.16)
 project(boofcpp_all)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 #if(NOT CMAKE_BUILD_TYPE)
 #    set(CMAKE_BUILD_TYPE Release)
@@ -29,6 +33,9 @@ add_subdirectory(boofcpp)
 add_subdirectory(benchmark)
 add_subdirectory(boofcpp-jni)
 
+# Only googletest is needed, not googlemock, and it shouldn't be installed with BoofCPP
+set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
+set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
 add_subdirectory(gtest)
 
 

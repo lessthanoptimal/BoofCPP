@@ -1,7 +1,5 @@
 project(boofcpp)
 
-set(CMAKE_CXX_STANDARD 11)
-
 file(GLOB BOOFCPP_HDR "src/boofcv/*.h")
 file(GLOB BOOFCPP_SRC "src/boofcv/*.cpp")
 

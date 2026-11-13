@@ -26,7 +26,7 @@ android {
 
         externalNativeBuild {
             cmake {
-                cppFlags '-std=c++11', '-fexceptions', '-frtti'
+                cppFlags '-std=c++17', '-fexceptions', '-frtti'
                 // 16 KB page size support, required for Android 15+ devices (default starting with NDK r28)
                 arguments '-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON'
             }
