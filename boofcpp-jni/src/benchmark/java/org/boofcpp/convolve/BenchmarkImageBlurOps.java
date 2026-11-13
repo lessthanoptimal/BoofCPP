@@ -32,7 +32,7 @@ public class BenchmarkImageBlurOps {
 
     static {
         BoofCPP.loadlib();
-        // S0 baseline (BoofCV 0.32) had no concurrency; compare single-threaded Java
+        // The speed target is against single-threaded Java
         boofcv.concurrency.BoofConcurrency.USE_CONCURRENT = false;
     }
 

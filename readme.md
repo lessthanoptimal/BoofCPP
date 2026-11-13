@@ -7,7 +7,7 @@ doesn't do that by default because when it's built as a library it doesn't know 
 
 # Introduction
 
-BoofCPP is a partial port the Java computer vision library [BoofCV](http://boofcv.org) to C++11.
+BoofCPP is a partial port the Java computer vision library [BoofCV](http://boofcv.org) to C++17.
 It has been released under an Apache 2.0 open source license and is free to use and redistribute.
 Ported operations are typically ones that are time consuming and likely to experience a significant
 (at least 2x) speed improvement when compiled as native code. These are typically array heavy operations,
@@ -56,16 +56,19 @@ Initialize must be called before any image processing is done.
 
 # Dependencies
 
-The main source code has no external dependencies, making it very easy to build. However unit tests and benchmarks
-have external dependencies. First make sure you have the gtest (unit tests) source code checked out:
+The main source code has no external dependencies, making it very easy to build. It needs a C++17 compiler and
+CMake. The Java library needs JDK 25, same as BoofCV. Unit tests and benchmarks have external dependencies. First make sure you have
+the gtest (unit tests) source code checked out, from the root of the repository:
 ```bash
-cd boofcpp
 git submodule update --init --recursive
 ```
-Next install the following libraries required for benchmarking (Ubuntu 18.04):
+Next install the following libraries required for the C++ benchmarks (Ubuntu):
 ```bash
 sudo apt-get install libpng-dev libjpeg-dev
-``` 
+```
+
+The Java library is built against the BoofCV version in `build.gradle` (`BOOFCV_VERSION`). If that's a SNAPSHOT,
+first install BoofCV locally with `./gradlew publishToMavenLocal` from the BoofCV repository.
 
 # Building
 
@@ -77,6 +80,13 @@ build in debug mode. Debug mode is great for development but many times slower t
 mkdir build;cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
 make -j8
+ctest
+```
+
+Inside the repository the Java library loads the native library from `build/boofcpp-jni`, so build it first. To run
+the unit tests which compare it against BoofCV:
+```bash
+./gradlew :boofcpp-jni:test
 ```
 
 Then to install the Java and Android libraries invoke the following command:
@@ -100,18 +110,23 @@ sdkmanager "ndk;27.0.12077973" "cmake;3.22.1"
 The main benchmarks are done to directly compare Java and JNI code. There is also a second minimal set of C++ benchmarks
 as a form of sanity check to make sure JNI or simply building the C++ code as a library does slow it down too much.
 
-C++ Benchmark: boofcpp/benchmark
-Java/JNI Benchmark: boofcpp/boofcpp-jni/src/benchmark
+C++ Benchmark: benchmark
+Java/JNI Benchmark: boofcpp-jni/src/benchmark
 
-To run the C++ benchmark simply run the generated executable:
+To run a C++ benchmark, run the generated executable from the `datasets` directory, which has the test image:
 ```bash
-cd boofcpp/build/benchmark
-./threshold
+cd datasets
+../build/benchmark/thresholding
 ```
+Every file in `benchmark/src` that has a `main()` is its own executable.
 
-The Java benchmark code is created using JMH (https://openjdk.java.net/projects/code-tools/jmh/). The easiest
-way to run it is to load the project in IntelliJ, install the JMH plugin, then run any of the benchmark class 
-by right clicking it.
+The Java benchmark code is created using JMH (https://openjdk.java.net/projects/code-tools/jmh/). Run all of them,
+or only the ones matching a regex with `-Pinclude`. Results are saved in `boofcpp-jni/build/reports/benchmark`.
+```bash
+./gradlew :boofcpp-jni:benchmarkRun
+./gradlew :boofcpp-jni:benchmarkRun -Pinclude=BenchmarkThresholding
+```
+They can also be run from IntelliJ with the JMH plugin.
 
 Example Results: Java/JNI Benchmark
 ```
@@ -176,6 +191,12 @@ crash harder than equally poorly written Java code.
 BoofCPP has several good examples of the general rule stated in the previous paragraph. Very simple operations
 run much faster in C++ (e.g. a simple global threshold) while complex algorithm with out of order operations
 (e.g. contour finding) run at approximately the same speed in C++ and Java.
+
+General expectations:
+* Algorithms which consume sparse data structures typically run at the same speed in C++ and Java.
+* Dense, vector heavy code should be faster in C++.
+* Once there is a fast library in addition to the strict one (see CodeStandards.md), how much faster it is will vary
+  by algorithm, but it's often 2x to 5x faster than strict.
 
 It's worth mentioning that the reason Java was used as the language for
 BoofCV is because Java projects are easier to write and maintain as

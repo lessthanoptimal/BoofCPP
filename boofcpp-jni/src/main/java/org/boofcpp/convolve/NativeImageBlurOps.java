@@ -15,10 +15,8 @@ public class NativeImageBlurOps<T extends ImageGray<T>> extends NativeBase<T>
     implements BOverrideBlurImageOps.Mean<T>,BOverrideBlurImageOps.Gaussian<T>
 {
 
-    /**
-     * Native only supports the same radius along x and y, which is what BoofCPP supported before. Throwing a
-     * RuntimeException causes BoofCV to fall back to its Java implementation.
-     */
+    /// Native only supports the same radius along x and y. Throwing a RuntimeException causes BoofCV to fall back to
+    /// its Java implementation.
     @Override
     public void processMeanWeighted(T input, T output, int radiusX, int radiusY, T storage) {
         if( input.getImageType().getFamily() != ImageType.Family.GRAY )
@@ -37,7 +35,7 @@ public class NativeImageBlurOps<T extends ImageGray<T>> extends NativeBase<T>
 
     public native void nativeMean( T input, T output, int radius , T storage );
 
-    /** Not implemented in native code. BoofCV falls back to Java */
+    /// Not implemented in native code. BoofCV falls back to Java
     @Override
     public void processMeanBorder(T input, T output, int radiusX, int radiusY, ImageBorder<T> border, T storage) {
         throw new RuntimeException("Not supported by native code");

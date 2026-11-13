@@ -1,7 +1,8 @@
 java {
     withJavadocJar()
     withSourcesJar()
-    toolchain { languageVersion = JavaLanguageVersion.of(17) }
+    // Same as BoofCV. Markdown (///) Javadoc needs JDK 23+. Bytecode target is set by options.release below
+    toolchain { languageVersion = JavaLanguageVersion.of(25) }
 }
 
 repositories {
@@ -25,7 +26,7 @@ sourceSets {
 
 
 dependencies {
-    ['ip'].each { String a->
+    ['ip','ip-multiview'].each { String a->
         api('org.boofcv:boofcv-'+a+':'+BOOFCV_VERSION)
     }
 
@@ -45,6 +46,8 @@ dependencies {
 
 test {
     useJUnitPlatform()
+    // JDK 24+ warns when native libraries are loaded unless native access is enabled
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
 
 javadoc {
@@ -100,6 +103,7 @@ tasks.register('benchmarkRun', JavaExec) {
     description = 'Executing JMH benchmarks'
     classpath = sourceSets.benchmark.runtimeClasspath + sourceSets.main.runtimeClasspath
     mainClass = 'org.openjdk.jmh.Main'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
 
     def include = project.properties.get('include', '.*Benchmark*');
     def format = project.properties.get('format', 'json');
