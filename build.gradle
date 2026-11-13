@@ -56,12 +56,12 @@ allprojects {
         }
     }
 
-    if (ext.ossrhPassword != "dummy") {
+    if (project.findProperty("ossrhPassword") != "dummy") {
         signing { sign publishing.publications.mavenJava }
     }
 }
 
 wrapper {
     distributionType = Wrapper.DistributionType.BIN
-    gradleVersion = '7.3.3'
+    gradleVersion = '9.2.0'
 }
