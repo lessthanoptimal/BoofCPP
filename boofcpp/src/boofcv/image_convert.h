@@ -36,6 +36,18 @@ namespace boofcv {
             }
         }
     }
+
+    /// Converts the pixel type of a gray image by casting each pixel. Same as BoofCV's ConvertImage.convert()
+    template<typename I, typename O>
+    void convert( const Gray<I>& input, Gray<O>& output ) {
+        output.reshape(input.width, input.height);
+        for (uint32_t y = 0; y < input.height; y++) {
+            const I* in = input.data + input.offset + y*input.stride;
+            O* out = output.data + output.offset + y*output.stride;
+            for (uint32_t x = 0; x < input.width; x++)
+                out[x] = static_cast<O>(in[x]);
+        }
+    }
 }
 
 #endif

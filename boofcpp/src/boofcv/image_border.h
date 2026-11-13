@@ -3,6 +3,8 @@
 
 #include "image_types.h"
 #include "sanity_checks.h"
+#include <algorithm>
+#include <cstdlib>
 #include <memory>
 
 namespace boofcv {
@@ -98,10 +100,27 @@ namespace boofcv {
     class ImageBorderReflect : public ImageBorderIndex<E> {
     public:
         void adjust( int32_t& x , const uint32_t& max_value ) const override {
-            if( x < 0 )
-                x = -x;
-            else if( x >= max_value)
-                x = max_value-2-(x-max_value);
+            const auto length = (int32_t)max_value;
+            if (x < 0) {
+                if (-x < length) {
+                    x = -x;
+                    return;
+                }
+            } else if (x >= length) {
+                const int32_t reflected = length - 2 - (x - length);
+                if (reflected >= 0) {
+                    x = reflected;
+                    return;
+                }
+            } else {
+                return;
+            }
+
+            // The image is smaller than the distance outside, so it's reflected more than once.
+            // Reflections repeat with a period of 2*(length-1)
+            const int32_t period = std::max(1, 2*(length - 1));
+            const int32_t reflected = std::abs(x)%period;
+            x = reflected < length ? reflected : period - reflected;
         }
     };
 
@@ -112,10 +131,24 @@ namespace boofcv {
     class ImageBorderWrap : public ImageBorderIndex<E> {
     public:
         void adjust( int32_t& x , const uint32_t& max_value ) const override {
-            if( x < 0 )
-                x = max_value+x;
-            else if( x >= max_value)
-                x = x-max_value;
+            const auto length = (int32_t)max_value;
+            if (x < 0) {
+                if (x + length >= 0) {
+                    x += length;
+                    return;
+                }
+            } else if (x >= length) {
+                if (x - length < length) {
+                    x -= length;
+                    return;
+                }
+            } else {
+                return;
+            }
+
+            // The image is smaller than the distance outside, so it's wrapped more than once
+            const int32_t wrapped = x%length;
+            x = wrapped < 0 ? wrapped + length : wrapped;
         }
     };
 
@@ -157,6 +190,9 @@ namespace boofcv {
          */
         ZERO
     };
+
+    /// Names of BorderType values, in the same order. Same as the Java enum names
+    inline const char* const BORDER_TYPE_NAMES[] = {"SKIP", "EXTENDED", "NORMALIZED", "REFLECT", "WRAP", "ZERO"};
 
     class FactoryImageBorder
     {

@@ -2,7 +2,9 @@
 #define BOOFCPP_IMAGE_BLUR_H
 
 #include "convolve.h"
+#include "image_border.h"
 #include "sanity_checks.h"
+#include <algorithm>
 #include <math.h>
 #include <vector>
 
@@ -329,6 +331,108 @@ namespace boofcv {
                 inner_vertical(input, output, radius);
             }
         }
+
+        /// Mean along x over 'length' pixels starting 'offset' pixels to the left, where pixels outside the image
+        /// are read from 'border'. Same as BoofCV's ConvolveImageMean.horizontal(GrayF32, GrayF32, offset, length,
+        /// ImageBorder_F32), including the order of the floating point operations.
+        static void horizontal( const Gray<F32>& input, Gray<F32>& output, int32_t offset, int32_t length,
+                                ImageBorder<F32>& border ) {
+            output.reshape(input.width, input.height);
+            border.setImage(input);
+            const int32_t width = input.width;
+            const int32_t height = input.height;
+            const int32_t border_right = length - offset - 1;
+            const F32 weight = 1.0f/(F32)length;
+            const F32 divisor = (F32)length;
+
+            for (int32_t y = 0; y < height; y++) {
+                F32* out = output.data + output.offset + y*output.stride;
+
+                // the border. BoofCV fails if the image is narrower than offset or border_right, so those columns
+                // are clamped to the image
+                auto border_pixel = [&]( int32_t x ) {
+                    F32 total = 0;
+                    for (int32_t k = 0; k < length; k++)
+                        total += border.get(x + k - offset, y)*weight;
+                    out[x] = total;
+                };
+                for (int32_t x = 0; x < std::min(offset, width); x++)
+                    border_pixel(x);
+                for (int32_t x = std::max(0, width - border_right); x < width; x++)
+                    border_pixel(x);
+
+                // inner image with a running sum
+                if (length > width)
+                    continue;
+                const F32* in = input.data + input.offset + y*input.stride;
+                F32 total = 0;
+                for (int32_t i = 0; i < length; i++)
+                    total += in[i];
+                out[offset] = total/divisor;
+                for (int32_t i = length; i < width; i++) {
+                    total -= in[i - length];
+                    total += in[i];
+                    out[offset + i - length + 1] = total/divisor;
+                }
+            }
+        }
+
+        /// Mean along y over 'length' pixels starting 'offset' pixels above, where pixels outside the image
+        /// are read from 'border'. Same as BoofCV's ConvolveImageMean.vertical(GrayF32, GrayF32, offset, length,
+        /// ImageBorder_F32), including the order of the floating point operations.
+        ///
+        /// @param totals Work space
+        static void vertical( const Gray<F32>& input, Gray<F32>& output, int32_t offset, int32_t length,
+                              ImageBorder<F32>& border, std::vector<F32>& totals ) {
+            output.reshape(input.width, input.height);
+            border.setImage(input);
+            const int32_t width = input.width;
+            const int32_t height = input.height;
+            const int32_t border_bottom = length - offset - 1;
+            const F32 weight = 1.0f/(F32)length;
+            const F32 divisor = (F32)length;
+
+            // the border. Rows are clamped to the image, see horizontal()
+            for (int32_t x = 0; x < width; x++) {
+                auto border_pixel = [&]( int32_t y ) {
+                    F32 total = 0;
+                    for (int32_t k = 0; k < length; k++)
+                        total += border.get(x, y + k - offset)*weight;
+                    output.unsafe_at(x, y) = total;
+                };
+                for (int32_t y = 0; y < std::min(offset, height); y++)
+                    border_pixel(y);
+                for (int32_t y = std::max(0, height - border_bottom); y < height; y++)
+                    border_pixel(y);
+            }
+
+            // inner image with a running sum for each column
+            if (length > height)
+                return;
+            totals.resize(width);
+            const F32* in = input.data + input.offset;
+            for (int32_t x = 0; x < width; x++)
+                totals[x] = in[x];
+            for (int32_t y = 1; y < length; y++) {
+                const F32* row = in + y*input.stride;
+                for (int32_t x = 0; x < width; x++)
+                    totals[x] += row[x];
+            }
+            F32* out = output.data + output.offset + offset*output.stride;
+            for (int32_t x = 0; x < width; x++)
+                out[x] = totals[x]/divisor;
+            for (int32_t y = 0; y < height - length; y++) {
+                const F32* removed = in + y*input.stride;
+                const F32* added = removed + length*input.stride;
+                out = output.data + output.offset + (offset + y + 1)*output.stride;
+                for (int32_t x = 0; x < width; x++) {
+                    F32 total = totals[x] - removed[x];
+                    total += added[x];
+                    out[x] = total/divisor;
+                    totals[x] = total;
+                }
+            }
+        }
     };
 
     class BlurImageOps {
@@ -353,6 +457,20 @@ namespace boofcv {
 
             ConvolveImageMean::horizontal(input, storage, radius);
             ConvolveImageMean::vertical(storage, output, radius);
+        }
+
+        /// Mean box filter where pixels outside the image are read from 'border'. Same as BoofCV's
+        /// BlurImageOps.meanB() for GrayF32, which fails if a radius is larger than the image. Here those images work.
+        ///
+        /// @param storage Work space
+        /// @param totals Work space
+        static void mean_border( const Gray<F32>& input, Gray<F32>& output, int32_t radius_x, int32_t radius_y,
+                                 ImageBorder<F32>& border, Gray<F32>& storage, std::vector<F32>& totals ) {
+            if (radius_x <= 0 || radius_y <= 0)
+                throw invalid_argument("Radius must be > 0");
+            storage.reshape(input.width, input.height);
+            ConvolveImageMean::horizontal(input, storage, radius_x, radius_x*2 + 1, border);
+            ConvolveImageMean::vertical(storage, output, radius_y, radius_y*2 + 1, border, totals);
         }
 
         /**
