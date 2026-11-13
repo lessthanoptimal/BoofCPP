@@ -81,14 +81,18 @@ make -j8
 
 Then to install the Java and Android libraries invoke the following command:
 ```bash
-./gradlew install
+./gradlew publishToMavenLocal
 ```
 
 ## Android
 
+The Android module is only included when an Android SDK is found (`ANDROID_HOME`, `ANDROID_SDK_ROOT` or `sdk.dir`
+in `local.properties`). Without it everything else still builds. It requires NDK 27.0.12077973 and CMake 3.22.1
+from the SDK manager:
+
 ```bash
-cd boofcpp/boofcpp-android
-../gradlew install
+sdkmanager "ndk;27.0.12077973" "cmake;3.22.1"
+./gradlew :boofcpp-android:publishToMavenLocal
 ```
 
 # Performance Benchmarks
