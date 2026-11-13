@@ -59,6 +59,13 @@ namespace boofcv
 
         void checkValidity() const override;
     };
+
+    /// Calls visitor(java_name, field) for every field. See visit_fields() for ConfigDisparityBM
+    template<class Visitor>
+    void visit_fields( ConfigLength& c, Visitor&& v ) {
+        v("length", c.length);
+        v("fraction", c.fraction);
+    }
 }
 
 #endif

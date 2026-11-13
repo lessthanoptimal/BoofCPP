@@ -1,29 +1,13 @@
 // Benchmark for blur and convolution operations, including floating point images.
-// Added during the BoofCV 1.6 update so changes to F32 code paths can be checked for speed regressions.
+// Useful for checking that changes to F32 code paths don't slow them down.
 #include "boofcv/image_convert.h"
 #include "boofcv/convolve.h"
 #include "boofcv/image_blur.h"
 #include "benchmark_common.h"
-#include <chrono>
-#include <functional>
 #include <algorithm>
 #include <vector>
 
 using namespace boofcv;
-
-// Runs the function N times and prints the mean and minimum time in milliseconds
-static void bench( const char* name, int N, const std::function<void()>& f ) {
-    f(); // warm up
-    std::vector<double> times;
-    for( int i = 0; i < N; i++ ) {
-        auto t0 = std::chrono::steady_clock::now();
-        f();
-        auto t1 = std::chrono::steady_clock::now();
-        times.push_back(std::chrono::duration<double,std::milli>(t1-t0).count());
-    }
-    double sum = 0; for( double t : times ) sum += t;
-    printf("%28s mean = %9.4f min = %9.4f (ms)\n", name, sum/N, *std::min_element(times.begin(),times.end()));
-}
 
 int main() {
     Interleaved<U8> input_color(1,1,1);

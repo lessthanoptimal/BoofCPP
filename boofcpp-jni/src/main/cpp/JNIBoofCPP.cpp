@@ -1,5 +1,7 @@
 #include "JNIBoofCPP.h"
+#include <cstring>
 #include <stdexcept>
+#include <string>
 #include <packed_sets.h>
 
 using namespace boofcv;
@@ -141,12 +143,14 @@ void copy_into_java( JNIEnv *env,
     }
 }
 
+// The safe_ functions clear the pending Java exception and throw a C++ exception that names what wasn't found
+
 jclass safe_FindClass( JNIEnv *env, const char* name )
 {
     jclass theclass = env->FindClass(name);
     if( env->ExceptionCheck() || theclass == nullptr ) {
-        env->ExceptionDescribe();
-        throw "failed FindClass";
+        env->ExceptionClear();
+        throw std::runtime_error(std::string("Java class not found: ") + name);
     }
     return theclass;
 }
@@ -154,9 +158,9 @@ jclass safe_FindClass( JNIEnv *env, const char* name )
 jfieldID safe_GetFieldID( JNIEnv *env, jclass& objClass, const char* name , const char* type)
 {
     jfieldID fid = env->GetFieldID(objClass, name, type);
-    if( env->ExceptionCheck() ) {
-        env->ExceptionDescribe();
-        throw "failed GetFieldID";
+    if( env->ExceptionCheck() || fid == nullptr ) {
+        env->ExceptionClear();
+        throw std::runtime_error(std::string("Java field not found: ") + name + " " + type);
     }
     return fid;
 }
@@ -164,11 +168,56 @@ jfieldID safe_GetFieldID( JNIEnv *env, jclass& objClass, const char* name , cons
 jmethodID safe_GetMethodID( JNIEnv *env, jclass& objClass, const char* name , const char* type)
 {
     jmethodID fid = env->GetMethodID(objClass, name, type);
-    if( env->ExceptionCheck() ) {
-        env->ExceptionDescribe();
-        throw "failed GetMethodID";
+    if( env->ExceptionCheck() || fid == nullptr ) {
+        env->ExceptionClear();
+        throw std::runtime_error(std::string("Java method not found: ") + name + " " + type);
     }
     return fid;
+}
+
+void throw_java_exception( JNIEnv* env ) {
+    // A Java exception that's already pending is more informative
+    if (env->ExceptionCheck())
+        return;
+    try {
+        throw;
+    } catch (const std::invalid_argument& e) {
+        env->ThrowNew(env->FindClass("java/lang/IllegalArgumentException"), e.what());
+    } catch (const std::exception& e) {
+        env->ThrowNew(env->FindClass("java/lang/RuntimeException"), e.what());
+    } catch (const char* message) {
+        env->ThrowNew(env->FindClass("java/lang/RuntimeException"), message);
+    } catch (...) {
+        env->ThrowNew(env->FindClass("java/lang/RuntimeException"), "Unknown C++ exception");
+    }
+}
+
+int32_t java_enum_index( JNIEnv* env, jobject jenum, const char* const* names, size_t count ) {
+    if (jenum == nullptr)
+        throw std::invalid_argument("enum is null");
+    jclass enum_class = safe_FindClass(env, "java/lang/Enum");
+    jmethodID mid_name = safe_GetMethodID(env, enum_class, "name", "()Ljava/lang/String;");
+    auto jname = (jstring)env->CallObjectMethod(jenum, mid_name);
+    const char* name = env->GetStringUTFChars(jname, nullptr);
+    std::string value(name);
+    env->ReleaseStringUTFChars(jname, name);
+    for (size_t i = 0; i < count; i++) {
+        if (value == names[i])
+            return (int32_t)i;
+    }
+    throw std::invalid_argument("Unknown enum value " + value);
+}
+
+jobject java_enum_value( JNIEnv* env, const char* signature, const char* name ) {
+    // signature is "Lpackage/Class;"
+    std::string class_name(signature + 1, std::strlen(signature) - 2);
+    jclass enum_class = safe_FindClass(env, class_name.c_str());
+    jfieldID fid = env->GetStaticFieldID(enum_class, name, signature);
+    if (env->ExceptionCheck() || fid == nullptr) {
+        env->ExceptionClear();
+        throw std::invalid_argument(std::string("No enum value ") + name + " in " + class_name);
+    }
+    return env->GetStaticObjectField(enum_class, fid);
 }
 
 jdouble safe_GetDouble( JNIEnv *env, jclass& objClass, jobject& obj, const char* name ) {
@@ -351,16 +400,6 @@ ImageAndInfo<boofcv::Gray<boofcv::F32>,JImageInfo> wrapCriticalGrayF32( JNIEnv *
                              (uint32_t)inputInfo.offset,(uint32_t)inputInfo.stride);
 
     return output;
-}
-
-boofcv::ConfigLength extractConfigLength( JNIEnv *env, jobject& jconfig ) {
-    boofcv::ConfigLength ret;
-
-    jclass objClass = env->GetObjectClass(jconfig);
-    ret.length = safe_GetDouble(env,objClass,jconfig, "length");
-    ret.fraction = safe_GetDouble(env,objClass,jconfig, "fraction");
-
-    return ret;
 }
 
 // make sure you free the kernel afterwards!

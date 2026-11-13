@@ -14,7 +14,7 @@ JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeBlockMinMax_nativeinit(
     jfieldID fid = env->GetFieldID(objClass, "isInteger", "Z");
     jboolean isInteger = env->GetBooleanField(obj, fid);
 
-    boofcv::ConfigLength region_width = extractConfigLength(env,jregionWidth);
+    boofcv::ConfigLength region_width = config_from_java<boofcv::ConfigLength>(env,jregionWidth);
 
     jlong ptr;
     if( isInteger ) {
