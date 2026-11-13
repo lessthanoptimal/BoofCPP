@@ -7,14 +7,14 @@ import boofcv.factory.filter.binary.FactoryThresholdBinary;
 import boofcv.abst.filter.binary.GlobalBinaryFilter;
 import boofcv.factory.filter.binary.BOverrideFactoryThresholdBinary;
 import boofcv.struct.image.ImageType;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
 import boofcv.BoofTesting;
 import org.boofcpp.BoofCPP;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Random;
 

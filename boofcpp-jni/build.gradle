@@ -29,9 +29,10 @@ dependencies {
         api('org.boofcv:boofcv-'+a+':'+BOOFCV_VERSION)
     }
 
-    testImplementation group: 'junit', name: 'junit', version: '4.13.2'
-    testRuntimeOnly 'org.junit.vintage:junit-vintage-engine:5.10.2'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.10.2'
+    testImplementation platform('org.junit:junit-bom:5.14.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter-api'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     ['core','generator-annprocess'].each { String a->
         benchmarkImplementation('org.openjdk.jmh:jmh-'+a+':1.19')
@@ -40,6 +41,10 @@ dependencies {
     ['io'].each { String a->
         benchmarkImplementation('org.boofcv:boofcv-'+a+':'+BOOFCV_VERSION)
     }
+}
+
+test {
+    useJUnitPlatform()
 }
 
 javadoc {

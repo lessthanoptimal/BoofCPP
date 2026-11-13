@@ -13,12 +13,12 @@ import boofcv.struct.image.GrayU8;
 import georegression.struct.point.Point2D_I32;
 import org.boofcpp.BoofCPP;
 import org.ddogleg.struct.DogArray;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Random;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Peter Abeles
