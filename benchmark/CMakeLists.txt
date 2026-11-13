@@ -41,6 +41,9 @@ list(APPEND BechmarkList convolution)
 add_executable(float_ops src/float_ops.cpp ${BENCHMARK_COMMON})
 list(APPEND BechmarkList float_ops)
 
+add_executable(disparity src/disparity.cpp ${BENCHMARK_COMMON})
+list(APPEND BechmarkList disparity)
+
 
 FOREACH(FILENAME ${BechmarkList})
     target_link_libraries(${FILENAME} BoofCPP ${IMAGE_LIBS})

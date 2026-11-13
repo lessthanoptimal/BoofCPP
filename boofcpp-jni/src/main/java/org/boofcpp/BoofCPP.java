@@ -4,13 +4,18 @@ import boofcv.alg.filter.blur.BOverrideBlurImageOps;
 import boofcv.alg.filter.convolve.BOverrideConvolveImage;
 import boofcv.alg.filter.convolve.BOverrideConvolveImageNormalized;
 import boofcv.alg.filter.misc.BOverrideAverageDownSampleOps;
+import boofcv.abst.disparity.StereoDisparityBlockMatch;
+import boofcv.factory.disparity.BOverrideStereoDisparity;
+import boofcv.factory.disparity.ConfigDisparityBM;
 import boofcv.factory.filter.binary.BOverrideFactoryBinaryContourFinder;
 import boofcv.factory.filter.binary.BOverrideFactoryThresholdBinary;
+import boofcv.struct.image.ImageGray;
 import cz.adamh.utils.NativeUtils;
 import org.boofcpp.contour.NativeChang2004;
 import org.boofcpp.convolve.NativeConvolveImage;
 import org.boofcpp.convolve.NativeImageBlurOps;
 import org.boofcpp.convolve.NativeImageConvolveNormalized;
+import org.boofcpp.disparity.NativeDisparityBlockMatch;
 import org.boofcpp.misc.NativeAverageDownSampleOps;
 import org.boofcpp.threshold.*;
 
@@ -77,5 +82,39 @@ public class BoofCPP {
 
 
         BOverrideFactoryBinaryContourFinder.chang2004 = NativeChang2004::new;
+
+        // Returning null means BoofCV uses its Java implementation
+        BOverrideStereoDisparity.opCreateBlockMatch = new BOverrideStereoDisparity.CreateBlockMatch() {
+            @Override public <T extends ImageGray<T>, DI extends ImageGray<DI>> StereoDisparityBlockMatch<T, DI>
+            create( ConfigDisparityBM config, Class<T> imageType, Class<DI> dispType ) {
+                if (!NativeDisparityBlockMatch.isSupported(config, imageType))
+                    return null;
+                return new NativeDisparityBlockMatch<>(config, imageType, dispType);
+            }
+        };
+    }
+
+    /// Undoes initialize(). BoofCV uses its Java implementations again
+    public static void uninitialize() {
+        BOverrideFactoryThresholdBinary.globalFixed = null;
+        BOverrideFactoryThresholdBinary.globalOtsu = null;
+        BOverrideFactoryThresholdBinary.blockMinMax = null;
+        BOverrideFactoryThresholdBinary.blockMean = null;
+        BOverrideFactoryThresholdBinary.blockOtsu = null;
+        BOverrideFactoryThresholdBinary.localMean = null;
+
+        BOverrideBlurImageOps.mean = null;
+        BOverrideBlurImageOps.gaussian = null;
+
+        BOverrideConvolveImageNormalized.horizontal = null;
+        BOverrideConvolveImageNormalized.vertical = null;
+
+        BOverrideConvolveImage.horizontal = null;
+        BOverrideConvolveImage.vertical = null;
+        BOverrideConvolveImage.convolve = null;
+
+        BOverrideFactoryBinaryContourFinder.chang2004 = null;
+
+        BOverrideStereoDisparity.opCreateBlockMatch = null;
     }
 }
