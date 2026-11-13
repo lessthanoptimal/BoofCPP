@@ -20,6 +20,7 @@ if (test)
 
     list(APPEND TestList test_average_down_sample)
     list(APPEND TestList test_base_types)
+    list(APPEND TestList test_census_transform)
     list(APPEND TestList test_binary_ops)
     list(APPEND TestList test_config_types)
     list(APPEND TestList test_contour)
