@@ -116,12 +116,13 @@ public class TestNativeChang2004 {
             algNative.setConnectRule(cr);
             algJava.setConnectRule(cr);
 
-            for (int min : new int[]{0,15}) {
-                algNative.setMinContour(ConfigLength.fixed(min));
-                algJava.setMinContour(ConfigLength.fixed(min));
-                for( int max : new int[]{Integer.MAX_VALUE,50}) {
-                    algNative.setMaxContour(ConfigLength.fixed(max));
-                    algJava.setMaxContour(ConfigLength.fixed(max));
+            // includes ConfigLength relative to image size
+            for (ConfigLength min : new ConfigLength[]{ConfigLength.fixed(0), ConfigLength.fixed(15), ConfigLength.relative(0.03,0)}) {
+                algNative.setMinContour(min);
+                algJava.setMinContour(min);
+                for( ConfigLength max : new ConfigLength[]{ConfigLength.fixed(Integer.MAX_VALUE), ConfigLength.fixed(-1), ConfigLength.fixed(50), ConfigLength.relative(0.2,0)}) {
+                    algNative.setMaxContour(max);
+                    algJava.setMaxContour(max);
 
                     compare(algNative, algJava, labeledNative, labeledJava);
                 }

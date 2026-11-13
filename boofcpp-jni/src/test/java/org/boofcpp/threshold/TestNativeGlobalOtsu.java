@@ -34,13 +34,14 @@ public class TestNativeGlobalOtsu {
     public void compareToBoofCV() {
         for( Class type : types ) {
             ImageGray input = GeneralizedImageOps.createSingleBand(type,100,90);
-            GImageMiscOps.fillUniform(input,rand,0,255);
-
             GrayU8 found = new GrayU8(1,1);
             GrayU8 expected = new GrayU8( input.width, input.height);
 
-            double minValue = 0;
-            double maxValue = 255;
+            // pixel value range. min != 0 shifts the histogram
+            for (double[] range : new double[][]{{0,255},{20,200}}) {
+            double minValue = range[0];
+            double maxValue = range[1];
+            GImageMiscOps.fillUniform(input,rand,minValue,maxValue);
 
             // scale values chosen so that the threshold can go below 0 and above 255
             for( double scale : new double[]{1.0, 0.0, 0.5, 0.95, 1.15, 3.0} )
@@ -52,6 +53,7 @@ public class TestNativeGlobalOtsu {
                 alg.process(input, found);
 
                 BoofTesting.assertEquals(expected, found, 0);
+            }
             }
         }
     }

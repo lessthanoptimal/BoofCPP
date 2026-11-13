@@ -36,7 +36,9 @@ public class TestNativeImageBlurOps {
 
             GImageMiscOps.fillUniform(input,rand,0,255);
 
-            for( int radius : new int[]{1,2,5,24} ) {
+            input = BoofTesting.createSubImageOf(input); // non-zero offset/stride
+
+            for( int radius : new int[]{1,2,3,4,5,24} ) {
 //                for (int i = 0; i < 5; i++) {
 //                long time0 = System.currentTimeMillis();
                 nativeBlur.processMeanWeighted(input,found,radius,radius,storage);
@@ -65,6 +67,8 @@ public class TestNativeImageBlurOps {
             ImageGray storage = GeneralizedImageOps.createSingleBand(type,width,height);
 
             GImageMiscOps.fillUniform(input,rand,0,255);
+
+            input = BoofTesting.createSubImageOf(input); // non-zero offset/stride
 
             for( int radius : new int[]{1,2,5,12} ) {
                 nativeBlur.processGaussian(input,found,-1,radius,-1,radius,storage);

@@ -30,17 +30,21 @@ public class TestNativeBlockMinMax {
     public void compareToBoofCV() {
         double minSpread = 2;
 
+        // Even and odd shapes (partial blocks), whole image and sub-image (offset/stride)
+        for (int[] shape : new int[][]{{400,300},{401,297}})
+        for (boolean sub : new boolean[]{false,true})
         for( Class type : types ) {
             // make the image larger to do a more careful test
-            ImageGray input = GeneralizedImageOps.createSingleBand(type,400,300);
+            ImageGray input = GeneralizedImageOps.createSingleBand(type,shape[0],shape[1]);
             GImageMiscOps.fillUniform(input,rand,0,255);
+            if (sub) input = BoofTesting.createSubImageOf(input);
 
             GrayU8 found = new GrayU8(1,1);
             GrayU8 expected = new GrayU8( input.width, input.height);
 
-            ConfigLength regionWidth = ConfigLength.fixed(2);
             double scale = 0.95;
 
+            for (ConfigLength regionWidth : new ConfigLength[]{ConfigLength.fixed(2), ConfigLength.fixed(25)})
             for( boolean down : new boolean[]{true,false}) {
                 for( boolean useLocal : new boolean[]{true,false}) {
                     InputToBinary alg = new NativeBlockMinMax(regionWidth, scale, down,minSpread, useLocal, type);

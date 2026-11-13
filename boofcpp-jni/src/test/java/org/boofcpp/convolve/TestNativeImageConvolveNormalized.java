@@ -37,8 +37,10 @@ public class TestNativeImageConvolveNormalized {
 
             GImageMiscOps.fillUniform(input,rand,0,255);
 
+            input = BoofTesting.createSubImageOf(input); // non-zero offset/stride
 
-            for( int radius : new int[]{1,2,5,24} ) {
+
+            for( int radius : new int[]{1,2,3,4,5,24} ) {
 //                for (int i = 0; i < 5; i++) {
                 Kernel1D kernel = FactoryKernelGaussian.gaussian1D(type, -1, radius);
 
@@ -67,6 +69,8 @@ public class TestNativeImageConvolveNormalized {
             ImageGray expected = GeneralizedImageOps.createSingleBand(type,width,height);
 
             GImageMiscOps.fillUniform(input,rand,0,255);
+
+            input = BoofTesting.createSubImageOf(input); // non-zero offset/stride
 
             for( int radius : new int[]{1,2,5} ) {
                 Kernel1D kernel = FactoryKernelGaussian.gaussian1D(type,-1,radius);
