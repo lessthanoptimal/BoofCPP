@@ -409,44 +409,59 @@ namespace boofcv {
                                 const Gray<E>& input, Gray<E>& output ,
                                 typename std::enable_if<std::is_floating_point<E>::value >::type* = 0)
         {
+            // Port of BoofCV ConvolveNormalized_JustBorder_SB.horizontal(Kernel1D_F32,...). The weight is updated
+            // incrementally across the border, which changes floating point rounding vs. recomputing it each pixel.
             typedef typename TypeInfo<E>::signed_type signed_type;
 
-            uint32_t offsetL = kernel.offset;
-            uint32_t offsetR = kernel.width-offsetL-1;
+            const signed_type* dataKer = kernel.data.data;
+            const int32_t kernelWidth = kernel.width;
+            const int32_t offsetL = kernel.offset;
+            const int32_t offsetR = kernelWidth-offsetL-1;
+            const int32_t width = input.width;
 
-            for (uint32_t i = 0; i < input.height; i++) {
-                uint32_t indexDest = output.offset + i * output.stride;
-                uint32_t j = input.offset + i * input.stride;
-                uint32_t jStart = j;
-                uint32_t jEnd = j + offsetL;
+            for (uint32_t y = 0; y < input.height; y++) {
+                int32_t indexDest = output.offset + y * output.stride;
+                int32_t j = input.offset + y * input.stride;
+                const int32_t jStart = j;
+                int32_t jEnd = j + offsetL;
+
+                signed_type weight = 0;
+                for (int32_t k = kernelWidth - offsetR; k < kernelWidth; k++) {
+                    weight += dataKer[k];
+                }
 
                 for (; j < jEnd; j++) {
                     signed_type total = 0;
-                    signed_type weight = 0;
-                    uint32_t indexSrc = jStart;
-                    for (uint32_t k = kernel.width - (offsetR + 1 + j - jStart); k < kernel.width; k++) {
-                        signed_type w = kernel.data[k];
-                        weight += w;
-                        total += input.data[indexSrc++] * w;
+                    int32_t indexSrc = jStart;
+                    int32_t kernelIdx0 = kernelWidth - (offsetR + 1 + j - jStart);
+                    weight += dataKer[kernelIdx0];
+                    for (int32_t k = kernelIdx0; k < kernelWidth; k++) {
+                        total += input.data[indexSrc++] * dataKer[k];
                     }
                     output.data[indexDest++] = (E)(total/weight);
                 }
 
-                j += input.width - (offsetL+offsetR);
-                indexDest += input.width - (offsetL+offsetR);
+                j += width - (offsetL+offsetR);
+                indexDest += width - (offsetL+offsetR);
 
-                jEnd = jStart + input.width;
+                {
+                    weight = 0;
+                    int32_t kEnd = jStart + width - (j - offsetL) + 1;
+                    for (int32_t k = 0; k < kEnd; k++) {
+                        weight += dataKer[k];
+                    }
+                }
+
+                jEnd = jStart + width;
                 for (; j < jEnd; j++) {
                     signed_type total = 0;
-                    signed_type weight = 0;
-                    uint32_t indexSrc = j - offsetL;
-                    uint32_t kEnd = jEnd - indexSrc;
+                    int32_t indexSrc = j - offsetL;
+                    const int32_t kEnd = jEnd - indexSrc;
 
-                    for (uint32_t k = 0; k < kEnd; k++) {
-                        signed_type w = kernel.data[k];
-                        weight += w;
-                        total += input.data[indexSrc++] * w;
+                    for (int32_t k = 0; k < kEnd; k++) {
+                        total += input.data[indexSrc++] * dataKer[k];
                     }
+                    weight -= dataKer[kEnd];
                     output.data[indexDest++] = (E)(total/weight);
                 }
             }
@@ -867,12 +882,74 @@ namespace boofcv {
             }
         }
 
+        /**
+         * Mirrors BoofCV ConvolveImageUnrolled_SB_F32_F32.convolve{3,5,7,9,11}: each kernel row is summed separately,
+         * the first row is written to output and the following rows are added to it.
+         * @return true if the kernel width is supported and the image was processed
+         */
+        template<typename E, typename R>
+        static bool convolve_rows( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel ,
+                                   const Gray<E>& input, Gray<R>& output )
+        {
+            if( kernel.offset != kernel.width/2 )
+                return false;
+            switch( kernel.width ) {
+                case 3: convolve_rows_w<3>(kernel,input,output); return true;
+                case 5: convolve_rows_w<5>(kernel,input,output); return true;
+                case 7: convolve_rows_w<7>(kernel,input,output); return true;
+                case 9: convolve_rows_w<9>(kernel,input,output); return true;
+                case 11: convolve_rows_w<11>(kernel,input,output); return true;
+                default: return false;
+            }
+        }
+
+        template<int W, typename E, typename R>
+        BOOFCPP_NOINLINE static void convolve_rows_w( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel ,
+                                     const Gray<E>& input, Gray<R>& output )
+        {
+            typedef typename TypeInfo<E>::signed_type signed_type;
+            const int32_t radius = W/2;
+            const int32_t width = input.width;
+            const int32_t height = input.height;
+
+            for( int32_t y = radius; y < height-radius; y++ ) {
+                for( int32_t i = 0; i < W; i++ ) {
+                    const signed_type* k = &kernel.data.data[i*W];
+                    const E* src = &input.data[input.offset + (y+i-radius)*input.stride];
+                    R* dst = &output.data[output.offset + y*output.stride];
+
+                    if( i == 0 ) {
+                        for( int32_t x = radius; x < width-radius; x++ ) {
+                            const E* s = &src[x-radius];
+                            signed_type total = 0;
+                            for( int32_t kj = 0; kj < W; kj++ )
+                                total += s[kj]*k[kj];
+                            dst[x] = (R)total;
+                        }
+                    } else {
+                        for( int32_t x = radius; x < width-radius; x++ ) {
+                            const E* s = &src[x-radius];
+                            signed_type total = 0;
+                            for( int32_t kj = 0; kj < W; kj++ )
+                                total += s[kj]*k[kj];
+                            dst[x] += (R)total;
+                        }
+                    }
+                }
+            }
+        }
+
         template<typename E, typename R>
         static void convolve( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel ,
                               const Gray<E>& input, Gray<R>& output )
         {
             typedef typename TypeInfo<E>::signed_type signed_type;
             typedef typename TypeInfo<E>::sum_type sum_type;
+
+            // Floating point: BoofCV uses unrolled code for these kernel widths, which sums one kernel row at a time.
+            // Same order is used here so results are bit identical. Integer results don't depend on the order.
+            if( std::is_floating_point<E>::value && convolve_rows(kernel,input,output) )
+                return;
 
             uint32_t offsetL = kernel.offset;
             uint32_t offsetR = kernel.width-kernel.offset-1;
@@ -1093,6 +1170,25 @@ namespace boofcv {
      */
     class ConvolveNormalized {
     public:
+        /**
+         * BoofCV only rescales the kernel if its sum is not within 1e-4 of one (ConvolveImageNormalized).
+         */
+        template<class E>
+        static bool needs_normalization( const Kernel1D<E>& kernel ) {
+            E sum = 0;
+            for( uint32_t i = 0; i < kernel.width; i++ ) sum += kernel.data[i];
+            return std::abs(sum - (E)1) > (E)1e-4;
+        }
+
+        /**
+         * Same as BoofCV KernelMath.normalizeSumToOne() applied to a copy of the kernel
+         */
+        template<class E>
+        static void normalize_sum_to_one( const Kernel1D<E>& kernel, Kernel1D<E>& out ) {
+            E sum = 0;
+            for( uint32_t i = 0; i < kernel.width; i++ ) sum += kernel.data[i];
+            for( uint32_t i = 0; i < kernel.width; i++ ) out.data[i] = kernel.data[i]/sum;
+        }
         template<class E>
         static void horizontal( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel, const Gray<E>& input, Gray<E>& output ,
                                 typename std::enable_if<std::is_integral<E>::value >::type* = 0)
@@ -1117,13 +1213,17 @@ namespace boofcv {
             if( kernel.width >= input.width ) {
                 ConvolveNormalizedNaive::horizontal(kernel, input, output);
             } else {
-                signed_type sum = kernel.sum();
-                if( sum == (signed_type)1) {
-                    ConvolveImage_Inner::horizontal_unrolled(kernel, input, output);
+                // Same as BoofCV ConvolveImageNormalized: kernel is only rescaled when its sum is not within 1e-4
+                // of one, then a regular convolution is applied to the inner image
+                if( needs_normalization(kernel) ) {
+                    Kernel1D<signed_type> k(kernel.width, kernel.offset);
+                    normalize_sum_to_one(kernel, k);
+                    ConvolveImage_Inner::horizontal_unrolled(k, input, output);
+                    ConvolveNormalized_JustBorder::horizontal(k, input, output);
                 } else {
-                    ConvolveImage_Inner::horizontal_unrolled(kernel, input, output, sum);
+                    ConvolveImage_Inner::horizontal_unrolled(kernel, input, output);
+                    ConvolveNormalized_JustBorder::horizontal(kernel, input, output);
                 }
-                ConvolveNormalized_JustBorder::horizontal(kernel, input, output);
             }
         }
 
@@ -1151,13 +1251,15 @@ namespace boofcv {
             if( kernel.width >= input.height ) {
                 ConvolveNormalizedNaive::vertical(kernel, input, output);
             } else {
-                signed_type sum = kernel.sum();
-                if( sum == (signed_type)1) {
-                    ConvolveImage_Inner::vertical_unrolled(kernel, input, output);
+                if( needs_normalization(kernel) ) {
+                    Kernel1D<signed_type> k(kernel.width, kernel.offset);
+                    normalize_sum_to_one(kernel, k);
+                    ConvolveImage_Inner::vertical_unrolled(k, input, output);
+                    ConvolveNormalized_JustBorder::vertical(k, input, output);
                 } else {
-                    ConvolveImage_Inner::vertical_unrolled(kernel, input, output, sum);
+                    ConvolveImage_Inner::vertical_unrolled(kernel, input, output);
+                    ConvolveNormalized_JustBorder::vertical(kernel, input, output);
                 }
-                ConvolveNormalized_JustBorder::vertical(kernel, input, output);
             }
         }
 

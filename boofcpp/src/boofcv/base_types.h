@@ -8,6 +8,16 @@
 #include <limits>
 #include <cmath>
 
+// Prevents a function from being inlined. Used to keep rarely used code paths from changing how the compiler
+// optimizes (inlines / lays out) a hot loop in the same caller.
+#if defined(__GNUC__) || defined(__clang__)
+#define BOOFCPP_NOINLINE __attribute__((noinline))
+#elif defined(_MSC_VER)
+#define BOOFCPP_NOINLINE __declspec(noinline)
+#else
+#define BOOFCPP_NOINLINE
+#endif
+
 namespace boofcv {
     typedef uint8_t U8;
     typedef uint16_t U16;

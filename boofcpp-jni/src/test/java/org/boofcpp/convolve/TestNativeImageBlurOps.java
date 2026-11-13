@@ -7,7 +7,6 @@ import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
 import boofcv.BoofTesting;
-import georegression.misc.GrlConstants;
 import org.boofcpp.BoofCPP;
 import org.junit.Test;
 
@@ -48,7 +47,7 @@ public class TestNativeImageBlurOps {
 
 //                System.out.println(input.getDataType() + " radius " + radius + " native " + (time1 - time0) + "  java " + (time2 - time1));
 
-                BoofTesting.assertEquals(expected, found, GrlConstants.TEST_F32);
+                BoofTesting.assertEquals(expected, found, 0); // bit identical to BoofCV
 //                }
             }
         }
@@ -81,7 +80,7 @@ public class TestNativeImageBlurOps {
 
                 System.out.println();
 
-                BoofTesting.assertEquals(expected, found, GrlConstants.TEST_F32);
+                BoofTesting.assertEquals(expected, found, 0); // bit identical to BoofCV
             }
 
             // check with sigma specified and radius not
@@ -91,7 +90,7 @@ public class TestNativeImageBlurOps {
 //            ((GrayU8)found).print();
 //            System.out.println();
 //            ((GrayU8)expected).print();
-            BoofTesting.assertEquals(expected, found, GrlConstants.TEST_F32);
+            BoofTesting.assertEquals(expected, found, 0); // bit identical to BoofCV
         }
     }
 }

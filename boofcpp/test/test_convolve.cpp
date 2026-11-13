@@ -776,7 +776,14 @@ public:
         borderY0 = kernel2.offset;
         borderY1 = kernel2.width-1-kernel2.offset;
 
-        checkResults_inner();
+        // Floating point inner convolution sums one kernel row at a time to match BoofCV, which is a different
+        // order than the naive implementation. Tolerance is made relative to the magnitude of the output.
+        // Integer tolerance stays zero.
+        double max_abs = 1.0;
+        for( uint32_t i = 0; i < expected.total_pixels(); i++ )
+            max_abs = std::max(max_abs, (double)std::abs((double)expected.data[i]));
+        check_equals_inner(expected,found,borderX0,borderX1,borderY0,borderY1,
+                           (E)(test_tolerance<E>()*max_abs));
     }
 
     void convolve_border() {
@@ -1451,4 +1458,25 @@ TEST(ConvolveImage, convolve_F32) {
     compare.setImageSize(15,16);
     compare.setKernel2(3,1);compare.convolve();
     compare.setKernel2(7,2);compare.convolve();
+}
+/**
+ * Kernel is only normalized when its sum isn't within 1e-4 of one, same as BoofCV
+ */
+TEST(ConvolveNormalized, needs_normalization) {
+    Kernel1D<F32> k(3,1);
+    k.data[0] = 0.25f; k.data[1] = 0.5f; k.data[2] = 0.25f;
+    EXPECT_FALSE(ConvolveNormalized::needs_normalization(k));
+    k.data[1] = 0.50009f;
+    EXPECT_FALSE(ConvolveNormalized::needs_normalization(k));
+    k.data[1] = 0.5002f;
+    EXPECT_TRUE(ConvolveNormalized::needs_normalization(k));
+
+    k.data[0] = 1.0f; k.data[1] = 2.0f; k.data[2] = 1.0f;
+    ASSERT_TRUE(ConvolveNormalized::needs_normalization(k));
+    Kernel1D<F32> n(3,1);
+    ConvolveNormalized::normalize_sum_to_one(k,n);
+    EXPECT_EQ(0.25f,n.data[0]);
+    EXPECT_EQ(0.5f,n.data[1]);
+    EXPECT_EQ(0.25f,n.data[2]);
+    EXPECT_EQ(1u,n.offset);
 }

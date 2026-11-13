@@ -14,7 +14,6 @@ import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
 import boofcv.BoofTesting;
-import georegression.misc.GrlConstants;
 import org.boofcpp.BoofCPP;
 import org.junit.Test;
 
@@ -58,7 +57,7 @@ public class TestNativeConvolveImage {
                     nativeConv.horizontal(kernel, input, found, border);
                     GConvolveImageOps.horizontal(kernel, input, expected,border);
 
-                    BoofTesting.assertEquals(expected, found, GrlConstants.TEST_F32);
+                    BoofTesting.assertEquals(expected, found, 0); // bit identical to BoofCV
                 }
             }
         }
@@ -89,7 +88,7 @@ public class TestNativeConvolveImage {
                     nativeConv.vertical(kernel, input, found, border);
                     GConvolveImageOps.vertical(kernel, input, expected,border);
 
-                    BoofTesting.assertEquals(expected, found, GrlConstants.TEST_F32);
+                    BoofTesting.assertEquals(expected, found, 0); // bit identical to BoofCV
                 }
             }
 
@@ -125,7 +124,7 @@ public class TestNativeConvolveImage {
                     nativeConv.convolve(kernel, input, found, border);
                     GConvolveImageOps.convolve(kernel, input, expected,border);
 
-                    BoofTesting.assertEquals(expected, found, 2*GrlConstants.TEST_F32); // was barely off...
+                    BoofTesting.assertEquals(expected, found, 0); // bit identical to BoofCV
                 }
             }
 

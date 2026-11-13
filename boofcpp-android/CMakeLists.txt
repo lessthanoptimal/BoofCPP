@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.5)
 
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
+# Bit identical results with Java: never fuse multiply-add (arm64 has FMA)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffp-contract=off")
+
 set(path_to_boofcpp ${CMAKE_CURRENT_SOURCE_DIR}/../boofcpp/src/boofcv)
 set(path_to_jni ${CMAKE_CURRENT_SOURCE_DIR}/../boofcpp-jni/src/main/cpp)
 
