@@ -16,9 +16,9 @@ JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeGlobalFixed_nativeinit(
 
     jlong ptr;
     if( isInteger ) {
-        ptr = (jlong)new GlobalFixedBinaryFilter<U8>((U8)threshold, (bool)down);
+        ptr = (jlong)new GlobalFixedBinaryFilter<U8>((double)threshold, (bool)down);
     } else {
-        ptr = (jlong)new GlobalFixedBinaryFilter<F32>((float)threshold, (bool)down);
+        ptr = (jlong)new GlobalFixedBinaryFilter<F32>((double)threshold, (bool)down);
     }
     fid = env->GetFieldID(objClass, "nativePtr", "J");
     env->SetLongField(obj, fid, ptr);

@@ -164,6 +164,38 @@ namespace boofcv
         }
 
         /**
+         * Applies a global threshold specified as a double, the same way BoofCV's GThresholdImageOps.threshold() does.
+         * Integer images: threshold is cast to int. Values outside of the pixel range are handled without wrapping,
+         * while the inner loop stays in the image's data type so it can be vectorized.
+         * Floating point images: threshold is cast to float.
+         */
+        template<class T>
+        static void threshold_double( const Gray<T> &input , double threshold , bool down , Gray<U8> &output ) {
+            threshold_double(input, threshold, down, output, std::is_integral<T>());
+        }
+
+        template<class T>
+        static void threshold_double( const Gray<T> &input , double threshold_d , bool down , Gray<U8> &output,
+                                      std::true_type ) {
+            auto threshold = static_cast<int64_t>(threshold_d);
+            if( threshold < std::numeric_limits<T>::min() ) {
+                output.reshape(input.width,input.height);
+                ImageMiscOps::fill(output,static_cast<U8>(down ? 0 : 1));
+            } else if( threshold >= std::numeric_limits<T>::max() ) {
+                output.reshape(input.width,input.height);
+                ImageMiscOps::fill(output,static_cast<U8>(down ? 1 : 0));
+            } else {
+                ThresholdOps::threshold(input,static_cast<T>(threshold),down,output);
+            }
+        }
+
+        template<class T>
+        static void threshold_double( const Gray<T> &input , double threshold , bool down , Gray<U8> &output,
+                                      std::false_type ) {
+            ThresholdOps::threshold(input,static_cast<float>(threshold),down,output);
+        }
+
+        /**
          * Thresholds the image using a locally adaptive threshold that is computed using a local square region centered
          * on each pixel.  The threshold is equal to the average value of the surrounding pixels times the scale.
          * If down is true then b(x,y) = I(x,y) &le; T(x,y) * scale ? 1 : 0.  Otherwise
@@ -235,15 +267,16 @@ namespace boofcv
     class GlobalFixedBinaryFilter : public InputToBinary<Gray<T>>
     {
     public:
-        T threshold;
+        // double, same as BoofCV. Converted to the image's type when applied
+        double threshold;
         bool down;
 
-        GlobalFixedBinaryFilter( T threshold, bool down ) :
+        GlobalFixedBinaryFilter( double threshold, bool down ) :
                 threshold(threshold), down(down)
         { }
 
         void process(const Gray<T>& input , Gray<U8>& output ) override {
-            ThresholdOps::threshold(input,threshold,down,output);
+            ThresholdOps::threshold_double(input,threshold,down,output);
         }
     };
 
@@ -264,31 +297,11 @@ namespace boofcv
         void process(const Gray<T>& input , Gray<U8>& output ) override {
             // Same math as BoofCV GlobalBinaryFilter.process()
             double adjusted_scale = down ? scale : (scale <= 0.0 ? 0.0 : 1.0/scale);
-            double threshold = ThresholdOps::computeOtsu(input,min_value,max_value,false)*adjusted_scale;
-            apply(input, threshold, output, std::is_integral<T>());
+            // computeOtsu() returns a histogram index. Java's GThresholdImageOps.computeOtsu() adds minValue
+            double otsu = ThresholdOps::computeOtsu(input,min_value,max_value,false) + static_cast<double>(min_value);
+            double threshold = otsu*adjusted_scale;
+            ThresholdOps::threshold_double(input,threshold,down,output);
         }
-
-    private:
-        // Integer images: Java casts the threshold to int. A threshold outside the pixel range would wrap if cast to
-        // T, so those cases are handled here. This keeps the inner loop in T, which the compiler can vectorize.
-        void apply(const Gray<T>& input, double threshold_d, Gray<U8>& output, std::true_type) {
-            auto threshold = static_cast<int64_t>(threshold_d);
-            if( threshold < std::numeric_limits<T>::min() ) {
-                output.reshape(input.width,input.height);
-                ImageMiscOps::fill(output,static_cast<U8>(down ? 0 : 1));
-            } else if( threshold >= std::numeric_limits<T>::max() ) {
-                output.reshape(input.width,input.height);
-                ImageMiscOps::fill(output,static_cast<U8>(down ? 1 : 0));
-            } else {
-                ThresholdOps::threshold(input,static_cast<T>(threshold),down,output);
-            }
-        }
-
-        // Floating point images: Java casts the threshold to float
-        void apply(const Gray<T>& input, double threshold_d, Gray<U8>& output, std::false_type) {
-            ThresholdOps::threshold(input,static_cast<float>(threshold_d),down,output);
-        }
-    public:
     };
 
     template<class T>

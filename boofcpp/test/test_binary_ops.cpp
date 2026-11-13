@@ -160,7 +160,7 @@ TEST(GlobalOtsuBinaryFilter, scale) {
     Gray<U8> found(20,10);
     Gray<U8> expected(20,10);
 
-    double otsu = ThresholdOps::computeOtsu(img,(U8)0,(U8)255,false);
+    double otsu = ThresholdOps::computeOtsu(img,(U8)0,(U8)255,false); // min=0 so no offset
 
     for( double scale : {1.0, 0.0, 0.5, 1.2, 3.0} ) {
         for( bool down : {true, false} ) {
@@ -177,6 +177,42 @@ TEST(GlobalOtsuBinaryFilter, scale) {
                 ASSERT_EQ(expected.data[i],found.data[i]) << "scale=" << scale << " down=" << down;
         }
     }
+}
+
+/**
+ * Thresholds are doubles like in Java. Out of range values must not wrap and fractions truncate like (int)
+ */
+TEST(GlobalFixedBinaryFilter, double_threshold) {
+    Gray<U8> img(7,5);
+    for( uint32_t i = 0; i < img.total_pixels(); i++ ) img.data[i] = static_cast<U8>((i*41)%256);
+    Gray<U8> found(7,5);
+
+    for( double t : {-1.0, 0.0, 125.0, 125.5, 255.0, 300.0} ) {
+        for( bool down : {true, false} ) {
+            GlobalFixedBinaryFilter<U8> alg(t,down);
+            alg.process(img,found);
+            auto ti = static_cast<int>(t);
+            for( uint32_t i = 0; i < img.total_pixels(); i++ ) {
+                int v = img.data[i];
+                ASSERT_EQ(down ? v <= ti : v > ti, found.data[i]) << "t=" << t << " down=" << down;
+            }
+        }
+    }
+}
+
+/**
+ * Otsu threshold is a histogram index offset by min_value, same as Java
+ */
+TEST(GlobalOtsuBinaryFilter, min_value_offset) {
+    Gray<U8> img(20,10);
+    for( uint32_t i = 0; i < img.total_pixels(); i++ ) img.data[i] = static_cast<U8>(20 + (i*37)%181);
+    Gray<U8> found(20,10);
+
+    int threshold = static_cast<int>(ThresholdOps::computeOtsu(img,(U8)20,(U8)200,false)) + 20;
+    GlobalOtsuBinaryFilter<U8> alg(20,200,true);
+    alg.process(img,found);
+    for( uint32_t i = 0; i < img.total_pixels(); i++ )
+        ASSERT_EQ(img.data[i] <= threshold, found.data[i]);
 }
 
 TEST(ThresholdOps, computeOtsu) {
