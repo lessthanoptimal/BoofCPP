@@ -1120,6 +1120,27 @@ TEST(ConvolveImage_Inner, convolve_U8) {
     }
 }
 
+/// Integer images with a wider output type, for every kernel width with unrolled code and a kernel that isn't centered.
+/// Pixels and weights are small enough that no sum overflows S16, 13*13*50*3 = 25350 at most
+TEST(ConvolveImage_Inner, convolve_U8_S16) {
+    std::mt19937 gen(0xBEEF);
+    Gray<U8> input(30,25);
+    ImageMiscOps::fill_uniform(input, (U8)0, (U8)50, gen);
+    ImageBorderValue<U8> border(0);
+    border.setImage(input);
+
+    for( uint32_t width : {3u, 5u, 7u, 9u, 11u, 13u} ) {
+        for( uint32_t offset : {width/2, 0u} ) {
+            Kernel2D<S32> kernel(width,offset);
+            KernelOps::fill_uniform(kernel,(S32)-3,(S32)3,gen);
+            Gray<S16> expected(input.width,input.height), found(input.width,input.height);
+            ConvolveNaive::convolve(kernel,border,expected);
+            ConvolveImage_Inner::convolve(kernel,input,found);
+            check_equals_inner(expected,found,offset,width-1-offset,offset,width-1-offset);
+        }
+    }
+}
+
 TEST(ConvolveImage_Inner, convolve_F32) {
     CompareToNaive<F32> compare;
 

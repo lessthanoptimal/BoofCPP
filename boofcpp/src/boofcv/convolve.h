@@ -1017,9 +1017,9 @@ namespace boofcv {
             typedef typename TypeInfo<E>::signed_type signed_type;
             typedef typename TypeInfo<E>::sum_type sum_type;
 
-            // Floating point: BoofCV uses unrolled code for these kernel widths, which sums one kernel row at a time.
-            // Same order is used here so results are bit identical. Integer results don't depend on the order.
-            if( std::is_floating_point<E>::value && convolve_rows(kernel,input,output) )
+            // BoofCV uses unrolled code for these kernel widths, which sums one kernel row at a time. Same order is used
+            // here so floating point results are bit identical. Integer results don't depend on the order
+            if( convolve_rows(kernel,input,output) )
                 return;
 
             uint32_t offsetL = kernel.offset;
