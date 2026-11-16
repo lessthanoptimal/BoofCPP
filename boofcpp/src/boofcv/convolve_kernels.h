@@ -1,6 +1,7 @@
 #ifndef BOOFCPP_CONVOLVE_KERNELS_H
 #define BOOFCPP_CONVOLVE_KERNELS_H
 
+#include <limits>
 #include <cstdint>
 #include <stdexcept>
 #include <cstring>
@@ -359,17 +360,19 @@ namespace boofcv {
         template< class E>
         static Kernel1D<E> gaussian1D(double sigma, int32_t width,
                                       typename std::enable_if<std::is_integral<E>::value>::type* = 0 ) {
-            Kernel1D<F64> kernel_float = gaussian1D<F64>(sigma, width);
+            // BoofCV converts the F32 kernel
+            Kernel1D<F32> kernel_float = gaussian1D<F32>(sigma, width);
 
-            return float_to_int<E>(kernel_float,1.0/100.0);
+            return float_to_int<E>(kernel_float, 1.0f/100.0f);
         }
 
         template< class E>
         static Kernel2D<E> gaussian2D(double sigma, int32_t width,
                                       typename std::enable_if<std::is_integral<E>::value>::type* = 0 ) {
-            Kernel2D<F64> kernel_float = gaussian2D<F64>(sigma, width);
+            // BoofCV converts the F32 kernel
+            Kernel2D<F32> kernel_float = gaussian2D<F32>(sigma, width);
 
-            return float_to_int<E>(kernel_float,1.0/100.0);
+            return float_to_int<E>(kernel_float, 1.0f/100.0f);
         }
 
 
@@ -379,43 +382,46 @@ namespace boofcv {
             return std::exp( - delta*delta/(2.0*sigma*sigma))/(sigma*SQRT_2_PI);
         }
 
-        /**
-         * Converts a float kernel into an interger kernel
-         * @tparam E
-         * @param original
-         * @param minFrac
-         * @return
-         */
-        template< class E>
-        static Kernel1D<E> float_to_int( const Kernel1D<F64>& original , F64 minFrac,
-                                         typename std::enable_if<std::is_integral<E>::value>::type* = 0)
-        {
+        /// Smallest absolute value in 'data' that's >= min_value. Same as BoofCV's KernelMath.minAbs()
+        template< class F>
+        static F min_abs( const GrowArray<F>& data, F min_value ) {
+            F min = std::numeric_limits<F>::max();
+            for (uint32_t i = 0; i < data.size; i++) {
+                F v = std::abs(data[i]);
+                if (v < min && v >= min_value)
+                    min = v;
+            }
+            return min;
+        }
 
+        /// Converts a floating point kernel into an integer kernel. Each element is divided by the smallest absolute
+        /// element that's at least min_frac times the largest absolute element, then rounded towards zero. Same as
+        /// BoofCV's KernelMath.convert()
+        template< class E, class F>
+        static Kernel1D<E> float_to_int( const Kernel1D<F>& original, F min_frac,
+                                         typename std::enable_if<std::is_integral<E>::value>::type* = 0 )
+        {
             Kernel1D<E> output(original.width, original.offset);
 
-            F64 max = original.element_abs_max();
-            F64 min = std::max(original.element_abs_min(),max*minFrac);
-
-            for( int i = 0; i < original.width; i++ ) {
+            F min = min_abs(original.data, original.element_abs_max()*min_frac);
+            for (uint32_t i = 0; i < original.width; i++) {
                 output[i] = static_cast<E>(original[i]/min);
             }
 
             return output;
         }
 
-        template< class E>
-        static Kernel2D<E> float_to_int( const Kernel2D<F64>& original , F64 minFrac,
-                                         typename std::enable_if<std::is_integral<E>::value>::type* = 0)
+        /// Converts a floating point kernel into an integer kernel. See the 1D version
+        template< class E, class F>
+        static Kernel2D<E> float_to_int( const Kernel2D<F>& original, F min_frac,
+                                         typename std::enable_if<std::is_integral<E>::value>::type* = 0 )
         {
-
             Kernel2D<E> output(original.width, original.offset);
 
-            F64 max = original.element_abs_max();
-            F64 min = std::max(original.element_abs_min(),max*minFrac);
-
-            for( uint32_t i = 0; i < original.width; i++ ) {
-                for( uint32_t j = 0; j < original.width; j++ ) {
-                    output.at(j,i) = static_cast<E>(original.at(j,i) / min);
+            F min = min_abs(original.data, original.element_abs_max()*min_frac);
+            for (uint32_t i = 0; i < original.width; i++) {
+                for (uint32_t j = 0; j < original.width; j++) {
+                    output.at(j,i) = static_cast<E>(original.at(j,i)/min);
                 }
             }
 

@@ -179,4 +179,32 @@ TEST(FactoryKernel, float_to_int) {
     ASSERT_EQ(1,kernel_S32.at(3));
 }
 
+/// Elements smaller than min_frac times the largest are ignored when choosing the divisor, like BoofCV
+TEST(FactoryKernel, float_to_int_tiny_elements) {
+    Kernel1D<F32> kernel(2,{0.001f,0.2f,0.5f,0.2f,0.001f});
+
+    Kernel1D<S32> found = FactoryKernel::float_to_int<S32>(kernel,0.01f);
+    std::vector<S32> expected = {0,1,2,1,0};
+    for (uint32_t i = 0; i < kernel.width; i++)
+        ASSERT_EQ(expected[i],found.at(i));
+}
+
+/// Integer Gaussian kernels from BoofCV's FactoryKernelGaussian.gaussian(Kernel1D_S32.class, sigma, radius)
+TEST(FactoryKernel, gaussian1D_S32_same_as_BoofCV) {
+    struct Case { double sigma; int32_t width; std::vector<S32> expected; };
+    std::vector<Case> cases = {
+            {-1, 3, {1,4,1}},
+            {-1, 11, {1,2,5,8,11,13,11,8,5,2,1}},
+            {1.5, -1, {1,4,14,28,35,28,14,4,1}},
+            {2.0, -1, {1,3,7,13,20,22,20,13,7,3,1}},
+            {0.7, 7, {0,1,21,59,21,1,0}},
+            {3.0, -1, {1,2,3,6,9,12,14,15,14,12,9,6,3,2,1}}};
+    for (const Case& c : cases) {
+        Kernel1D<S32> found = FactoryKernel::gaussian1D<S32>(c.sigma,c.width);
+        ASSERT_EQ(c.expected.size(),found.width);
+        for (uint32_t i = 0; i < found.width; i++)
+            ASSERT_EQ(c.expected[i],found.at(i));
+    }
+}
+
 
