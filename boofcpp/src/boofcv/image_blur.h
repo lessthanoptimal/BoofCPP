@@ -6,6 +6,7 @@
 #include "sanity_checks.h"
 #include <algorithm>
 #include <math.h>
+#include <type_traits>
 #include <vector>
 
 namespace boofcv {
@@ -16,14 +17,12 @@ namespace boofcv {
     class ConvolveImageMean {
     public:
         template< class E>
-        static void inner_horizontal(const Gray<E>& input, Gray<E>& output, uint32_t radius ,
-                                     typename std::enable_if<std::is_integral<E>::value >::type* = 0)
+        static void inner_horizontal(const Gray<E>& input, Gray<E>& output, uint32_t radius )
         {
             typedef typename TypeInfo<E>::sum_type sum_type;
             uint32_t kernelWidth = radius*2 + 1;
 
-            sum_type divisor = kernelWidth;
-            sum_type halfDivisor = divisor/2;
+            const MeanDivisor<E> divisor(kernelWidth);
 
             for( uint32_t y = 0; y < input.height; y++ ) {
                 uint32_t indexIn = input.offset + input.stride*y;
@@ -37,7 +36,7 @@ namespace boofcv {
                 for( ; indexIn < indexEnd; indexIn++ ) {
                     total += input.data[indexIn];
                 }
-                *ptr_out++ = static_cast<E>((total+halfDivisor)/divisor);
+                *ptr_out++ = divisor(total);
 
                 E* ptr_front = &input.data[ indexIn - kernelWidth ];
                 E* ptr_back = &input.data[ indexIn ];
@@ -46,57 +45,20 @@ namespace boofcv {
                 for( uint32_t i = N; i; i-- ) {
                     total = (total - *ptr_front++) + *ptr_back++;
 
-                    *ptr_out++ = static_cast<E>((total+halfDivisor)/divisor);
+                    *ptr_out++ = divisor(total);
                 }
             }
         }
 
         template< class E>
-        static void inner_horizontal(const Gray<E>& input, Gray<E>& output, uint32_t radius ,
-                                     typename std::enable_if<std::is_floating_point<E>::value >::type* = 0)
+        static void inner_vertical(const Gray<E>& input, Gray<E>& output, uint32_t radius )
         {
             typedef typename TypeInfo<E>::sum_type sum_type;
             uint32_t kernelWidth = radius*2 + 1;
-
-            sum_type divisor = kernelWidth;
-
-            for( uint32_t y = 0; y < input.height; y++ ) {
-                uint32_t indexIn = input.offset + input.stride*y;
-                uint32_t indexOut = output.offset + output.stride*y + radius;
-                E* ptr_out = &output.data[indexOut];
-
-                sum_type total = 0;
-
-                uint32_t indexEnd = indexIn + kernelWidth;
-
-                for( ; indexIn < indexEnd; indexIn++ ) {
-                    total += input.data[indexIn];
-                }
-                *ptr_out++ = static_cast<E>(total/divisor);
-
-                E* ptr_front = &input.data[ indexIn - kernelWidth ];
-                E* ptr_back = &input.data[ indexIn ];
-                uint32_t N = input.width - kernelWidth;
-
-                for( uint32_t i = N; i; i-- ) {
-                    total = (total - *ptr_front++) + *ptr_back++;
-
-                    *ptr_out++ = static_cast<E>(total/divisor);
-                }
-            }
-        }
-
-        template< class E>
-        static void inner_vertical(const Gray<E>& input, Gray<E>& output, uint32_t radius,
-                                   typename std::enable_if<std::is_integral<E>::value >::type* = 0)
-        {
-            typedef typename TypeInfo<E>::sum_type sum_type;
-            sum_type kernelWidth = radius*2 + 1;
 
             uint32_t backStep = kernelWidth*input.stride;
 
-            sum_type divisor = kernelWidth;
-            sum_type halfDivisor = divisor/2;
+            const MeanDivisor<E> divisor(kernelWidth);
             sum_type totals[ input.width ];
 
             for( uint32_t x = 0; x < input.width; x++ ) {
@@ -109,7 +71,7 @@ namespace boofcv {
                     total += input.data[indexIn];
                 }
                 totals[x] = total;
-                output.data[indexOut] = static_cast<E>((total+halfDivisor)/divisor);
+                output.data[indexOut] = divisor(total);
             }
 
             // change the order it is processed in to reduce cache misses
@@ -125,50 +87,7 @@ namespace boofcv {
                     sum_type total = totals[ x ]  - *ptr_front++;
                     totals[ x ] = total += *ptr_back++;
 
-                    *ptr_out++ = static_cast<E>((total+halfDivisor)/divisor);
-                }
-            }
-        }
-
-        template< class E>
-        static void inner_vertical(const Gray<E>& input, Gray<E>& output, uint32_t radius,
-                                   typename std::enable_if<std::is_floating_point<E>::value >::type* = 0)
-        {
-            typedef typename TypeInfo<E>::sum_type sum_type;
-            sum_type kernelWidth = radius*2 + 1;
-
-            uint32_t backStep = kernelWidth*input.stride;
-
-            sum_type divisor = kernelWidth;
-            sum_type totals[ input.width ];
-
-            for( uint32_t x = 0; x < input.width; x++ ) {
-                uint32_t indexIn = input.offset + x;
-                uint32_t indexOut = output.offset + output.stride*radius + x;
-
-                sum_type total = 0;
-                uint32_t indexEnd = indexIn + input.stride*kernelWidth;
-                for( ; indexIn < indexEnd; indexIn += input.stride) {
-                    total += input.data[indexIn];
-                }
-                totals[x] = total;
-                output.data[indexOut] = static_cast<E>(total/divisor);
-            }
-
-            // change the order it is processed in to reduce cache misses
-            for( uint32_t y = radius+1; y < output.height-radius; y++ ) {
-                uint32_t indexIn = input.offset + (y+radius)*input.stride;
-                uint32_t indexOut = output.offset + y*output.stride;
-
-                E* ptr_front = &input.data[ indexIn - backStep ];
-                E* ptr_back = &input.data[ indexIn ];
-                E* ptr_out = &output.data[indexOut];
-
-                for( uint32_t x = 0; x < input.width; x++) {
-                    sum_type total = totals[ x ]  - *ptr_front++;
-                    totals[ x ] = total += *ptr_back++;
-
-                    *ptr_out++ = static_cast<E>(total/divisor);
+                    *ptr_out++ = divisor(total);
                 }
             }
         }
@@ -305,7 +224,7 @@ namespace boofcv {
             if( kernel.width > input.width ) {
                 ConvolveNormalized::horizontal(kernel,input,output);
             } else {
-                if( std::is_floating_point<E>::value )
+                if constexpr (std::is_floating_point<E>::value)
                     border_horizontal(input, output, radius);
                 else
                     ConvolveNormalized_JustBorder::horizontal(kernel, input ,output );
@@ -324,7 +243,7 @@ namespace boofcv {
             if( kernel.width > input.height ) { // Java: length > input.height
                 ConvolveNormalized::vertical(kernel,input,output);
             } else {
-                if( std::is_floating_point<E>::value )
+                if constexpr (std::is_floating_point<E>::value)
                     border_vertical(input, output, radius);
                 else
                     ConvolveNormalized_JustBorder::vertical(kernel, input ,output );
