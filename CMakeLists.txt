@@ -24,7 +24,7 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64" AND CMAKE_CXX_COMPILER_ID MATCH
 endif()
 
 # Remove any ambiguity about what mode it is in
-IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
+IF(CMAKE_BUILD_TYPE STREQUAL "Debug")
     message("-- Debug Mode --")
 ELSE()
     message("-- Release Mode --")

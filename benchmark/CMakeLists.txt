@@ -4,15 +4,14 @@ if(UNIX AND NOT APPLE)
     set(LINUX TRUE)
 endif()
 
+# The benchmarks load their test images with libjpeg and libpng. Without them, everything else still builds
 FIND_PACKAGE(JPEG)
-IF(JPEG_FOUND)
-    INCLUDE_DIRECTORIES(${JPEG_INCLUDE_DIRS})
-ENDIF()
-
 FIND_PACKAGE(PNG)
-IF(PNG_FOUND)
-    INCLUDE_DIRECTORIES(${PNG_INCLUDE_DIRS})
+IF(NOT JPEG_FOUND OR NOT PNG_FOUND)
+    message(STATUS "libjpeg or libpng not found. Skipping the C++ benchmarks")
+    return()
 ENDIF()
+INCLUDE_DIRECTORIES(${JPEG_INCLUDE_DIRS} ${PNG_INCLUDE_DIRS})
 
 set(IMAGE_LIBS ${JPEG_LIBRARIES} ${PNG_LIBRARIES})
 

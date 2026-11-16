@@ -66,6 +66,8 @@ Next install the following libraries required for the C++ benchmarks (Ubuntu):
 ```bash
 sudo apt-get install libpng-dev libjpeg-dev
 ```
+Without them CMake skips the C++ benchmarks and builds everything else. On Windows they can be installed with
+vcpkg (`vcpkg install libjpeg-turbo libpng`) and passing vcpkg's toolchain file to CMake.
 
 The Java library is built against the BoofCV version in `build.gradle` (`BOOFCV_VERSION`). If that's a SNAPSHOT,
 first install BoofCV locally with `./gradlew publishToMavenLocal` from the BoofCV repository.
