@@ -234,6 +234,35 @@ ImageAndInfo<boofcv::Gray<boofcv::S16>,JImageInfo> wrapCriticalGrayS16( JNIEnv *
 ImageAndInfo<boofcv::Gray<boofcv::S32>,JImageInfo> wrapCriticalGrayS32( JNIEnv *env, jobject& jimage );
 ImageAndInfo<boofcv::Gray<boofcv::F32>,JImageInfo> wrapCriticalGrayF32( JNIEnv *env, jobject& jimage );
 
+/// Width, height, stride, offset and the data array of a Java image. 'type' is the JNI signature of the data array,
+/// e.g. "[B"
+JImageInfo extractInfoCritical( JNIEnv *env, jobject& jimage , const char*type );
+
+/// Wraps a Java gray image of the same pixel type. Its data pointer is null until it's set from a CriticalArray
+template<class E>
+ImageAndInfo<boofcv::Gray<E>,JImageInfo> wrapCriticalGray( JNIEnv *env, jobject jimage ) {
+    const char* type;
+    if constexpr (std::is_same<E, boofcv::U8>::value)
+        type = "[B";
+    else if constexpr (std::is_same<E, boofcv::U16>::value || std::is_same<E, boofcv::S16>::value)
+        type = "[S";
+    else if constexpr (std::is_same<E, boofcv::S32>::value)
+        type = "[I";
+    else if constexpr (std::is_same<E, boofcv::F32>::value)
+        type = "[F";
+    else if constexpr (std::is_same<E, boofcv::F64>::value)
+        type = "[D";
+    else
+        static_assert(!std::is_same<E, E>::value, "Unsupported pixel type");
+
+    ImageAndInfo<boofcv::Gray<E>,JImageInfo> output;
+    output.info = extractInfoCritical(env, jimage, type);
+    output.image = boofcv::Gray<E>((E*)nullptr, (uint32_t)output.info.dataLength,
+                                   (uint32_t)output.info.width, (uint32_t)output.info.height,
+                                   (uint32_t)output.info.offset, (uint32_t)output.info.stride);
+    return output;
+}
+
 // Returns a convolution corner from a java object. The kernel needs to be deleted when finished
 boofcv::Kernel1D<boofcv::S32>* extractKernel1D_S32( JNIEnv *env, jobject& jkernel );
 boofcv::Kernel1D<boofcv::F32>* extractKernel1D_F32( JNIEnv *env, jobject& jkernel );
