@@ -59,7 +59,7 @@ namespace boofcv {
             uint32_t backStep = kernelWidth*input.stride;
 
             const MeanDivisor<E> divisor(kernelWidth);
-            sum_type totals[ input.width ];
+            std::vector<sum_type> totals(input.width);
 
             for( uint32_t x = 0; x < input.width; x++ ) {
                 uint32_t indexIn = input.offset + x;

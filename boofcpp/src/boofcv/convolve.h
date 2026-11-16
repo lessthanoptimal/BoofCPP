@@ -903,7 +903,6 @@ namespace boofcv {
                               typename std::enable_if<std::is_integral<E>::value >::type* = 0 )
         {
             typedef typename TypeInfo<E>::signed_type signed_type;
-            typedef typename TypeInfo<E>::sum_type sum_type;
             signed_type halfDivisor = divisor/2;
 
             int32_t offsetL = kernel.offset;
@@ -932,7 +931,6 @@ namespace boofcv {
                               typename std::enable_if<std::is_floating_point<E>::value >::type* = 0 )
         {
             typedef typename TypeInfo<E>::signed_type signed_type;
-            typedef typename TypeInfo<E>::sum_type sum_type;
 
             int32_t offsetL = kernel.offset;
             int32_t offsetR = kernel.width-kernel.offset-1;
@@ -1015,7 +1013,6 @@ namespace boofcv {
                               const Gray<E>& input, Gray<R>& output )
         {
             typedef typename TypeInfo<E>::signed_type signed_type;
-            typedef typename TypeInfo<E>::sum_type sum_type;
 
             // BoofCV uses unrolled code for these kernel widths, which sums one kernel row at a time. Same order is used
             // here so floating point results are bit identical. Integer results don't depend on the order
@@ -1054,7 +1051,6 @@ namespace boofcv {
                                 const ImageBorder<E>& input, Gray<R>& output )
         {
             typedef typename TypeInfo<E>::signed_type signed_type;
-            typedef typename TypeInfo<E>::sum_type sum_type;
 
             int32_t offset = kernel.offset;
             int32_t borderRight = kernel.width-offset-1;
@@ -1090,7 +1086,6 @@ namespace boofcv {
                               const ImageBorder<E>& input, Gray<R>& output )
         {
             typedef typename TypeInfo<E>::signed_type signed_type;
-            typedef typename TypeInfo<E>::sum_type sum_type;
 
             int32_t borderBottom = kernel.width-kernel.offset-1;
 
@@ -1123,7 +1118,6 @@ namespace boofcv {
                               const ImageBorder<E>& input, Gray<R>& output )
         {
             typedef typename TypeInfo<E>::signed_type signed_type;
-            typedef typename TypeInfo<E>::sum_type sum_type;
 
             // signed so that logic of inner loops isn't messed up
             int32_t offsetL = kernel.offset;
