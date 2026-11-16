@@ -17,6 +17,12 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 # hardware with FMA (e.g. arm64 / Android, or -march=native) can contract a*b+c and change floating point results.
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffp-contract=off")
 
+# SSE4.2 (x86-64-v2) is supported by x86-64 CPUs since about 2009. Unlike SSE2, it can vectorize 32-bit integer
+# multiplication, which integer image convolution needs
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=x86-64-v2")
+endif()
+
 # Remove any ambiguity about what mode it is in
 IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
     message("-- Debug Mode --")
