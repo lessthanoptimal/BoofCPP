@@ -386,15 +386,24 @@ namespace boofcv {
          */
         template<class E>
         static void mean(const Gray<E> &input, Gray<E> &output, uint32_t radius, Gray<E> &storage) {
+            mean(input, output, radius, radius, storage);
+        }
 
-            if (radius <= 0)
+        /// Mean box filter with a different radius along x and y. Same as BoofCV's BlurImageOps.mean() for U8, U16,
+        /// F32 and F64. Near the image border the box only covers pixels inside the image.
+        ///
+        /// @param storage Work space
+        template<class E>
+        static void mean( const Gray<E>& input, Gray<E>& output, uint32_t radius_x, uint32_t radius_y,
+                          Gray<E>& storage ) {
+            if (radius_x <= 0 || radius_y <= 0)
                 throw invalid_argument("Radius must be > 0");
 
             output.reshape(input.width, input.height);
             storage.reshape(input.width, input.height);
 
-            ConvolveImageMean::horizontal(input, storage, radius);
-            ConvolveImageMean::vertical(storage, output, radius);
+            ConvolveImageMean::horizontal(input, storage, radius_x);
+            ConvolveImageMean::vertical(storage, output, radius_y);
         }
 
         /// Mean box filter where pixels outside the image are read from 'border'. Same as BoofCV's
@@ -426,15 +435,36 @@ namespace boofcv {
          */
         template<class E>
         static void gaussian(const Gray<E> &input, Gray<E> &output, double sigma, int32_t width, Gray<E> &storage) {
+            gaussian(input, output, sigma, width, sigma, width, storage);
+        }
+
+        /// Gaussian blur with a different kernel along x and y. Same as BoofCV's BlurImageOps.gaussian() for U8, U16,
+        /// F32 and F64. A sigma <= 0 is computed from the width, and a width <= 0 from the sigma.
+        ///
+        /// @param storage Work space
+        template<class E>
+        static void gaussian( const Gray<E>& input, Gray<E>& output, double sigma_x, int32_t width_x,
+                              double sigma_y, int32_t width_y, Gray<E>& storage ) {
             typedef typename TypeInfo<E>::signed_type signed_type;
 
+            Kernel1D<signed_type> kernel_x = FactoryKernel::gaussian1D<signed_type>(sigma_x, width_x);
+            Kernel1D<signed_type> kernel_y = FactoryKernel::gaussian1D<signed_type>(sigma_y, width_y);
+
+            gaussian(input, output, kernel_x, kernel_y, storage);
+        }
+
+        /// Gaussian blur with kernels that have already been computed, e.g. by BoofCV's FactoryKernelGaussian
+        ///
+        /// @param storage Work space
+        template<class E>
+        static void gaussian( const Gray<E>& input, Gray<E>& output,
+                              const Kernel1D<typename TypeInfo<E>::signed_type>& kernel_x,
+                              const Kernel1D<typename TypeInfo<E>::signed_type>& kernel_y, Gray<E>& storage ) {
             output.reshape(input.width, input.height);
             storage.reshape(input.width, input.height);
 
-            Kernel1D<signed_type> kernel = FactoryKernel::gaussian1D<signed_type>(sigma,width);
-
-            ConvolveNormalized::horizontal(kernel, input, storage);
-            ConvolveNormalized::vertical(kernel, storage, output);
+            ConvolveNormalized::horizontal(kernel_x, input, storage);
+            ConvolveNormalized::vertical(kernel_y, storage, output);
         }
     };
 }

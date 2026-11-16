@@ -96,6 +96,28 @@ public:
         check_equals(expected,found);
     }
 
+    void mean( uint32_t radius_x, uint32_t radius_y ) {
+        Kernel1D<signed_type> kernel_x = FactoryKernel::mean1D<signed_type>(radius_x*2 + 1);
+        Kernel1D<signed_type> kernel_y = FactoryKernel::mean1D<signed_type>(radius_y*2 + 1);
+        Gray<E> tmp(input.width,input.height);
+        ConvolveNormalizedNaive::horizontal(kernel_x,input,tmp);
+        ConvolveNormalizedNaive::vertical(kernel_y,tmp,expected);
+        BlurImageOps::mean(input,found,radius_x,radius_y,tmp);
+
+        check_equals(expected,found);
+    }
+
+    void gaussian( double sigma_x, int32_t width_x, double sigma_y, int32_t width_y ) {
+        Kernel1D<signed_type> kernel_x = FactoryKernel::gaussian1D<signed_type>(sigma_x,width_x);
+        Kernel1D<signed_type> kernel_y = FactoryKernel::gaussian1D<signed_type>(sigma_y,width_y);
+        Gray<E> tmp(input.width,input.height);
+        ConvolveNormalizedNaive::horizontal(kernel_x,input,tmp);
+        ConvolveNormalizedNaive::vertical(kernel_y,tmp,expected);
+        BlurImageOps::gaussian(input,found,sigma_x,width_x,sigma_y,width_y,tmp);
+
+        check_equals(expected,found);
+    }
+
     void checkResults_inner() {
         check_equals_inner(expected,found,borderX0,borderX1,borderY0,borderY1);
     }
@@ -306,6 +328,43 @@ TEST(BlurImageOps, gaussian) {
         compare.gaussian(4);
     }
 }
+
+namespace {
+    /// Different radius along x and y, including radii larger than the image
+    template<class E>
+    void check_mean_xy() {
+        CompareToNormalized<E> compare;
+        for (uint32_t size : {4u, 9u, 30u}) {
+            compare.setImageSize(size + 3, size);
+            compare.mean(1, 2);
+            compare.mean(4, 1);
+            compare.mean(3, 3);
+            compare.mean(12, 5);
+        }
+    }
+
+    /// Different sigma and width along x and y. Either can be computed from the other
+    template<class E>
+    void check_gaussian_xy() {
+        CompareToNormalized<E> compare;
+        for (uint32_t size : {4u, 9u, 30u}) {
+            compare.setImageSize(size + 3, size);
+            compare.gaussian(-1, 3, -1, 7);
+            compare.gaussian(1.5, -1, 0.8, -1);
+            compare.gaussian(2.0, 9, -1, 5);
+            compare.gaussian(-1, 25, 1.0, 3);
+        }
+    }
+}
+
+TEST(BlurImageOps, mean_xy_U8) { check_mean_xy<U8>(); }
+TEST(BlurImageOps, mean_xy_U16) { check_mean_xy<U16>(); }
+TEST(BlurImageOps, mean_xy_F32) { check_mean_xy<F32>(); }
+TEST(BlurImageOps, mean_xy_F64) { check_mean_xy<F64>(); }
+TEST(BlurImageOps, gaussian_xy_U8) { check_gaussian_xy<U8>(); }
+TEST(BlurImageOps, gaussian_xy_U16) { check_gaussian_xy<U16>(); }
+TEST(BlurImageOps, gaussian_xy_F32) { check_gaussian_xy<F32>(); }
+TEST(BlurImageOps, gaussian_xy_F64) { check_gaussian_xy<F64>(); }
 
 namespace {
     /// Brute force mean of the region around (x,y), reading pixels through the border, in double
