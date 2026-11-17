@@ -19,7 +19,7 @@ weakened to make code pass. Read `CodeStandards.md` in the repository root first
 6. Fix every issue the review found, then review again until nothing is left
 7. Run every C++ and JNI test. All of them must pass
 8. Benchmark with JMH against strict's native code and BoofCV's Java code. Keep the function only if it's at least 1.3x faster
-   than strict. Otherwise remove it and record why. If it combines techniques, benchmark each one alone, see
+   than strict. Otherwise remove it and record why in [experiments.md](experiments.md). If it combines techniques, benchmark each one alone, see
    [Prefer simple code](#prefer-simple-code)
 9. Commit with the speedup over strict and Java, and the kept techniques with their share of it, in the message.
    Intermediate commits are fine for saving progress. Once the approach is final, squash them into one commit per op,
