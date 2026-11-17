@@ -39,8 +39,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 /// [#argument], unless the function is in [#customArguments]
 @SuppressWarnings({"rawtypes", "unchecked"})
 public abstract class HookContractChecks extends BoofCPPStandardJUnit {
-    static final Class[] IMAGE_TYPES = {GrayU8.class, GrayS8.class, GrayU16.class, GrayS16.class, GrayS32.class,
-            GrayS64.class, GrayF32.class, GrayF64.class};
 
     /// Arguments for hooks whose functions need values [#argument] doesn't give, keyed by "BOverride class.field".
     /// Takes the image type
@@ -76,7 +74,7 @@ public abstract class HookContractChecks extends BoofCPPStandardJUnit {
             hooks++;
             String name = field.getDeclaringClass().getSimpleName() + "." + field.getName();
             Function<Class, Object[]> custom = customArguments.get(name);
-            for (Class type : IMAGE_TYPES) {
+            for (Class type : BoofCPPTesting.GRAY_TYPES) {
                 for (Method method : interfaceMethods(hook.getClass())) {
                     Object[] args = custom != null ? custom.apply(type) : arguments(method, type);
                     Object created = call(hook, method, args, type, name, failures);

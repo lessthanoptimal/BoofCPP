@@ -10,9 +10,11 @@
 using namespace std;
 using namespace boofcv;
 
-// BlurImageOps::mean is tested by checks shared with the other variants
+// BlurImageOps::mean, mean_border and gaussian are tested by checks shared with the other variants
 #include "variant_strict.h"
 #include "shared/blur_mean_checks.h"
+#include "shared/blur_mean_border_checks.h"
+#include "shared/blur_gaussian_checks.h"
 
 class BlurImageOpsTest : public boofcv::BoofCPPTest {};
 
@@ -20,6 +22,7 @@ TEST_F(BlurImageOpsTest, mean_U8) { blur_mean_checks::check_mean_all<U8>(); }
 TEST_F(BlurImageOpsTest, mean_U16) { blur_mean_checks::check_mean_all<U16>(); }
 TEST_F(BlurImageOpsTest, mean_F32) { blur_mean_checks::check_mean_all<F32>(); }
 TEST_F(BlurImageOpsTest, mean_F64) { blur_mean_checks::check_mean_all<F64>(); }
+TEST_F(BlurImageOpsTest, mean_bad_radius) { blur_mean_checks::check_mean_bad_radius<F32>(); }
 
 template<class E>
 class CompareToNormalized {
@@ -82,29 +85,6 @@ public:
     void vertical_mean() {
         ConvolveNormalizedNaive::vertical(kernel,input,expected);
         ConvolveImageMean::vertical(input,found,kernel.width/2);
-
-        check_equals(expected,found);
-    }
-
-    void gaussian( int32_t kernel_width ) {
-
-        kernel = FactoryKernel::gaussian1D<signed_type>(-1,kernel_width);
-
-        Gray<E> tmp(input.width,input.height);
-        ConvolveNormalizedNaive::horizontal(kernel,input,tmp);
-        ConvolveNormalizedNaive::vertical(kernel,tmp,expected);
-        BlurImageOps::gaussian(input,found,-1,kernel_width,tmp);
-
-        check_equals(expected,found);
-    }
-
-    void gaussian( double sigma_x, int32_t width_x, double sigma_y, int32_t width_y ) {
-        Kernel1D<signed_type> kernel_x = FactoryKernel::gaussian1D<signed_type>(sigma_x,width_x);
-        Kernel1D<signed_type> kernel_y = FactoryKernel::gaussian1D<signed_type>(sigma_y,width_y);
-        Gray<E> tmp(input.width,input.height);
-        ConvolveNormalizedNaive::horizontal(kernel_x,input,tmp);
-        ConvolveNormalizedNaive::vertical(kernel_y,tmp,expected);
-        BlurImageOps::gaussian(input,found,sigma_x,width_x,sigma_y,width_y,tmp);
 
         check_equals(expected,found);
     }
@@ -290,167 +270,15 @@ TEST_F(ConvolveImageMeanTest, vertical) {
     }
 }
 
-TEST_F(BlurImageOpsTest, gaussian) {
-    CompareToNormalized<U8> compare;
+TEST_F(BlurImageOpsTest, gaussian_U8) { blur_gaussian_checks::check_all<U8>(); }
+TEST_F(BlurImageOpsTest, gaussian_U16) { blur_gaussian_checks::check_all<U16>(); }
+TEST_F(BlurImageOpsTest, gaussian_F32) { blur_gaussian_checks::check_all<F32>(); }
+TEST_F(BlurImageOpsTest, gaussian_F64) { blur_gaussian_checks::check_all<F64>(); }
 
-    for( uint32_t i = 0; i < 3; i++ ) {
-        uint32_t w = 3+i;
-        uint32_t h = 4+i;
-//        printf("mean i = %d  %dx%d\n",i,w,h);
-
-        compare.setImageSize(w,h);
-        compare.gaussian(3);
-        compare.gaussian(5);
-        compare.gaussian(7);
-        compare.gaussian(4);
-    }
-}
-
-namespace {
-    /// Different sigma and width along x and y. Either can be computed from the other
-    template<class E>
-    void check_gaussian_xy() {
-        CompareToNormalized<E> compare;
-        for (uint32_t size : {4u, 9u, 30u}) {
-            compare.setImageSize(size + 3, size);
-            compare.gaussian(-1, 3, -1, 7);
-            compare.gaussian(1.5, -1, 0.8, -1);
-            compare.gaussian(2.0, 9, -1, 5);
-            compare.gaussian(-1, 25, 1.0, 3);
-        }
-    }
-}
-
-TEST_F(BlurImageOpsTest, gaussian_xy_U8) { check_gaussian_xy<U8>(); }
-TEST_F(BlurImageOpsTest, gaussian_xy_U16) { check_gaussian_xy<U16>(); }
-TEST_F(BlurImageOpsTest, gaussian_xy_F32) { check_gaussian_xy<F32>(); }
-TEST_F(BlurImageOpsTest, gaussian_xy_F64) { check_gaussian_xy<F64>(); }
-
-namespace {
-    /// Brute force mean of the region around (x,y), reading pixels through the border, in double
-    template<class E>
-    double naive_mean_border( const ImageBorder<E>& border, int32_t x, int32_t y, int32_t rx, int32_t ry ) {
-        double sum = 0;
-        for (int32_t j = -ry; j <= ry; j++) {
-            for (int32_t i = -rx; i <= rx; i++)
-                sum += border.get(x + i, y + j);
-        }
-        return sum/((2*rx + 1)*(2*ry + 1));
-    }
-
-    /// Integer division rounded the way BoofCV does it: (total + divisor/2)/divisor with truncation toward zero
-    int64_t boofcv_round_div( int64_t total, int64_t divisor ) {
-        return (total + divisor/2)/divisor;
-    }
-
-    /// Integer mean_border() computed directly from BoofCV's definition: a rounded horizontal mean through the
-    /// border, then a rounded vertical mean of that through the border
-    template<class E>
-    Gray<E> naive_mean_border_integer( const Gray<E>& input, BorderType type, int32_t rx, int32_t ry ) {
-        Gray<E> horizontal(input.width, input.height), output(input.width, input.height);
-        auto border = FactoryImageBorder::create_SB<E>(type);
-        border->setImage(input);
-        for (int32_t y = 0; y < (int32_t)input.height; y++) {
-            for (int32_t x = 0; x < (int32_t)input.width; x++) {
-                int64_t sum = 0;
-                for (int32_t i = -rx; i <= rx; i++)
-                    sum += border->get(x + i, y);
-                horizontal.at(x, y) = (E)boofcv_round_div(sum, 2*rx + 1);
-            }
-        }
-        border->setImage(horizontal);
-        for (int32_t y = 0; y < (int32_t)input.height; y++) {
-            for (int32_t x = 0; x < (int32_t)input.width; x++) {
-                int64_t sum = 0;
-                for (int32_t j = -ry; j <= ry; j++)
-                    sum += border->get(x, y + j);
-                output.at(x, y) = (E)boofcv_round_div(sum, 2*ry + 1);
-            }
-        }
-        return output;
-    }
-
-    /// Compares mean_border() against the brute force mean for every border type and a sub-image. Floats are
-    /// compared to the mean in double, integers must exactly match the rounded two pass mean.
-    template<class E>
-    void mean_border_compare_to_naive( uint32_t width, uint32_t height, int32_t rx, int32_t ry, E min_value,
-                                       E max_value ) {
-        Gray<E> input(width, height);
-        std::mt19937 gen(0xBEEF + width*31 + height);
-        ImageMiscOps::fill_uniform(input, min_value, max_value, gen);
-
-        for (BorderType type : {REFLECT, EXTENDED, WRAP, ZERO}) {
-            for (bool sub : {false, true}) {
-                Gray<E> in = sub ? create_subimage(input) : input.makeSubimage(0, 0, width, height);
-                auto border = FactoryImageBorder::create_SB<E>(type);
-                Gray<E> output(1, 1), storage(1, 1);
-                std::vector<typename TypeInfo<E>::sum_type> totals;
-                BlurImageOps::mean_border(in, output, rx, ry, *border, storage, totals);
-
-                ASSERT_EQ(width, output.width);
-                ASSERT_EQ(height, output.height);
-                if constexpr (std::is_floating_point<E>::value) {
-                    auto expected_border = FactoryImageBorder::create_SB<E>(type);
-                    expected_border->setImage(input);
-                    for (int32_t y = 0; y < (int32_t)height; y++) {
-                        for (int32_t x = 0; x < (int32_t)width; x++) {
-                            ASSERT_NEAR(naive_mean_border(*expected_border, x, y, rx, ry), output.at(x, y), 1e-5)
-                                    << width << "x" << height << " r=" << rx << "," << ry << " border=" << type
-                                    << " sub=" << sub << " at " << x << "," << y;
-                        }
-                    }
-                } else {
-                    Gray<E> expected = naive_mean_border_integer(input, type, rx, ry);
-                    for (int32_t y = 0; y < (int32_t)height; y++) {
-                        for (int32_t x = 0; x < (int32_t)width; x++) {
-                            ASSERT_EQ((int64_t)expected.at(x, y), (int64_t)output.at(x, y))
-                                    << width << "x" << height << " r=" << rx << "," << ry << " border=" << type
-                                    << " sub=" << sub << " at " << x << "," << y;
-                        }
-                    }
-                }
-                if (sub)
-                    in.subimage = false;
-            }
-        }
-    }
-
-    /// The inner image, the border, and images smaller than the region
-    template<class E>
-    void mean_border_compare_to_naive( E min_value, E max_value ) {
-        for (auto shape : {std::pair{30u, 25u}, {8u, 9u}, {5u, 3u}, {2u, 7u}, {1u, 1u}}) {
-            mean_border_compare_to_naive<E>(shape.first, shape.second, 1, 1, min_value, max_value);
-            mean_border_compare_to_naive<E>(shape.first, shape.second, 3, 2, min_value, max_value);
-            mean_border_compare_to_naive<E>(shape.first, shape.second, 2, 4, min_value, max_value);
-        }
-    }
-}
-
-TEST_F(BlurImageOpsTest, mean_border_compare_to_naive_U8) {
-    mean_border_compare_to_naive<U8>(0, 255);
-}
-
-TEST_F(BlurImageOpsTest, mean_border_compare_to_naive_S16) {
-    // negative values check the rounding of negative sums
-    mean_border_compare_to_naive<S16>(-30000, 30000);
-}
-
-TEST_F(BlurImageOpsTest, mean_border_compare_to_naive_U16) {
-    mean_border_compare_to_naive<U16>(0, 65535);
-}
-
-TEST_F(BlurImageOpsTest, mean_border_compare_to_naive_F32) {
-    mean_border_compare_to_naive<F32>(0.0f, 10.0f);
-}
-
-TEST_F(BlurImageOpsTest, mean_border_compare_to_naive_F64) {
-    mean_border_compare_to_naive<F64>(0.0, 10.0);
-}
-
-TEST_F(BlurImageOpsTest, mean_border_bad_radius) {
-    Gray<F32> input(10, 8), output(1, 1), storage(1, 1);
-    std::vector<F32> totals;
-    auto border = FactoryImageBorder::create_SB<F32>(REFLECT);
-    EXPECT_THROW(BlurImageOps::mean_border(input, output, 0, 2, *border, storage, totals), invalid_argument);
-    EXPECT_THROW(BlurImageOps::mean_border(input, output, 2, 0, *border, storage, totals), invalid_argument);
-}
+TEST_F(BlurImageOpsTest, mean_border_U8) { blur_mean_border_checks::check_all<U8>(0, 255); }
+// negative values check the rounding of negative sums
+TEST_F(BlurImageOpsTest, mean_border_S16) { blur_mean_border_checks::check_all<S16>(-30000, 30000); }
+TEST_F(BlurImageOpsTest, mean_border_U16) { blur_mean_border_checks::check_all<U16>(0, 65535); }
+TEST_F(BlurImageOpsTest, mean_border_F32) { blur_mean_border_checks::check_all<F32>(0, 10); }
+TEST_F(BlurImageOpsTest, mean_border_F64) { blur_mean_border_checks::check_all<F64>(0, 10); }
+TEST_F(BlurImageOpsTest, mean_border_bad_radius) { blur_mean_border_checks::check_bad_radius<F32>(); }

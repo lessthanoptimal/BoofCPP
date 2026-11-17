@@ -72,6 +72,16 @@ public abstract class NativeMeanBlurChecks extends BoofCPPStandardJUnit {
         }
     }
 
+    /// Types the variant doesn't support throw a RuntimeException, so BoofCV uses its Java code
+    @Test
+    public void unsupportedTypesThrow() {
+        for (Class type : BoofCPPTesting.unsupported(imageTypes)) {
+            ImageGray input = GeneralizedImageOps.createSingleBand(type, 20, 15);
+            assertThrows(RuntimeException.class, () ->
+                    hook.processMeanWeighted(input, input.createSameShape(), 2, 2, null));
+        }
+    }
+
     /// Largest input value. It's the tolerance's scale because the mean is a running sum of raw pixel values, so
     /// floating point rounding error grows with their range
     protected static double maxValue( Class type ) {

@@ -1,15 +1,29 @@
 package org.boofcpp.testing;
 
 import boofcv.core.image.GeneralizedImageOps;
-import boofcv.struct.image.GrayF32;
-import boofcv.struct.image.GrayF64;
-import boofcv.struct.image.ImageGray;
+import boofcv.struct.image.*;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /// Helpers shared by the tests of every variant
+@SuppressWarnings({"rawtypes"})
 public class BoofCPPTesting {
+    /// Every gray image type
+    public static final Class[] GRAY_TYPES = {GrayU8.class, GrayS8.class, GrayU16.class, GrayS16.class,
+            GrayS32.class, GrayS64.class, GrayF32.class, GrayF64.class};
+
+    /// Gray image types in GRAY_TYPES that aren't in 'supported'
+    public static List<Class> unsupported( Class... supported ) {
+        List<Class> types = new ArrayList<>(Arrays.asList(GRAY_TYPES));
+        types.removeAll(Arrays.asList(supported));
+        return types;
+    }
+
     /// [#assertMatches(ImageGray, ImageGray, Tolerance, double)] with a scale of 1
     public static void assertMatches( ImageGray<?> expected, ImageGray<?> found, Tolerance tolerance ) {
         assertMatches(expected, found, tolerance, 1.0);

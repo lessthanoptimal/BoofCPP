@@ -56,6 +56,14 @@ namespace blur_mean_checks {
         check_within(expected, image, float_tolerance<E>(), 50);
     }
 
+    /// A radius of zero is rejected
+    template<class E>
+    void check_mean_bad_radius() {
+        Gray<E> input(10, 8), output(10, 8), storage(1, 1);
+        EXPECT_THROW(tested::BlurImageOps::mean(input, output, 0, 2, storage), std::invalid_argument);
+        EXPECT_THROW(tested::BlurImageOps::mean(input, output, 2, 0, storage), std::invalid_argument);
+    }
+
     /// The same radius along x and y on small images, and different radii including ones larger than the image.
     /// Floats also get inputs which are hard for floating point: long running sums and large values
     template<class E>
