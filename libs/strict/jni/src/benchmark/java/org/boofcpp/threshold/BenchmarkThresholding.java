@@ -39,8 +39,8 @@ public class BenchmarkThresholding
     InputToBinary<GrayU8> global_otsu_native = new NativeGlobalOtsu<>(0,255,1.0,down, type);
     InputToBinary<GrayU8> global_otsu_java = FactoryThresholdBinary.globalOtsu(0,255,1.0,down, type);
 
-    InputToBinary<GrayF32> global_otsu_native_f32 = new NativeGlobalOtsu<>(0,255,1.0,down, GrayF32.class);
-    InputToBinary<GrayF32> global_otsu_java_f32 = FactoryThresholdBinary.globalOtsu(0,255,1.0,down, GrayF32.class);
+    InputToBinary<GrayF32> global_otsu_native_F32 = new NativeGlobalOtsu<>(0,255,1.0,down, GrayF32.class);
+    InputToBinary<GrayF32> global_otsu_java_F32 = FactoryThresholdBinary.globalOtsu(0,255,1.0,down, GrayF32.class);
 
     InputToBinary<GrayU8> local_mean_native = new NativeLocalMean<>(regionWidth, scale, down, type);
     InputToBinary<GrayU8> local_mean_java = FactoryThresholdBinary.localMean(regionWidth, scale, down, type);
@@ -66,45 +66,18 @@ public class BenchmarkThresholding
         output = new GrayU8(input.width,input.height);
     }
 
-    @Benchmark
-    public void global_fixed_native() { global_fixed_native.process(input,output); }
-
-    @Benchmark
-    public void global_fixed_java() { global_fixed_java.process(input,output); }
-
-    @Benchmark
-    public void global_otsu_native() { global_otsu_native.process(input,output); }
-
-    @Benchmark
-    public void global_otsu_java() { global_otsu_java.process(input,output); }
-
-    @Benchmark
-    public void global_otsu_native_f32() { global_otsu_native_f32.process(inputF32,output); }
-
-    @Benchmark
-    public void global_otsu_java_f32() { global_otsu_java_f32.process(inputF32,output); }
-
-    @Benchmark
-    public void local_mean_native() { local_mean_native.process(input,output); }
-
-    @Benchmark
-    public void local_mean_java() { local_mean_java.process(input,output); }
-
-    @Benchmark
-    public void block_minmax_native() { block_minmax_native.process(input,output); }
-
-    @Benchmark
-    public void block_minmax_java() {  block_minmax_java.process(input,output); }
-
-    @Benchmark
-    public void block_mean_native() { block_mean_native.process(input,output); }
-
-    @Benchmark
-    public void block_mean_java() { block_mean_java.process(input,output); }
-
-    @Benchmark
-    public void block_otsu_native() { block_otsu_native.process(input,output); }
-
-    @Benchmark
-    public void block_otsu_java() { block_otsu_java.process(input,output); }
+    @Benchmark public void global_fixed_native_U8() { global_fixed_native.process(input,output); }
+    @Benchmark public void global_fixed_java_U8() { global_fixed_java.process(input,output); }
+    @Benchmark public void global_otsu_native_U8() { global_otsu_native.process(input,output); }
+    @Benchmark public void global_otsu_java_U8() { global_otsu_java.process(input,output); }
+    @Benchmark public void global_otsu_native_F32() { global_otsu_native_F32.process(inputF32,output); }
+    @Benchmark public void global_otsu_java_F32() { global_otsu_java_F32.process(inputF32,output); }
+    @Benchmark public void local_mean_native_U8() { local_mean_native.process(input,output); }
+    @Benchmark public void local_mean_java_U8() { local_mean_java.process(input,output); }
+    @Benchmark public void block_minmax_native_U8() { block_minmax_native.process(input,output); }
+    @Benchmark public void block_minmax_java_U8() { block_minmax_java.process(input,output); }
+    @Benchmark public void block_mean_native_U8() { block_mean_native.process(input,output); }
+    @Benchmark public void block_mean_java_U8() { block_mean_java.process(input,output); }
+    @Benchmark public void block_otsu_native_U8() { block_otsu_native.process(input,output); }
+    @Benchmark public void block_otsu_java_U8() { block_otsu_java.process(input,output); }
 }

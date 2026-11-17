@@ -142,19 +142,19 @@ They can also be run from IntelliJ with the JMH plugin.
 
 Example Results: Java/JNI Benchmark
 ```
-Benchmark                                  Mode  Cnt    Score    Error  Units
-BenchmarkThresholding.block_mean_java      avgt    5   18.321 ±  0.244  ms/op
-BenchmarkThresholding.block_mean_native    avgt    5   12.769 ±  0.479  ms/op
-BenchmarkThresholding.block_minmax_java    avgt    5   19.762 ±  0.352  ms/op
-BenchmarkThresholding.block_minmax_native  avgt    5   21.616 ±  0.122  ms/op
-BenchmarkThresholding.block_otsu_java      avgt    5   48.116 ±  1.703  ms/op
-BenchmarkThresholding.block_otsu_native    avgt    5   35.232 ±  0.266  ms/op
-BenchmarkThresholding.global_fixed_java    avgt    5    9.888 ±  0.812  ms/op
-BenchmarkThresholding.global_fixed_native  avgt    5    1.260 ±  0.151  ms/op
-BenchmarkThresholding.global_otsu_java     avgt    5   21.899 ±  1.578  ms/op
-BenchmarkThresholding.global_otsu_native   avgt    5   13.223 ±  1.488  ms/op
-BenchmarkThresholding.local_mean_java      avgt    5  100.411 ± 21.708  ms/op
-BenchmarkThresholding.local_mean_native    avgt    5   71.637 ±  2.955  ms/op
+Benchmark                                     Mode  Cnt    Score    Error  Units
+BenchmarkThresholding.block_mean_java_U8      avgt    5   18.321 ±  0.244  ms/op
+BenchmarkThresholding.block_mean_native_U8    avgt    5   12.769 ±  0.479  ms/op
+BenchmarkThresholding.block_minmax_java_U8    avgt    5   19.762 ±  0.352  ms/op
+BenchmarkThresholding.block_minmax_native_U8  avgt    5   21.616 ±  0.122  ms/op
+BenchmarkThresholding.block_otsu_java_U8      avgt    5   48.116 ±  1.703  ms/op
+BenchmarkThresholding.block_otsu_native_U8    avgt    5   35.232 ±  0.266  ms/op
+BenchmarkThresholding.global_fixed_java_U8    avgt    5    9.888 ±  0.812  ms/op
+BenchmarkThresholding.global_fixed_native_U8  avgt    5    1.260 ±  0.151  ms/op
+BenchmarkThresholding.global_otsu_java_U8     avgt    5   21.899 ±  1.578  ms/op
+BenchmarkThresholding.global_otsu_native_U8   avgt    5   13.223 ±  1.488  ms/op
+BenchmarkThresholding.local_mean_java_U8      avgt    5  100.411 ± 21.708  ms/op
+BenchmarkThresholding.local_mean_native_U8    avgt    5   71.637 ±  2.955  ms/op
 ```
 
 Example Results: C++ Benchmark

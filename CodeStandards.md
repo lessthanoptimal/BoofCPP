@@ -43,6 +43,10 @@
   - Each variant's `TestHookContracts` calls every function of its hooks, and of the objects they create, with every
     gray image type. Each call must finish or throw a RuntimeException. Results aren't checked. Hooks that need
     specific argument values are listed in `customArguments` of `HookContractChecks`
+- Benchmarks
+  - JMH benchmark names are `<op>_<native|java>_<image type>`, e.g. `global_otsu_native_U8`, unless a `@Param`
+    selects the image type
+  - A short benchmark is written on one line
 - JNI
   - C++ exceptions must never escape a JNI function. `jni_call()` turns them into Java exceptions
   - Hold critical arrays with `CriticalArray`, so an exception releases them

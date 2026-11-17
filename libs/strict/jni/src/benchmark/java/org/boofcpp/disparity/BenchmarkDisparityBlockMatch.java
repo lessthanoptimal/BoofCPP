@@ -73,11 +73,8 @@ public class BenchmarkDisparityBlockMatch {
         return config;
     }
 
-    @Benchmark public void sad_java() {sad_java.process(left, right);}
-
-    @Benchmark public void sad_native() {sad_native.process(left, right);}
-
-    @Benchmark public void census_java() {census_java.process(left, right);}
-
-    @Benchmark public void census_native() {census_native.process(left, right);}
+    @Benchmark public void sad_java_U8() { sad_java.process(left, right); }
+    @Benchmark public void sad_native_U8() { sad_native.process(left, right); }
+    @Benchmark public void census_java_U8() { census_java.process(left, right); }
+    @Benchmark public void census_native_U8() { census_native.process(left, right); }
 }

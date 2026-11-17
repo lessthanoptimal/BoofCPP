@@ -50,33 +50,10 @@ public class BenchmarkConvolveImage {
         output = input.createSameShape(GrayS16.class);
     }
 
-    @Benchmark
-    public void horizontal_native() {
-        nativeOps.horizontal(kernel1D,input,output,border);
-    }
-
-    @Benchmark
-    public void vertical_native() {
-        nativeOps.vertical(kernel1D,input,output,border);
-    }
-
-    @Benchmark
-    public void convolve_native() {
-        nativeOps.convolve(kernel2D,input,output,border);
-    }
-
-    @Benchmark
-    public void horizontal() {
-        GConvolveImageOps.horizontal(kernel1D,input,output,border);
-    }
-
-    @Benchmark
-    public void vertical() {
-        GConvolveImageOps.vertical(kernel1D,input,output,border);
-    }
-
-    @Benchmark
-    public void convolve() {
-        GConvolveImageOps.convolve(kernel2D,input,output,border);
-    }
+    @Benchmark public void horizontal_native_U8() { nativeOps.horizontal(kernel1D,input,output,border); }
+    @Benchmark public void vertical_native_U8() { nativeOps.vertical(kernel1D,input,output,border); }
+    @Benchmark public void convolve_native_U8() { nativeOps.convolve(kernel2D,input,output,border); }
+    @Benchmark public void horizontal_java_U8() { GConvolveImageOps.horizontal(kernel1D,input,output,border); }
+    @Benchmark public void vertical_java_U8() { GConvolveImageOps.vertical(kernel1D,input,output,border); }
+    @Benchmark public void convolve_java_U8() { GConvolveImageOps.convolve(kernel2D,input,output,border); }
 }
