@@ -71,6 +71,9 @@ public class BoofCPP {
         BOverrideConvolveImage.convolve = new NativeConvolveImage();
 
         BOverrideAverageDownSampleOps.square = new NativeAverageDownSampleOps();
+        BOverrideAverageDownSampleOps.general = new NativeAverageDownSampleOps();
+        BOverrideAverageDownSampleOps.horizontal = new NativeAverageDownSampleOps();
+        BOverrideAverageDownSampleOps.vertical = new NativeAverageDownSampleOps();
 
 
         BOverrideFactoryBinaryContourFinder.chang2004 = NativeChang2004::new;

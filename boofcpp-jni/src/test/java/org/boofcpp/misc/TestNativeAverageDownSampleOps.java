@@ -87,6 +87,108 @@ public class TestNativeAverageDownSampleOps {
         assertThrows(RuntimeException.class, () -> nativeOps.processDown(input, 2, new GrayU16(10, 8)));
     }
 
+    /// Image types BoofCV's AverageDownSampleOps.down(input, centered, output, middle) supports
+    static final Class[] GENERAL_TYPES = new Class[]{GrayU8.class, GrayU16.class, GrayF32.class, GrayF64.class};
+
+    /// Output sizes for a 61x45 input: integer and non-integer scales, the same size, and one pixel tall
+    static final int[][] GENERAL_SHAPES = new int[][]{{61, 45}, {30, 15}, {20, 22}, {7, 5}, {13, 44}, {2, 1}};
+
+    /// Against BoofCV's Java code, called directly and through BoofCV's hook
+    @Test
+    public void compareGeneral() {
+        for (Class type : GENERAL_TYPES) {
+            for (int[] shape : GENERAL_SHAPES) {
+                for (boolean centered : new boolean[]{false, true}) {
+                    for (boolean concurrent : new boolean[]{false, true}) {
+                        ImageGray input = randomImage(type, 61, 45);
+                        ImageGray expected = GeneralizedImageOps.createSingleBand(type, shape[0], shape[1]);
+                        callBoofCV(false, concurrent, () -> AverageDownSampleOps.down(input, centered, expected, null));
+
+                        ImageGray found = BoofTesting.createSubImageOf((ImageGray)expected.createSameShape());
+                        new NativeAverageDownSampleOps().processDown(input, centered, found, null);
+                        assertIdentical(expected, found);
+
+                        ImageGray hook = (ImageGray)expected.createSameShape();
+                        callBoofCV(true, concurrent, () -> AverageDownSampleOps.down(input, centered, hook, null));
+                        assertIdentical(expected, hook);
+                    }
+                }
+            }
+        }
+    }
+
+    /// horizontal() and vertical() against BoofCV's Java code, called directly and through BoofCV's hooks. The input
+    /// to vertical() is floating point for every output type
+    @Test
+    public void compareHorizontalVertical() {
+        for (Class type : GENERAL_TYPES) {
+            Class middleType = type == GrayF64.class ? GrayF64.class : GrayF32.class;
+            for (int[] shape : GENERAL_SHAPES) {
+                for (boolean centered : new boolean[]{false, true}) {
+                    for (boolean concurrent : new boolean[]{false, true}) {
+                        ImageGray input = randomImage(type, 61, 45);
+                        ImageGray expected = GeneralizedImageOps.createSingleBand(middleType, shape[0], 45);
+                        callBoofCV(false, concurrent, () -> AverageDownSampleOps.horizontal(input, centered, expected));
+                        ImageGray found = (ImageGray)expected.createSameShape();
+                        new NativeAverageDownSampleOps().processHorizontal(input, centered, found);
+                        assertIdentical(expected, found);
+                        callBoofCV(true, concurrent, () -> AverageDownSampleOps.horizontal(input, centered, found));
+                        assertIdentical(expected, found);
+
+                        ImageGray middle = randomImage(middleType, 61, 45);
+                        ImageGray expectedV = GeneralizedImageOps.createSingleBand(type, 61, shape[1]);
+                        callBoofCV(false, concurrent,
+                                () -> AverageDownSampleOps.vertical(middle, centered, expectedV, null));
+                        ImageGray foundV = (ImageGray)expectedV.createSameShape();
+                        new NativeAverageDownSampleOps().processVertical(middle, centered, foundV);
+                        assertIdentical(expectedV, foundV);
+                        callBoofCV(true, concurrent,
+                                () -> AverageDownSampleOps.vertical(middle, centered, foundV, null));
+                        assertIdentical(expectedV, foundV);
+                    }
+                }
+            }
+        }
+    }
+
+    /// BoofCV down samples each band of a planar image with the gray image function, so the hook is used for each one
+    @Test
+    public void general_planar() {
+        Planar<GrayU8> input = new Planar<>(GrayU8.class, 31, 20, 3);
+        GImageMiscOps.fillUniform(input, rand, 0, 255);
+        Planar<GrayU8> expected = new Planar<>(GrayU8.class, 12, 7, 3);
+        Planar<GrayU8> found = expected.createSameShape();
+
+        callBoofCV(false, false, () -> AverageDownSampleOps.down(input, true, expected, null));
+        callBoofCV(true, false, () -> AverageDownSampleOps.down(input, true, found, null));
+        for (int band = 0; band < 3; band++) {
+            assertIdentical(expected.getBand(band), found.getBand(band));
+        }
+    }
+
+    /// Native throws a RuntimeException for anything it can't process, and BoofCV then uses its own code
+    @Test
+    public void general_unsupported() {
+        NativeAverageDownSampleOps nativeOps = new NativeAverageDownSampleOps();
+        GrayU8 input = new GrayU8(20, 15);
+
+        // BoofCV writes past the end of each row of 'middle' for a centered output one pixel wide
+        assertThrows(RuntimeException.class, () -> nativeOps.processDown(input, true, new GrayU8(1, 5), null));
+        // output larger than the input
+        assertThrows(RuntimeException.class, () -> nativeOps.processDown(input, false, new GrayU8(21, 5), null));
+        // middle must be the output's width and the input's height
+        assertThrows(RuntimeException.class,
+                () -> nativeOps.processDown(input, false, new GrayU8(10, 5), new GrayF32(10, 14)));
+        // middle must be GrayF32 for a GrayU8 image
+        assertThrows(RuntimeException.class,
+                () -> nativeOps.processDown(input, false, new GrayU8(10, 5), new GrayF64(10, 15)));
+        assertThrows(RuntimeException.class,
+                () -> nativeOps.processDown(new Planar<>(GrayU8.class, 20, 15, 2), false,
+                        new Planar<>(GrayU8.class, 10, 5, 2), null));
+        assertThrows(RuntimeException.class, () -> nativeOps.processVertical(new GrayF32(20, 15), false,
+                new GrayS16(20, 5)));
+    }
+
     /// Random sub-image, so that its offset and stride aren't the defaults. Signed images have negative values
     ImageGray randomImage( Class type, int width, int height ) {
         ImageGray input = GeneralizedImageOps.createSingleBand(type, width, height);
@@ -112,16 +214,26 @@ public class TestNativeAverageDownSampleOps {
                 AverageDownSampleOps.downSampleSize(input.height, width));
     }
 
-    /// Calls BoofCV with BoofCPP's hook, or without it
+    /// Calls BoofCV with BoofCPP's hooks, or without them
     static void callBoofCV( boolean useNative, boolean concurrent, Runnable call ) {
-        BOverrideAverageDownSampleOps.Square previous = BOverrideAverageDownSampleOps.square;
+        BOverrideAverageDownSampleOps.Square previousSquare = BOverrideAverageDownSampleOps.square;
+        BOverrideAverageDownSampleOps.General previousGeneral = BOverrideAverageDownSampleOps.general;
+        BOverrideAverageDownSampleOps.Horizontal previousHorizontal = BOverrideAverageDownSampleOps.horizontal;
+        BOverrideAverageDownSampleOps.Vertical previousVertical = BOverrideAverageDownSampleOps.vertical;
         boolean previousConcurrent = BoofConcurrency.USE_CONCURRENT;
         try {
-            BOverrideAverageDownSampleOps.square = useNative ? new NativeAverageDownSampleOps() : null;
+            NativeAverageDownSampleOps nativeOps = useNative ? new NativeAverageDownSampleOps() : null;
+            BOverrideAverageDownSampleOps.square = nativeOps;
+            BOverrideAverageDownSampleOps.general = nativeOps;
+            BOverrideAverageDownSampleOps.horizontal = nativeOps;
+            BOverrideAverageDownSampleOps.vertical = nativeOps;
             BoofConcurrency.USE_CONCURRENT = concurrent;
             call.run();
         } finally {
-            BOverrideAverageDownSampleOps.square = previous;
+            BOverrideAverageDownSampleOps.square = previousSquare;
+            BOverrideAverageDownSampleOps.general = previousGeneral;
+            BOverrideAverageDownSampleOps.horizontal = previousHorizontal;
+            BOverrideAverageDownSampleOps.vertical = previousVertical;
             BoofConcurrency.USE_CONCURRENT = previousConcurrent;
         }
     }
