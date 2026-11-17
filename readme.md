@@ -28,19 +28,19 @@ building BoofCPP. Support is provided for the following architectures android-ar
 and windows-x86_64. Examples for how to add depedencies in a Gradle script are provided below.
 
 ```Gradle
-compile group: 'org.boofcpp', name: "boofcpp-jni", version: '0.30'
+implementation group: 'org.boofcpp', name: "boofcpp-jni", version: '0.30'
 ```
 
 That just includes the Java library. For non-Android environments, you need to tell it which architecture to include
 by specifying an architecture in the classifier field, e.g.
 
 ```Gradle
-compile group: 'org.boofcpp', name: "boofcpp-jni", version: '0.30', classifier: "linux-x86_64"
+implementation group: 'org.boofcpp', name: "boofcpp-jni", version: '0.30', classifier: "linux-amd64"
 ```
 
 For Android you don't need to specify the binary type but you do need to include the Android specific dependency:
 ```Gradle
-compile group: 'org.boofcpp', name: "boofcpp-android", version: '0.30'
+implementation group: 'org.boofcpp', name: "boofcpp-android", version: '0.30'
 ```
 
 To use native libraries you need to do a very simple modification to your Java code. C++ code is injected into BoofCV 
@@ -57,7 +57,8 @@ Initialize must be called before any image processing is done.
 # Dependencies
 
 The main source code has no external dependencies, making it very easy to build. It needs a C++17 compiler and
-CMake. The Java library needs JDK 25, same as BoofCV. Unit tests and benchmarks have external dependencies. First make sure you have
+CMake. CMake needs an installed JDK for the JNI library. Gradle needs JDK 17 or newer and downloads JDK 25 to build the
+Java library. Unit tests and benchmarks have external dependencies. First make sure you have
 the gtest (unit tests) source code checked out, from the root of the repository:
 ```bash
 git submodule update --init --recursive
@@ -69,14 +70,14 @@ sudo apt-get install libpng-dev libjpeg-dev
 Without them CMake skips the C++ benchmarks and builds everything else. On Windows they can be installed with
 vcpkg (`vcpkg install libjpeg-turbo libpng`) and passing vcpkg's toolchain file to CMake.
 
-The Java library is built against the BoofCV version in `build.gradle` (`BOOFCV_VERSION`). If that's a SNAPSHOT,
-first install BoofCV locally with `./gradlew publishToMavenLocal` from the BoofCV repository.
+The Java library is built against the BoofCV version in `gradle/libs.versions.toml` (`boofcv`). A SNAPSHOT comes from
+the local Maven repository if it's there, otherwise from Central's snapshot repository, where BoofCV publishes them. To
+use your own BoofCV, run `./gradlew publishToMavenLocal` in the BoofCV repository.
 
 # Building
 
 If you followed the dependency installation instructions above it should build without any issues.
-To get the fastest code make sure you build it in release mode! By default it will
-build in debug mode. Debug mode is great for development but many times slower than release code.
+Build in release mode. Without `-DCMAKE_BUILD_TYPE=Release` it isn't optimized and is many times slower.
 
 ```bash
 mkdir build;cd build
@@ -91,7 +92,7 @@ the unit tests which compare it against BoofCV:
 ./gradlew :boofcpp-jni:test
 ```
 
-Then to install the Java and Android libraries invoke the following command:
+To install boofcpp-common, boofcpp-jni and, if there's an Android SDK, boofcpp-android:
 ```bash
 ./gradlew publishToMavenLocal
 ```
@@ -211,5 +212,5 @@ For the most part everything should "just work", but if there are any known issu
 ## IntelliJ
 
 IntelliJ doesn't like projects which mix together the Java and Android plugin. It's recommended that you go into 
-settings.gradle and comment out ```include 'boofcpp-android'```. If you don't do that it might appear to be work
+settings.gradle.kts and comment out ```include("boofcpp-android")```. If you don't do that it might appear to be work
 but will have erratic behavior.

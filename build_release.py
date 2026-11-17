@@ -29,8 +29,8 @@ os.makedirs("build_release")
 check_cd("build_release")
 run_command("cmake -DCMAKE_BUILD_TYPE=Release ..")
 run_command("make -j8")
-check_cd(os.path.join(project_home,"jni"))
-run_command("./gradlew -Pnative_build_location=../build_release install")
+check_cd(project_home)
+run_command("./gradlew -Pnative_build_location=build_release publishToMavenLocal")
 # Have a command line argument for sending it to maven central
-#run_command("./gradlew -Pnative_build_location=../build_release uploadArchives")
+#run_command("./gradlew -Pnative_build_location=build_release publish")
 

@@ -1,0 +1,22 @@
+[versions]
+boofcv = "1.6.1-SNAPSHOT"
+junit = "5.14.4"
+jmh = "1.19"
+gversion = "1.11.0"
+android-gradle-plugin = "8.9.0"
+
+[libraries]
+boofcv-ip = { module = "org.boofcv:boofcv-ip", version.ref = "boofcv" }
+boofcv-ip-multiview = { module = "org.boofcv:boofcv-ip-multiview", version.ref = "boofcv" }
+boofcv-io = { module = "org.boofcv:boofcv-io", version.ref = "boofcv" }
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api" }
+junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+jmh-core = { module = "org.openjdk.jmh:jmh-core", version.ref = "jmh" }
+jmh-generator-annprocess = { module = "org.openjdk.jmh:jmh-generator-annprocess", version.ref = "jmh" }
+# Gradle plugins used by the convention plugins in buildSrc
+gversion-plugin = { module = "com.peterabeles.gversion:com.peterabeles.gversion.gradle.plugin", version.ref = "gversion" }
+
+[plugins]
+android-library = { id = "com.android.library", version.ref = "android-gradle-plugin" }

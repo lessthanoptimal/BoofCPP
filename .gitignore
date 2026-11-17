@@ -17,3 +17,5 @@ android/.cxx/
 android/build/
 local.properties
 libs/*/jni/build/
+buildSrc/build/
+BoofCPPVersion.java
