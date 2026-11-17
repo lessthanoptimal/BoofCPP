@@ -3,9 +3,9 @@
 
 /// Checks of tested::BlurImageOps::mean, shared by every variant. Include a variant header, e.g. variant_strict.h,
 /// first. Each variant's tests call check_mean_all() for the image types it supports. Results must be within
-/// floating point tolerance of strict's naive convolution, and identical for integers
+/// floating point tolerance of the naive convolution in convolve_naive.h, and identical for integers
 
-#include "boofcv/convolve.h"
+#include "boofcv/convolve_naive.h"
 #include "boofcv/image_misc_ops.h"
 #include "testing_utils.h"
 

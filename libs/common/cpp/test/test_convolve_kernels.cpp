@@ -2,7 +2,6 @@
 #include "testing_utils.h"
 #include "boofcv/convolve_kernels.h"
 
-#include "boofcv/print_structures.h"
 
 using namespace std;
 using namespace boofcv;

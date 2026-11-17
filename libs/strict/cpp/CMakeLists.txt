@@ -19,10 +19,6 @@ target_link_libraries(BoofCPP PUBLIC BoofCPPObjects BoofCPPCommon)
 install(TARGETS BoofCPP DESTINATION lib ARCHIVE DESTINATION lib)
 
 if (test)
-    # The checks in test/shared/ and strict's variant header, used by the tests of every variant
-    add_library(BoofCPPStrictTest INTERFACE)
-    target_include_directories(BoofCPPStrictTest INTERFACE test)
-
     include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
     ##############
@@ -36,7 +32,6 @@ if (test)
     list(APPEND TestList test_census_transform)
     list(APPEND TestList test_contour)
     list(APPEND TestList test_convolve)
-    list(APPEND TestList test_convolve_kernels)
     list(APPEND TestList test_disparity_block_match)
     list(APPEND TestList test_image_blur)
     list(APPEND TestList test_image_convert)

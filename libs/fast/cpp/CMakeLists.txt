@@ -18,14 +18,12 @@ install(TARGETS BoofCPPFast DESTINATION lib ARCHIVE DESTINATION lib)
 if (test)
     include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
-    # The shared checks compare against strict's naive implementations, so the tests link strict
     list(APPEND FastTestList test_image_blur)
 
     FOREACH(FILENAME ${FastTestList})
         add_executable(fast_${FILENAME} test/${FILENAME}.cpp)
         target_include_directories(fast_${FILENAME} PRIVATE test)
-        target_link_libraries(fast_${FILENAME} gtest gtest_main BoofCPPFastObjects BoofCPPObjects BoofCPPCommon
-                BoofCPPCommonTest BoofCPPStrictTest)
+        target_link_libraries(fast_${FILENAME} gtest gtest_main BoofCPPFastObjects BoofCPPCommon BoofCPPCommonTest)
         add_test(fast_${FILENAME} fast_${FILENAME})
     ENDFOREACH()
 endif()
