@@ -1,5 +1,9 @@
 package org.boofcpp.convolve;
 
+import boofcv.struct.image.GrayF32;
+import boofcv.struct.image.GrayF64;
+import boofcv.struct.image.GrayU16;
+import boofcv.struct.image.GrayU8;
 import org.boofcpp.BoofCPP;
 import org.boofcpp.testing.NativeMeanBlurChecks;
 
@@ -10,6 +14,6 @@ public class TestNativeMeanBlur extends NativeMeanBlurChecks {
     }
 
     public TestNativeMeanBlur() {
-        super(new NativeImageBlurOps(), TestNativeImageBlurOps.GRAY_TYPES);
+        super(new NativeImageBlurOps(), GrayU8.class, GrayU16.class, GrayF32.class, GrayF64.class);
     }
 }

@@ -3,6 +3,9 @@
 #include "boofcv/convolve.h"
 #include "boofcv/image_misc_ops.h"
 #include "testing_utils.h"
+#include "variant_strict.h"
+#include "shared/convolve_checks.h"
+#include "shared/convolve_normalized_checks.h"
 
 using namespace std;
 using namespace boofcv;
@@ -146,18 +149,6 @@ public:
         checkResults_border();
     }
 
-    void horizontal() {
-        ImageBorderValue<E> border(0);
-        border.setImage(input);
-
-//        ConvolveNaive::horizontal(kernel,border,expected);
-        ConvolveImage::horizontal(kernel,border,found);
-
-        borderX0=borderX1=0;
-        borderY0=borderY1=0;
-
-//        checkResults_inner();
-    }
 
     void vertical_inner() {
         ImageBorderValue<E> border(0);
@@ -187,18 +178,6 @@ public:
         checkResults_border();
     }
 
-    void vertical() {
-        ImageBorderValue<E> border(0);
-        border.setImage(input);
-
-        ConvolveNaive::vertical(kernel,border,expected);
-        ConvolveImage::vertical(kernel,border,found);
-
-        borderX0=borderX1=0;
-        borderY0=borderY1=0;
-
-        checkResults_border();
-    }
 
     void convolve_inner() {
         ImageBorderValue<E> border(0);
@@ -237,41 +216,9 @@ public:
         checkResults_border();
     }
 
-    void convolve() {
-        ImageBorderValue<E> border(0);
-        border.setImage(input);
 
-        ConvolveNaive::convolve(kernel2,border,expected);
-        ConvolveImage::convolve(kernel2,border,found);
 
-        borderX0=borderX1=0;
-        borderY0=borderY1=0;
 
-        checkResults_border();
-    }
-
-    void normalized_horizontal() {
-        ConvolveNormalizedNaive::horizontal(kernel,input,expected);
-        ConvolveNormalized::horizontal(kernel,input,found);
-
-        check_equals(expected,found);
-    }
-
-    void normalized_vertical() {
-        ConvolveNormalizedNaive::vertical(kernel,input,expected);
-        ConvolveNormalized::vertical(kernel,input,found);
-
-        check_equals(expected,found);
-    }
-
-    void normalized_convolve_1D() {
-        Gray<E> workspace(input.width,input.height);
-        ConvolveNormalizedNaive::horizontal(kernel,input,workspace);
-        ConvolveNormalizedNaive::vertical(kernel,workspace,expected);
-        ConvolveNormalized::convolve(kernel,input,found,workspace);
-
-        check_equals(expected,found);
-    }
 
     void checkResults_border() {
         check_equals_border(expected,found,borderX0,borderX1,borderY0,borderY1);
@@ -712,220 +659,19 @@ TEST_F(ConvolveImage_BorderTest, convolve2D_U8) {
 
 class ConvolveNormalizedTest : public boofcv::BoofCPPTest {};
 
-TEST_F(ConvolveNormalizedTest, horizontal_U8) {
-    CompareToNaive<U8> compare;
-
-    for( uint32_t i = 0; i < 2; i++ ) {
-        uint32_t w = 15+i;
-        uint32_t h = 20+i;
-
-        compare.setImageSize(w,h);
-        compare.setKernel(3,1);
-        compare.normalized_horizontal();
-        compare.setKernel(5,2);
-        compare.normalized_horizontal();
-        compare.setKernel(7,3);
-        compare.normalized_horizontal();
-        compare.setKernel(7,1);
-        compare.normalized_horizontal();
-        compare.setKernel(7,4);
-        compare.normalized_horizontal();
-    }
-}
-
-TEST_F(ConvolveNormalizedTest, horizontal_F32) {
-    CompareToNaive<F32> compare;
-
-    for( uint32_t i = 0; i < 2; i++ ) {
-        uint32_t w = 15+i;
-        uint32_t h = 20+i;
-
-        compare.setImageSize(w,h);
-        compare.setKernel(3,1);
-        compare.normalized_horizontal();
-        compare.setKernel(5,2);
-        compare.normalized_horizontal();
-        compare.setKernel(7,3);
-        compare.normalized_horizontal();
-        compare.setKernel(7,1);
-        compare.normalized_horizontal();
-        compare.setKernel(7,4);
-        compare.normalized_horizontal();
-    }
-}
-
-TEST_F(ConvolveNormalizedTest, vertical_U8) {
-    CompareToNaive<U8> compare;
-
-    for( uint32_t i = 0; i < 2; i++ ) {
-        uint32_t w = 15+i;
-        uint32_t h = 20+i;
-
-        compare.setImageSize(w,h);
-        compare.setKernel(3,1);
-        compare.normalized_vertical();
-        compare.setKernel(5,2);
-        compare.normalized_vertical();
-        compare.setKernel(7,3);
-        compare.normalized_vertical();
-        compare.setKernel(7,1);
-        compare.normalized_vertical();
-        compare.setKernel(7,4);
-        compare.normalized_vertical();
-    }
-}
-
-TEST_F(ConvolveNormalizedTest, vertical_F32) {
-    CompareToNaive<F32> compare;
-
-    for( uint32_t i = 0; i < 2; i++ ) {
-        uint32_t w = 15+i;
-        uint32_t h = 20+i;
-
-        compare.setImageSize(w,h);
-        compare.setKernel(3,1);
-        compare.normalized_vertical();
-        compare.setKernel(5,2);
-        compare.normalized_vertical();
-        compare.setKernel(7,3);
-        compare.normalized_vertical();
-        compare.setKernel(7,1);
-        compare.normalized_vertical();
-        compare.setKernel(7,4);
-        compare.normalized_vertical();
-    }
-}
-
-TEST_F(ConvolveNormalizedTest, convolve_with1D) {
-    CompareToNaive<F32> compare;
-
-    for( uint32_t i = 0; i < 2; i++ ) {
-        uint32_t w = 15+i;
-        uint32_t h = 20+i;
-
-        compare.setImageSize(w,h);
-        compare.setKernel(3,1);
-        compare.normalized_convolve_1D();
-        compare.setKernel(5,2);
-        compare.normalized_convolve_1D();
-        compare.setKernel(7,3);
-        compare.normalized_convolve_1D();
-        compare.setKernel(7,1);
-        compare.normalized_convolve_1D();
-        compare.setKernel(7,4);
-        compare.normalized_convolve_1D();
-    }
-}
+TEST_F(ConvolveNormalizedTest, U8) { convolve_normalized_checks::check_all<U8>(); }
+TEST_F(ConvolveNormalizedTest, U16) { convolve_normalized_checks::check_all<U16>(); }
+TEST_F(ConvolveNormalizedTest, F32) { convolve_normalized_checks::check_all<F32>(); }
+TEST_F(ConvolveNormalizedTest, F64) { convolve_normalized_checks::check_all<F64>(); }
 
 class ConvolveImageTest : public boofcv::BoofCPPTest {};
 
-TEST_F(ConvolveImageTest, horizontal_U8) {
-    CompareToNaive<U8> compare;
+TEST_F(ConvolveImageTest, U8) { convolve_checks::check_all<U8>(); }
+TEST_F(ConvolveImageTest, U8_S16) { convolve_checks::check_all<U8, S16>(); }
+TEST_F(ConvolveImageTest, U8_S32) { convolve_checks::check_all<U8, S32>(); }
+TEST_F(ConvolveImageTest, F32) { convolve_checks::check_all<F32>(); }
+TEST_F(ConvolveImageTest, F64) { convolve_checks::check_all<F64>(); }
 
-    // pathological case where the kernel is larger than the image
-    compare.setImageSize(5,6);
-    compare.setKernel(7,3);compare.horizontal();
-    compare.setKernel(7,1);compare.horizontal();
-    compare.setKernel(7,6);compare.horizontal();
-
-    compare.setImageSize(15,16);
-    compare.setKernel(3,1);compare.horizontal();
-    compare.setKernel(7,2);compare.horizontal();
-
-    compare.setImageSize(15,16);
-    compare.setKernel(3,1);compare.horizontal();
-    compare.setKernel(7,2);compare.horizontal();
-}
-
-TEST_F(ConvolveImageTest, horizontal_F32) {
-    CompareToNaive<F32> compare;
-
-    // pathological case where the kernel is larger than the image
-    compare.setImageSize(5,6);
-    compare.setKernel(7,3);compare.horizontal();
-    compare.setKernel(7,1);compare.horizontal();
-    compare.setKernel(7,6);compare.horizontal();
-
-    compare.setImageSize(15,16);
-    compare.setKernel(3,1);compare.horizontal();
-    compare.setKernel(7,2);compare.horizontal();
-
-    compare.setImageSize(15,16);
-    compare.setKernel(3,1);compare.horizontal();
-    compare.setKernel(7,2);compare.horizontal();
-}
-
-TEST_F(ConvolveImageTest, vertical_U8) {
-    CompareToNaive<U8> compare;
-
-    // pathological case where the kernel is larger than the image
-    compare.setImageSize(5,6);
-    compare.setKernel(7,3);compare.vertical();
-    compare.setKernel(7,1);compare.vertical();
-    compare.setKernel(7,6);compare.vertical();
-
-    compare.setImageSize(15,16);
-    compare.setKernel(3,1);compare.vertical();
-    compare.setKernel(7,2);compare.vertical();
-
-    compare.setImageSize(15,16);
-    compare.setKernel(3,1);compare.vertical();
-    compare.setKernel(7,2);compare.vertical();
-}
-
-TEST_F(ConvolveImageTest, vertical_F32) {
-    CompareToNaive<F32> compare;
-
-    // pathological case where the kernel is larger than the image
-    compare.setImageSize(5,6);
-    compare.setKernel(7,3);compare.vertical();
-    compare.setKernel(7,1);compare.vertical();
-    compare.setKernel(7,6);compare.vertical();
-
-    compare.setImageSize(15,16);
-    compare.setKernel(3,1);compare.vertical();
-    compare.setKernel(7,2);compare.vertical();
-
-    compare.setImageSize(15,16);
-    compare.setKernel(3,1);compare.vertical();
-    compare.setKernel(7,2);compare.vertical();
-}
-
-TEST_F(ConvolveImageTest, convolve_U8) {
-    CompareToNaive<U8> compare;
-
-    // pathological case where the kernel is larger than the image
-    compare.setImageSize(5,6);
-    compare.setKernel2(7,3);compare.convolve();
-    compare.setKernel2(7,1);compare.convolve();
-    compare.setKernel2(7,6);compare.convolve();
-
-    compare.setImageSize(15,16);
-    compare.setKernel2(3,1);compare.convolve();
-    compare.setKernel2(7,2);compare.convolve();
-
-    compare.setImageSize(15,16);
-    compare.setKernel2(3,1);compare.convolve();
-    compare.setKernel2(7,2);compare.convolve();
-}
-
-TEST_F(ConvolveImageTest, convolve_F32) {
-    CompareToNaive<F32> compare;
-
-    // pathological case where the kernel is larger than the image
-    compare.setImageSize(5,6);
-    compare.setKernel2(7,3);compare.convolve();
-    compare.setKernel2(7,1);compare.convolve();
-    compare.setKernel2(7,6);compare.convolve();
-
-    compare.setImageSize(15,16);
-    compare.setKernel2(3,1);compare.convolve();
-    compare.setKernel2(7,2);compare.convolve();
-
-    compare.setImageSize(15,16);
-    compare.setKernel2(3,1);compare.convolve();
-    compare.setKernel2(7,2);compare.convolve();
-}
 /**
  * Kernel is only normalized when its sum isn't within 1e-4 of one, same as BoofCV
  */
