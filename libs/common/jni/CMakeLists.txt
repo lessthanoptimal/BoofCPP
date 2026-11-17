@@ -17,3 +17,9 @@ add_library(JNIBoofCPPCommon OBJECT ${JNI_COMMON_SRC})
 target_include_directories(JNIBoofCPPCommon PUBLIC src/main/cpp ${JNI_INCLUDE_DIRS})
 target_link_libraries(JNIBoofCPPCommon PUBLIC BoofCPPCommon)
 set_target_properties(JNIBoofCPPCommon PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+# Reported by native_build_info()
+string(TOUPPER "${CMAKE_BUILD_TYPE}" BOOFCPP_BUILD_TYPE_UPPER)
+string(STRIP "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${BOOFCPP_BUILD_TYPE_UPPER}}" BOOFCPP_CXX_FLAGS)
+target_compile_definitions(JNIBoofCPPCommon PRIVATE BOOFCPP_BUILD_TYPE="${CMAKE_BUILD_TYPE}"
+        BOOFCPP_CXX_FLAGS="${BOOFCPP_CXX_FLAGS}")

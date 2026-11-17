@@ -401,3 +401,25 @@ ImageAndInfo<boofcv::Gray<boofcv::F32>,JImageInfo> wrapCriticalGrayF32( JNIEnv *
 
     return output;
 }
+
+// Set by CMake. Builds which don't set them, e.g. Android's, report them as unknown
+#ifndef BOOFCPP_BUILD_TYPE
+#define BOOFCPP_BUILD_TYPE "unknown"
+#endif
+#ifndef BOOFCPP_CXX_FLAGS
+#define BOOFCPP_CXX_FLAGS "unknown"
+#endif
+
+jstring native_build_info( JNIEnv* env ) {
+#if defined(__clang__)
+    const char* compiler = "Clang " __clang_version__;
+#elif defined(__GNUC__)
+    const char* compiler = "GCC " __VERSION__;
+#elif defined(_MSC_VER)
+    const char* compiler = "MSVC";
+#else
+    const char* compiler = "unknown";
+#endif
+    std::string info = std::string(compiler) + ", " + BOOFCPP_BUILD_TYPE + ", " + BOOFCPP_CXX_FLAGS;
+    return env->NewStringUTF(info.c_str());
+}

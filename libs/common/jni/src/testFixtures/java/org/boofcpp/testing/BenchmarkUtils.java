@@ -1,11 +1,15 @@
-package org.boofcpp;
+package org.boofcpp.testing;
 
 import boofcv.io.image.UtilImageIO;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
 
+/// Loads the images the benchmarks and the accuracy tool use
 public class BenchmarkUtils {
+    /// Path of the test image, relative to the project root
+    public static final String TEST_IMAGE = "datasets/test_image.jpg";
+
     public static BufferedImage loadImage( String path )
     {
         File f = new File(findProjectRoot(),path);

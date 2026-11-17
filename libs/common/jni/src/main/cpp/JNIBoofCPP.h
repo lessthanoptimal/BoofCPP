@@ -121,6 +121,9 @@ auto jni_call( JNIEnv* env, Func func ) -> decltype(func()) {
     }
 }
 
+/// Compiler, build type and compiler flags of the native library, e.g. for the accuracy records
+jstring native_build_info( JNIEnv* env );
+
 /// Index of the Java enum's name() in 'names'. Throws if it isn't there
 int32_t java_enum_index( JNIEnv* env, jobject jenum, const char* const* names, size_t count );
 

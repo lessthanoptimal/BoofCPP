@@ -15,3 +15,5 @@ dependencies {
 
     testImplementation(testFixtures(project(":boofcpp-common")))
 }
+
+tasks.named<JavaExec>("accuracyRun") { mainClass = "org.boofcpp.Accuracy" }
