@@ -112,7 +112,9 @@ namespace {
     }
 }
 
-TEST(CensusTransform, census_bits_same_as_java) {
+class CensusTransformTest : public boofcv::BoofCPPTest {};
+
+TEST_F(CensusTransformTest, census_bits_same_as_java) {
     EXPECT_EQ(8u, census_bits(CensusVariants::BLOCK_3_3));
     EXPECT_EQ(24u, census_bits(CensusVariants::BLOCK_5_5));
     EXPECT_EQ(48u, census_bits(CensusVariants::BLOCK_7_7));
@@ -121,7 +123,7 @@ TEST(CensusTransform, census_bits_same_as_java) {
     EXPECT_EQ(56u, census_bits(CensusVariants::CIRCLE_9));
 }
 
-TEST(CensusTransform, hamming) {
+TEST_F(CensusTransformTest, hamming) {
     EXPECT_EQ(0, hamming(0u));
     EXPECT_EQ(1, hamming(0x80000000u));
     EXPECT_EQ(24, hamming(0xFFFFFFu));
@@ -136,7 +138,7 @@ TEST(CensusTransform, hamming) {
     }
 }
 
-TEST(CensusTransform, hamming_64) {
+TEST_F(CensusTransformTest, hamming_64) {
     EXPECT_EQ(0, hamming((uint64_t)0));
     EXPECT_EQ(1, hamming((uint64_t)1 << 63));
     EXPECT_EQ(64, hamming(~(uint64_t)0));
@@ -151,7 +153,7 @@ TEST(CensusTransform, hamming_64) {
 }
 
 /// Same points in the same order as BoofCV's createBlockSamples()
-TEST(CensusTransform, create_block_samples) {
+TEST_F(CensusTransformTest, create_block_samples) {
     auto samples = CensusTransform::create_block_samples(2, 1);
     std::vector<std::pair<int32_t, int32_t>> expected = {
             {-2, -1}, {-1, -1}, {0, -1}, {1, -1}, {2, -1},
@@ -165,7 +167,7 @@ TEST(CensusTransform, create_block_samples) {
 }
 
 /// Same points in the same order as BoofCV's createCircleSamples(), which goes down each column
-TEST(CensusTransform, create_circle_samples) {
+TEST_F(CensusTransformTest, create_circle_samples) {
     auto samples = CensusTransform::create_circle_samples();
     ASSERT_EQ(56u, samples.size());
     // number of points in each column, from x = -4 to 4
@@ -184,7 +186,7 @@ TEST(CensusTransform, create_circle_samples) {
     }
 }
 
-TEST(CensusTransform, sample_S64_compare_to_naive) {
+TEST_F(CensusTransformTest, sample_S64_compare_to_naive) {
     const std::vector<std::vector<Point2D<int32_t>>> all_samples = {
             CensusTransform::create_block_samples(3, 3), CensusTransform::create_block_samples(4, 3),
             CensusTransform::create_block_samples(6, 2), CensusTransform::create_circle_samples()};
@@ -197,7 +199,7 @@ TEST(CensusTransform, sample_S64_compare_to_naive) {
 
 /// Without a border, only pixels farther than the largest x or y of a sample from every edge are written. With a
 /// 13x5 block that's 6 from the top and bottom too, same as BoofCV
-TEST(CensusTransform, sample_S64_no_border) {
+TEST_F(CensusTransformTest, sample_S64_no_border) {
     auto samples = CensusTransform::create_block_samples(6, 2);
     Gray<U8> input(20, 16);
     std::mt19937 gen(0xBEEF);
@@ -217,7 +219,7 @@ TEST(CensusTransform, sample_S64_no_border) {
     }
 }
 
-TEST(CensusTransform, sample_S64_too_many_samples) {
+TEST_F(CensusTransformTest, sample_S64_too_many_samples) {
     Gray<U8> input(10, 10);
     Gray<S64> output(10, 10);
     auto samples = CensusTransform::create_block_samples(4, 4);
@@ -225,19 +227,19 @@ TEST(CensusTransform, sample_S64_too_many_samples) {
     EXPECT_THROW(FilterCensusTransformSampleS64<U8>(samples, nullptr), invalid_argument);
 }
 
-TEST(CensusTransform, dense3x3_compare_to_naive) {
+TEST_F(CensusTransformTest, dense3x3_compare_to_naive) {
     // the smallest sizes have no inner image
     for (auto shape : {std::pair{30u, 25u}, {31u, 4u}, {3u, 20u}, {2u, 2u}, {2u, 7u}})
         compare_to_naive<U8>(shape.first, shape.second, 1);
 }
 
-TEST(CensusTransform, dense5x5_compare_to_naive) {
+TEST_F(CensusTransformTest, dense5x5_compare_to_naive) {
     for (auto shape : {std::pair{30u, 25u}, {31u, 6u}, {5u, 20u}, {3u, 3u}, {4u, 9u}})
         compare_to_naive<S32>(shape.first, shape.second, 2);
 }
 
 /// Without a border, only the inner image is written
-TEST(CensusTransform, no_border) {
+TEST_F(CensusTransformTest, no_border) {
     Gray<U8> input(12, 10);
     std::mt19937 gen(0xBEEF);
     ImageMiscOps::fill_uniform(input, (U8)0, (U8)255, gen);
@@ -257,14 +259,16 @@ TEST(CensusTransform, no_border) {
 }
 
 /// Images smaller than the census region. Every pixel is in the border
-TEST(CensusTransform, smaller_than_region) {
+TEST_F(CensusTransformTest, smaller_than_region) {
     for (auto shape : {std::pair{1u, 1u}, {1u, 5u}, {5u, 1u}})
         compare_to_naive<U8>(shape.first, shape.second, 1);
     for (auto shape : {std::pair{1u, 1u}, {2u, 5u}, {5u, 2u}, {1u, 7u}})
         compare_to_naive<S32>(shape.first, shape.second, 2);
 }
 
-TEST(FilterCensusTransform, same_as_census_transform) {
+class FilterCensusTransformTest : public boofcv::BoofCPPTest {};
+
+TEST_F(FilterCensusTransformTest, same_as_census_transform) {
     Gray<U8> input(20, 15);
     std::mt19937 gen(0xBEEF);
     ImageMiscOps::fill_uniform(input, (U8)0, (U8)255, gen);

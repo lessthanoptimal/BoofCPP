@@ -7,6 +7,7 @@ import boofcv.factory.transform.census.CensusVariants;
 import boofcv.struct.ConfigLength;
 import boofcv.struct.Configuration;
 import boofcv.struct.border.BorderType;
+import org.boofcpp.testing.BoofCPPStandardJUnit;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
@@ -19,7 +20,7 @@ import java.util.function.Supplier;
 import static org.junit.jupiter.api.Assertions.*;
 
 /// Makes sure the C++ configurations have the same fields, enum values, and defaults as BoofCV's
-public class TestNativeConfigs {
+public class TestNativeConfigs extends BoofCPPStandardJUnit {
     @Test void configDisparityBM() throws Exception {
         checkConfig(ConfigDisparityBM.class, ConfigDisparityBM::new, NativeConfigs.fieldNamesBM(), Set.of(),
                 NativeConfigs::defaultsBM, NativeConfigs::roundTripBM);

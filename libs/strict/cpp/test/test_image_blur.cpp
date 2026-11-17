@@ -10,6 +10,17 @@
 using namespace std;
 using namespace boofcv;
 
+// BlurImageOps::mean is tested by checks shared with the other variants
+#include "variant_strict.h"
+#include "shared/blur_mean_checks.h"
+
+class BlurImageOpsTest : public boofcv::BoofCPPTest {};
+
+TEST_F(BlurImageOpsTest, mean_U8) { blur_mean_checks::check_mean_all<U8>(); }
+TEST_F(BlurImageOpsTest, mean_U16) { blur_mean_checks::check_mean_all<U16>(); }
+TEST_F(BlurImageOpsTest, mean_F32) { blur_mean_checks::check_mean_all<F32>(); }
+TEST_F(BlurImageOpsTest, mean_F64) { blur_mean_checks::check_mean_all<F64>(); }
+
 template<class E>
 class CompareToNormalized {
 public:
@@ -75,15 +86,6 @@ public:
         check_equals(expected,found);
     }
 
-    void mean() {
-        Gray<E> tmp(input.width,input.height);
-        ConvolveNormalizedNaive::horizontal(kernel,input,tmp);
-        ConvolveNormalizedNaive::vertical(kernel,tmp,expected);
-        BlurImageOps::mean(input,found,kernel.width/2,tmp);
-
-        check_equals(expected,found);
-    }
-
     void gaussian( int32_t kernel_width ) {
 
         kernel = FactoryKernel::gaussian1D<signed_type>(-1,kernel_width);
@@ -92,17 +94,6 @@ public:
         ConvolveNormalizedNaive::horizontal(kernel,input,tmp);
         ConvolveNormalizedNaive::vertical(kernel,tmp,expected);
         BlurImageOps::gaussian(input,found,-1,kernel_width,tmp);
-
-        check_equals(expected,found);
-    }
-
-    void mean( uint32_t radius_x, uint32_t radius_y ) {
-        Kernel1D<signed_type> kernel_x = FactoryKernel::mean1D<signed_type>(radius_x*2 + 1);
-        Kernel1D<signed_type> kernel_y = FactoryKernel::mean1D<signed_type>(radius_y*2 + 1);
-        Gray<E> tmp(input.width,input.height);
-        ConvolveNormalizedNaive::horizontal(kernel_x,input,tmp);
-        ConvolveNormalizedNaive::vertical(kernel_y,tmp,expected);
-        BlurImageOps::mean(input,found,radius_x,radius_y,tmp);
 
         check_equals(expected,found);
     }
@@ -154,7 +145,9 @@ namespace {
     }
 }
 
-TEST(MeanDivisor, U8) {
+class MeanDivisorTest : public boofcv::BoofCPPTest {};
+
+TEST_F(MeanDivisorTest, U8) {
     for (uint32_t length = 1; length <= 101; length++)
         check_mean_divisor<U8>(length);
     // 8405024 is the largest length that uses a multiplication, 8405025 divides
@@ -162,7 +155,7 @@ TEST(MeanDivisor, U8) {
         check_mean_divisor<U8>(length);
 }
 
-TEST(MeanDivisor, U16) {
+TEST_F(MeanDivisorTest, U16) {
     for (uint32_t length = 1; length <= 61; length++)
         check_mean_divisor<U16>(length);
     // 32768 is the largest length that uses a multiplication, 32769 divides
@@ -171,7 +164,7 @@ TEST(MeanDivisor, U16) {
 }
 
 /// The 32-bit multiplication is used when the products fit, e.g. U8 Gaussian kernels, but not for U16
-TEST(MeanDivisor, multiply32) {
+TEST_F(MeanDivisorTest, multiply32) {
     ASSERT_TRUE(MeanDivisor<U8>(71).uses_multiply32());
     ASSERT_TRUE(MeanDivisor<U8>(11).uses_multiply32());
     ASSERT_FALSE(MeanDivisor<U8>(8405024).uses_multiply32());
@@ -180,7 +173,7 @@ TEST(MeanDivisor, multiply32) {
     ASSERT_TRUE(MeanDivisor<U16>(71).uses_multiply());
 }
 
-TEST(MeanDivisor, signed_and_float) {
+TEST_F(MeanDivisorTest, signed_and_float) {
     const MeanDivisor<S16> divisor_s16(7);
     for (int32_t n = -40000; n <= 40000; n++)
         ASSERT_EQ((S16)((n + 3)/7), divisor_s16(n));
@@ -193,7 +186,9 @@ TEST(MeanDivisor, signed_and_float) {
     ASSERT_TRUE(std::signbit(divisor_f32(-0.0f)));
 }
 
-TEST(ConvolveImageMean, inner_horizontal_U8) {
+class ConvolveImageMeanTest : public boofcv::BoofCPPTest {};
+
+TEST_F(ConvolveImageMeanTest, inner_horizontal_U8) {
     CompareToNormalized<U8> compare;
 
     for( uint32_t i = 0; i < 2; i++ ) {
@@ -210,7 +205,7 @@ TEST(ConvolveImageMean, inner_horizontal_U8) {
     }
 }
 
-TEST(ConvolveImageMean, inner_horizontal_F32) {
+TEST_F(ConvolveImageMeanTest, inner_horizontal_F32) {
     CompareToNormalized<F32> compare;
 
     for( uint32_t i = 0; i < 2; i++ ) {
@@ -227,7 +222,7 @@ TEST(ConvolveImageMean, inner_horizontal_F32) {
     }
 }
 
-TEST(ConvolveImageMean, inner_vertical_U8) {
+TEST_F(ConvolveImageMeanTest, inner_vertical_U8) {
     CompareToNormalized<U8> compare;
 
     for( uint32_t i = 0; i < 2; i++ ) {
@@ -244,7 +239,7 @@ TEST(ConvolveImageMean, inner_vertical_U8) {
     }
 }
 
-TEST(ConvolveImageMean, inner_vertical_F32) {
+TEST_F(ConvolveImageMeanTest, inner_vertical_F32) {
     CompareToNormalized<F32> compare;
 
     for( uint32_t i = 0; i < 2; i++ ) {
@@ -261,7 +256,7 @@ TEST(ConvolveImageMean, inner_vertical_F32) {
     }
 }
 
-TEST(ConvolveImageMean, horizonal) {
+TEST_F(ConvolveImageMeanTest, horizonal) {
     CompareToNormalized<U8> compare;
 
     for( uint32_t i = 0; i < 2; i++ ) {
@@ -278,7 +273,7 @@ TEST(ConvolveImageMean, horizonal) {
     }
 }
 
-TEST(ConvolveImageMean, vertical) {
+TEST_F(ConvolveImageMeanTest, vertical) {
     CompareToNormalized<U8> compare;
 
     for( uint32_t i = 0; i < 2; i++ ) {
@@ -295,25 +290,7 @@ TEST(ConvolveImageMean, vertical) {
     }
 }
 
-TEST(BlurImageOps, mean) {
-    CompareToNormalized<U8> compare;
-
-    for( uint32_t i = 0; i < 3; i++ ) {
-        uint32_t w = 3+i;
-        uint32_t h = 4+i;
-//        printf("mean i = %d  %dx%d\n",i,w,h);
-
-        compare.setImageSize(w,h);
-        compare.setMeanRadius(1);
-        compare.mean();
-        compare.setMeanRadius(2);
-        compare.mean();
-        compare.setMeanRadius(5);
-        compare.mean();
-    }
-}
-
-TEST(BlurImageOps, gaussian) {
+TEST_F(BlurImageOpsTest, gaussian) {
     CompareToNormalized<U8> compare;
 
     for( uint32_t i = 0; i < 3; i++ ) {
@@ -330,19 +307,6 @@ TEST(BlurImageOps, gaussian) {
 }
 
 namespace {
-    /// Different radius along x and y, including radii larger than the image
-    template<class E>
-    void check_mean_xy() {
-        CompareToNormalized<E> compare;
-        for (uint32_t size : {4u, 9u, 30u}) {
-            compare.setImageSize(size + 3, size);
-            compare.mean(1, 2);
-            compare.mean(4, 1);
-            compare.mean(3, 3);
-            compare.mean(12, 5);
-        }
-    }
-
     /// Different sigma and width along x and y. Either can be computed from the other
     template<class E>
     void check_gaussian_xy() {
@@ -357,14 +321,10 @@ namespace {
     }
 }
 
-TEST(BlurImageOps, mean_xy_U8) { check_mean_xy<U8>(); }
-TEST(BlurImageOps, mean_xy_U16) { check_mean_xy<U16>(); }
-TEST(BlurImageOps, mean_xy_F32) { check_mean_xy<F32>(); }
-TEST(BlurImageOps, mean_xy_F64) { check_mean_xy<F64>(); }
-TEST(BlurImageOps, gaussian_xy_U8) { check_gaussian_xy<U8>(); }
-TEST(BlurImageOps, gaussian_xy_U16) { check_gaussian_xy<U16>(); }
-TEST(BlurImageOps, gaussian_xy_F32) { check_gaussian_xy<F32>(); }
-TEST(BlurImageOps, gaussian_xy_F64) { check_gaussian_xy<F64>(); }
+TEST_F(BlurImageOpsTest, gaussian_xy_U8) { check_gaussian_xy<U8>(); }
+TEST_F(BlurImageOpsTest, gaussian_xy_U16) { check_gaussian_xy<U16>(); }
+TEST_F(BlurImageOpsTest, gaussian_xy_F32) { check_gaussian_xy<F32>(); }
+TEST_F(BlurImageOpsTest, gaussian_xy_F64) { check_gaussian_xy<F64>(); }
 
 namespace {
     /// Brute force mean of the region around (x,y), reading pixels through the border, in double
@@ -466,28 +426,28 @@ namespace {
     }
 }
 
-TEST(BlurImageOps, mean_border_compare_to_naive_U8) {
+TEST_F(BlurImageOpsTest, mean_border_compare_to_naive_U8) {
     mean_border_compare_to_naive<U8>(0, 255);
 }
 
-TEST(BlurImageOps, mean_border_compare_to_naive_S16) {
+TEST_F(BlurImageOpsTest, mean_border_compare_to_naive_S16) {
     // negative values check the rounding of negative sums
     mean_border_compare_to_naive<S16>(-30000, 30000);
 }
 
-TEST(BlurImageOps, mean_border_compare_to_naive_U16) {
+TEST_F(BlurImageOpsTest, mean_border_compare_to_naive_U16) {
     mean_border_compare_to_naive<U16>(0, 65535);
 }
 
-TEST(BlurImageOps, mean_border_compare_to_naive_F32) {
+TEST_F(BlurImageOpsTest, mean_border_compare_to_naive_F32) {
     mean_border_compare_to_naive<F32>(0.0f, 10.0f);
 }
 
-TEST(BlurImageOps, mean_border_compare_to_naive_F64) {
+TEST_F(BlurImageOpsTest, mean_border_compare_to_naive_F64) {
     mean_border_compare_to_naive<F64>(0.0, 10.0);
 }
 
-TEST(BlurImageOps, mean_border_bad_radius) {
+TEST_F(BlurImageOpsTest, mean_border_bad_radius) {
     Gray<F32> input(10, 8), output(1, 1), storage(1, 1);
     std::vector<F32> totals;
     auto border = FactoryImageBorder::create_SB<F32>(REFLECT);

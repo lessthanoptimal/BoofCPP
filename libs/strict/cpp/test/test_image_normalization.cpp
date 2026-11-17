@@ -42,7 +42,9 @@ namespace {
     }
 }
 
-TEST(ImageNormalization, zero_mean_max_one_U8) {
+class ImageNormalizationTest : public boofcv::BoofCPPTest {};
+
+TEST_F(ImageNormalizationTest, zero_mean_max_one_U8) {
     Gray<U8> input(20, 15);
     std::mt19937 gen(0xBEEF);
     ImageMiscOps::fill_uniform(input, (U8)10, (U8)200, gen);
@@ -65,7 +67,7 @@ TEST(ImageNormalization, zero_mean_max_one_U8) {
     }
 }
 
-TEST(ImageNormalization, zero_mean_max_one_F32) {
+TEST_F(ImageNormalizationTest, zero_mean_max_one_F32) {
     Gray<F32> input(20, 15);
     std::mt19937 gen(0xBEEF);
     ImageMiscOps::fill_uniform(input, -3.0f, 7.0f, gen);
@@ -74,7 +76,7 @@ TEST(ImageNormalization, zero_mean_max_one_F32) {
 }
 
 /// An image of zeros can't be scaled, so nothing is changed
-TEST(ImageNormalization, zero_mean_max_one_all_zero) {
+TEST_F(ImageNormalizationTest, zero_mean_max_one_all_zero) {
     Gray<U8> input(6, 4);
     ImageMiscOps::fill(input, (U8)0);
     Gray<F32> output(6, 4);
@@ -87,7 +89,7 @@ TEST(ImageNormalization, zero_mean_max_one_all_zero) {
         ASSERT_EQ(2.0f, output.data[i]);
 }
 
-TEST(ImageNormalization, max_abs) {
+TEST_F(ImageNormalizationTest, max_abs) {
     Gray<F32> f32(5, 4);
     ImageMiscOps::fill(f32, 1.0f);
     f32.at(2, 3) = -6.5f;
@@ -101,7 +103,7 @@ TEST(ImageNormalization, max_abs) {
 }
 
 /// Summed in a single float in row major order, like BoofCV
-TEST(ImageNormalization, mean_F32) {
+TEST_F(ImageNormalizationTest, mean_F32) {
     Gray<F32> image(7, 3);
     std::mt19937 gen(0xBEEF);
     ImageMiscOps::fill_uniform(image, 0.0f, 1.0f, gen);

@@ -12,20 +12,18 @@ import boofcv.struct.image.GrayS32;
 import boofcv.struct.image.GrayU8;
 import georegression.struct.point.Point2D_I32;
 import org.boofcpp.BoofCPP;
+import org.boofcpp.testing.BoofCPPStandardJUnit;
 import org.ddogleg.struct.DogArray;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Peter Abeles
  */
-public class TestNativeChang2004 {
-    Random rand = new Random(23423);
-
+public class TestNativeChang2004 extends BoofCPPStandardJUnit {
     GrayU8 binary = new GrayU8(400,450);
 
     static {
@@ -145,7 +143,6 @@ public class TestNativeChang2004 {
 
         assertTrue(packedJava.size()>0);
         assertEquals(packedJava.size(),packedNative.size());
-
 
         for (int i = 0; i < packedJava.size(); i++) {
             ContourPacked n = packedNative.get(i);

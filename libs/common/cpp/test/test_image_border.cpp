@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include "testing_utils.h"
 #include "boofcv/image_border.h"
 #include "boofcv/image_misc_ops.h"
 
@@ -6,7 +7,9 @@
 using namespace std;
 using namespace boofcv;
 
-TEST(ImageBorderValue, check) {
+class ImageBorderValueTest : public boofcv::BoofCPPTest {};
+
+TEST_F(ImageBorderValueTest, check) {
     ImageBorderValue<U8> border( (U8)60 );
 
     Gray<U8> image(30,40);
@@ -28,7 +31,9 @@ TEST(ImageBorderValue, check) {
     ASSERT_EQ(image.at(29,39),border.get(29,39));
 }
 
-TEST(ImageBorderExtend, check) {
+class ImageBorderExtendTest : public boofcv::BoofCPPTest {};
+
+TEST_F(ImageBorderExtendTest, check) {
     ImageBorderExtend<U8> border;
 
     Gray<U8> image(30,40);
@@ -50,7 +55,9 @@ TEST(ImageBorderExtend, check) {
     ASSERT_EQ(image.at(29,39),border.get(29,39));
 }
 
-TEST(ImageBorderWrap, check) {
+class ImageBorderWrapTest : public boofcv::BoofCPPTest {};
+
+TEST_F(ImageBorderWrapTest, check) {
     ImageBorderWrap<U8> border;
 
     Gray<U8> image(30,40);
@@ -72,7 +79,9 @@ TEST(ImageBorderWrap, check) {
     ASSERT_EQ(image.at(29,39),border.get(29,39));
 }
 
-TEST(ImageBorderReflect, check) {
+class ImageBorderReflectTest : public boofcv::BoofCPPTest {};
+
+TEST_F(ImageBorderReflectTest, check) {
     ImageBorderReflect<U8> border;
 
     Gray<U8> image(30,40);
@@ -96,7 +105,7 @@ TEST(ImageBorderReflect, check) {
 
 /// Images smaller than the distance outside are reflected more than once. Same as BoofCV's
 /// TestBorderIndex1D_Reflect.smallerThanOffset
-TEST(ImageBorderReflect, smaller_than_offset) {
+TEST_F(ImageBorderReflectTest, smaller_than_offset) {
     ImageBorderReflect<U8> border;
     int32_t x;
     for (int32_t index : {-1, 1, -2, 2}) {
@@ -111,7 +120,7 @@ TEST(ImageBorderReflect, smaller_than_offset) {
 
 /// Images smaller than the distance outside are wrapped more than once. Same as BoofCV's
 /// TestBorderIndex1D_Wrap.smallerThanOffset
-TEST(ImageBorderWrap, smaller_than_offset) {
+TEST_F(ImageBorderWrapTest, smaller_than_offset) {
     ImageBorderWrap<U8> border;
     int32_t x;
     for (int32_t index : {-1, 1, -2, 2}) {

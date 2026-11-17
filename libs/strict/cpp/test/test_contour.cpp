@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include "testing_utils.h"
 #include "boofcv/contour.h"
 #include "boofcv/image_misc_ops.h"
 #include "boofcv/image_statistics.h"
@@ -70,28 +71,30 @@ void checkAllContour( const Gray<U8>& pattern , ConnectRule rule ) {
     checkAllContour(pattern,expected_total,rule);
 }
 
-TEST(PackedSet, constructor_4) {
+class PackedSetTest : public boofcv::BoofCPPTest {};
+
+TEST_F(PackedSetTest, constructor_4) {
     ContourTracer tracer(ConnectRule::FOUR);
 
     ASSERT_EQ(4,tracer.ruleN);
     // should check next direction. need to reread the paper to see why it is the way it is
 }
 
-TEST(PackedSet, constructor_8) {
+TEST_F(PackedSetTest, constructor_8) {
     ContourTracer tracer(ConnectRule::EIGHT);
 
     ASSERT_EQ(8,tracer.ruleN);
     // should check next direction. need to reread the paper to see why it is the way it is
 }
 
-TEST(PackedSet, single_pixel) {
+TEST_F(PackedSetTest, single_pixel) {
     Gray<U8> pattern({{1}});
     checkAllContour(pattern,ConnectRule::FOUR);
     checkAllContour(pattern,ConnectRule::EIGHT);
 }
 
 
-TEST(PackedSet, line_2) {
+TEST_F(PackedSetTest, line_2) {
     Gray<U8> patternH({{1,1}});
     checkAllContour(patternH,ConnectRule::FOUR);
     checkAllContour(patternH,ConnectRule::EIGHT);
@@ -101,28 +104,28 @@ TEST(PackedSet, line_2) {
     checkAllContour(patternV,ConnectRule::EIGHT);
 }
 
-TEST(PackedSet, square_2) {
+TEST_F(PackedSetTest, square_2) {
     Gray<U8> pattern({{1,1},{1,1}});
     checkAllContour(pattern,ConnectRule::FOUR);
     checkAllContour(pattern,ConnectRule::EIGHT);
 }
 
 
-TEST(PackedSet, funky1) {
+TEST_F(PackedSetTest, funky1) {
     Gray<U8> pattern({{1,0},
                       {0,1},
                       {1,0}});
     checkAllContour(pattern,4,ConnectRule::EIGHT);
 }
 
-TEST(PackedSet, funky2) {
+TEST_F(PackedSetTest, funky2) {
     Gray<U8> pattern({{1,0,0,0},
                       {0,1,1,0},
                       {1,0,0,1}});
     checkAllContour(pattern,8,ConnectRule::EIGHT);
 }
 
-TEST(PackedSet, funky3) {
+TEST_F(PackedSetTest, funky3) {
     Gray<U8> pattern({{0,1,0,0},
                       {0,1,1,0},
                       {1,1,0,1}});
@@ -142,14 +145,14 @@ TEST(PackedSet, funky3) {
 
 }
 
-TEST(PackedSet, funky4) {
+TEST_F(PackedSetTest, funky4) {
     Gray<U8> pattern({{1,0,1},
                       {1,1,1},
                       {1,0,1}});
     checkAllContour(pattern,12,ConnectRule::FOUR);
 }
 
-TEST(PackedSet, interior1) {
+TEST_F(PackedSetTest, interior1) {
     Gray<U8> pattern({{0,1,1,1,0},
                       {0,1,1,0,1},
                       {1,1,1,1,0}});
@@ -167,7 +170,7 @@ TEST(PackedSet, interior1) {
     ASSERT_EQ(4, queue.size_of_tail());
 }
 
-TEST(PackedSet, interior2) {
+TEST_F(PackedSetTest, interior2) {
     Gray<U8> pattern({{0,1,1,1,1},
                       {0,1,1,0,1},
                       {1,1,1,1,1}});
@@ -188,7 +191,7 @@ TEST(PackedSet, interior2) {
 /**
  * Make sure it is marking surrounding white pixels
  */
-TEST(PackedSet, mark_white) {
+TEST_F(PackedSetTest, mark_white) {
     Gray<U8> before({{0,0,0,0,0,0},
                      {0,0,1,1,0,0},
                      {0,0,0,1,0,0},
@@ -418,7 +421,9 @@ public:
 };
 
 
-TEST(LinearContourLabelChang2004, test1_4) {
+class LinearContourLabelChang2004Test : public boofcv::BoofCPPTest {};
+
+TEST_F(LinearContourLabelChang2004Test, test1_4) {
     TestLinearContourLabelChang2004 testing;
 
     Gray<U8> &input = testing.TEST1;
@@ -431,7 +436,7 @@ TEST(LinearContourLabelChang2004, test1_4) {
     testing.checkContour(alg, labeled, ConnectRule::FOUR);
 }
 
-TEST(LinearContourLabelChang2004, test1_8) {
+TEST_F(LinearContourLabelChang2004Test, test1_8) {
     TestLinearContourLabelChang2004 testing;
 
     Gray<U8> &input = testing.TEST1;
@@ -444,7 +449,7 @@ TEST(LinearContourLabelChang2004, test1_8) {
     testing.checkContour(alg, labeled, ConnectRule::EIGHT);
 }
 
-TEST(LinearContourLabelChang2004, test2_4) {
+TEST_F(LinearContourLabelChang2004Test, test2_4) {
     TestLinearContourLabelChang2004 testing;
 
     Gray<U8> &input = testing.TEST2;
@@ -457,7 +462,7 @@ TEST(LinearContourLabelChang2004, test2_4) {
     testing.checkContour(alg, labeled, ConnectRule::FOUR);
 }
 
-TEST(LinearContourLabelChang2004, test2_8) {
+TEST_F(LinearContourLabelChang2004Test, test2_8) {
     TestLinearContourLabelChang2004 testing;
 
     Gray<U8> &input = testing.TEST2;
@@ -470,7 +475,7 @@ TEST(LinearContourLabelChang2004, test2_8) {
     testing.checkContour(alg, labeled, ConnectRule::EIGHT);
 }
 
-TEST(LinearContourLabelChang2004, test3_4) {
+TEST_F(LinearContourLabelChang2004Test, test3_4) {
     TestLinearContourLabelChang2004 testing;
 
     Gray<U8> &input = testing.TEST4;
@@ -483,7 +488,7 @@ TEST(LinearContourLabelChang2004, test3_4) {
     testing.checkContour(alg, labeled, ConnectRule::FOUR);
 }
 
-TEST(LinearContourLabelChang2004, test3_8) {
+TEST_F(LinearContourLabelChang2004Test, test3_8) {
     TestLinearContourLabelChang2004 testing;
 
     Gray<U8> &input = testing.TEST4;
@@ -496,7 +501,7 @@ TEST(LinearContourLabelChang2004, test3_8) {
     testing.checkContour(alg, labeled, ConnectRule::EIGHT);
 }
 
-TEST(LinearContourLabelChang2004, checkInnerOuterContour) {
+TEST_F(LinearContourLabelChang2004Test, checkInnerOuterContour) {
     TestLinearContourLabelChang2004 testing;
 
     Gray<U8> &input = testing.TEST3;

@@ -16,16 +16,14 @@ import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
 import boofcv.struct.image.Planar;
 import org.boofcpp.BoofCPP;
+import org.boofcpp.testing.BoofCPPStandardJUnit;
 import org.junit.jupiter.api.Test;
 
 import java.util.Random;
 
-import static org.boofcpp.testing.BoofCPPTesting.assertIdentical;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class TestNativeAverageDownSampleOps {
-    Random rand = new Random(23423);
-
+public class TestNativeAverageDownSampleOps extends BoofCPPStandardJUnit {
     static {
         BoofCPP.loadlib();
     }
@@ -48,11 +46,11 @@ public class TestNativeAverageDownSampleOps {
 
                         ImageGray found = BoofTesting.createSubImageOf(createOutput(input, width));
                         new NativeAverageDownSampleOps().processDown(input, width, found);
-                        assertIdentical(expected, found);
+                        assertMatches(expected, found);
 
                         ImageGray hook = createOutput(input, width);
                         callBoofCV(true, concurrent, () -> AverageDownSampleOps.down(input, width, hook));
-                        assertIdentical(expected, hook);
+                        assertMatches(expected, hook);
                     }
                 }
             }
@@ -70,7 +68,7 @@ public class TestNativeAverageDownSampleOps {
         callBoofCV(false, false, () -> AverageDownSampleOps.down(input, 3, expected));
         callBoofCV(true, false, () -> AverageDownSampleOps.down(input, 3, found));
         for (int band = 0; band < 3; band++) {
-            assertIdentical(expected.getBand(band), found.getBand(band));
+            assertMatches(expected.getBand(band), found.getBand(band));
         }
     }
 
@@ -106,11 +104,11 @@ public class TestNativeAverageDownSampleOps {
 
                         ImageGray found = BoofTesting.createSubImageOf((ImageGray)expected.createSameShape());
                         new NativeAverageDownSampleOps().processDown(input, centered, found, null);
-                        assertIdentical(expected, found);
+                        assertMatches(expected, found);
 
                         ImageGray hook = (ImageGray)expected.createSameShape();
                         callBoofCV(true, concurrent, () -> AverageDownSampleOps.down(input, centered, hook, null));
-                        assertIdentical(expected, hook);
+                        assertMatches(expected, hook);
                     }
                 }
             }
@@ -131,9 +129,9 @@ public class TestNativeAverageDownSampleOps {
                         callBoofCV(false, concurrent, () -> AverageDownSampleOps.horizontal(input, centered, expected));
                         ImageGray found = (ImageGray)expected.createSameShape();
                         new NativeAverageDownSampleOps().processHorizontal(input, centered, found);
-                        assertIdentical(expected, found);
+                        assertMatches(expected, found);
                         callBoofCV(true, concurrent, () -> AverageDownSampleOps.horizontal(input, centered, found));
-                        assertIdentical(expected, found);
+                        assertMatches(expected, found);
 
                         ImageGray middle = randomImage(middleType, 61, 45);
                         ImageGray expectedV = GeneralizedImageOps.createSingleBand(type, 61, shape[1]);
@@ -141,10 +139,10 @@ public class TestNativeAverageDownSampleOps {
                                 () -> AverageDownSampleOps.vertical(middle, centered, expectedV, null));
                         ImageGray foundV = (ImageGray)expectedV.createSameShape();
                         new NativeAverageDownSampleOps().processVertical(middle, centered, foundV);
-                        assertIdentical(expectedV, foundV);
+                        assertMatches(expectedV, foundV);
                         callBoofCV(true, concurrent,
                                 () -> AverageDownSampleOps.vertical(middle, centered, foundV, null));
-                        assertIdentical(expectedV, foundV);
+                        assertMatches(expectedV, foundV);
                     }
                 }
             }
@@ -162,7 +160,7 @@ public class TestNativeAverageDownSampleOps {
         callBoofCV(false, false, () -> AverageDownSampleOps.down(input, true, expected, null));
         callBoofCV(true, false, () -> AverageDownSampleOps.down(input, true, found, null));
         for (int band = 0; band < 3; band++) {
-            assertIdentical(expected.getBand(band), found.getBand(band));
+            assertMatches(expected.getBand(band), found.getBand(band));
         }
     }
 

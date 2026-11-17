@@ -12,6 +12,10 @@ target_link_libraries(BoofCPP PUBLIC BoofCPPCommon)
 install(TARGETS BoofCPP DESTINATION lib ARCHIVE DESTINATION lib)
 
 if (test)
+    # The checks in test/shared/ and strict's variant header, used by the tests of every variant
+    add_library(BoofCPPStrictTest INTERFACE)
+    target_include_directories(BoofCPPStrictTest INTERFACE test)
+
     include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
     ##############

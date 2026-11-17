@@ -12,13 +12,10 @@ import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
 import boofcv.BoofTesting;
 import org.boofcpp.BoofCPP;
+import org.boofcpp.testing.BoofCPPStandardJUnit;
 import org.junit.jupiter.api.Test;
 
-import java.util.Random;
-
-public class TestNativeImageConvolveNormalized {
-    Random rand = new Random(23423);
-
+public class TestNativeImageConvolveNormalized extends BoofCPPStandardJUnit {
     Class types[] = new Class[]{GrayU8.class, GrayF32.class};
 
     int width=400,height=300;
@@ -39,7 +36,6 @@ public class TestNativeImageConvolveNormalized {
             GImageMiscOps.fillUniform(input,rand,0,255);
 
             input = BoofTesting.createSubImageOf(input); // non-zero offset/stride
-
 
             for( int radius : new int[]{1,2,3,4,5,24} )
             for( int kscale : new int[]{1,2} ) {

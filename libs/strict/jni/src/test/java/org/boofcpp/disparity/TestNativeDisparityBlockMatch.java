@@ -16,21 +16,18 @@ import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
 import org.boofcpp.BoofCPP;
+import org.boofcpp.testing.BoofCPPStandardJUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import java.util.function.Consumer;
 
-import static org.boofcpp.testing.BoofCPPTesting.assertIdentical;
 import static org.junit.jupiter.api.Assertions.*;
 
 /// Compares native block matching against BoofCV's Java implementation. Results must be identical.
-public class TestNativeDisparityBlockMatch {
-    Random rand = new Random(234);
-
+public class TestNativeDisparityBlockMatch extends BoofCPPStandardJUnit {
     static {
         BoofCPP.loadlib();
     }
@@ -111,9 +108,9 @@ public class TestNativeDisparityBlockMatch {
         java.process(left, right);
         found.process(left, right);
 
-        assertIdentical(java.getDisparity(), found.getDisparity());
+        assertMatches(java.getDisparity(), found.getDisparity());
         if (config.saveScore) {
-            assertIdentical(java.getDisparityScore(), found.getDisparityScore());
+            assertMatches(java.getDisparityScore(), found.getDisparityScore());
         } else {
             assertNull(found.getDisparityScore());
         }

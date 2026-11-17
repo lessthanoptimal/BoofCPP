@@ -14,16 +14,13 @@ import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
 import boofcv.BoofTesting;
 import org.boofcpp.BoofCPP;
+import org.boofcpp.testing.BoofCPPStandardJUnit;
 import org.junit.jupiter.api.Test;
-
-import java.util.Random;
 
 /**
  * -ea -Djava.library.path=/Users/pabeles/projects/BoofCPP/build/jni
  */
-public class TestNativeGlobalOtsu {
-    Random rand = new Random(23423);
-
+public class TestNativeGlobalOtsu extends BoofCPPStandardJUnit {
     Class types[] = new Class[]{GrayU8.class, GrayF32.class};
 
     static {

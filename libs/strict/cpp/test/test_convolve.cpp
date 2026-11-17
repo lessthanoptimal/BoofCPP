@@ -25,7 +25,9 @@ U8 horizontal_norm(uint32_t x , uint32_t y , const Kernel1D<S32>& kernel , const
     return static_cast<U8>((total + weight/2)/weight);
 }
 
-TEST(ConvolveNormalizedNaive, horizontal_1D_int) {
+class ConvolveNormalizedNaiveTest : public boofcv::BoofCPPTest {};
+
+TEST_F(ConvolveNormalizedNaiveTest, horizontal_1D_int) {
     std::mt19937 gen(0xBEEF);
     Kernel1D<S32> kernel(4,{1,2,3,4,5,6});
 
@@ -62,7 +64,7 @@ F32 horizontal_norm(uint32_t x , uint32_t y , const Kernel1D<F32>& kernel , cons
     return total/weight;
 }
 
-TEST(ConvolveNormalizedNaive, horizontal_1D_float) {
+TEST_F(ConvolveNormalizedNaiveTest, horizontal_1D_float) {
     std::mt19937 gen(0xBEEF);
     Kernel1D<F32> kernel(4,{1,2,3,4,5,6});
 
@@ -99,7 +101,7 @@ U8 vertical_norm(uint32_t x , uint32_t y , const Kernel1D<S32>& kernel , const G
     return static_cast<U8>((total + weight/2)/weight);
 }
 
-TEST(ConvolveNormalizedNaive, vertical_1D_int) {
+TEST_F(ConvolveNormalizedNaiveTest, vertical_1D_int) {
     std::mt19937 gen(0xBEEF);
     Kernel1D<S32> kernel(4,{1,2,3,4,5,6});
 
@@ -137,7 +139,7 @@ F32 vertical_norm(uint32_t x , uint32_t y , const Kernel1D<F32>& kernel , const 
     return total/weight;
 }
 
-TEST(ConvolveNormalizedNaive, vertical_1D_float) {
+TEST_F(ConvolveNormalizedNaiveTest, vertical_1D_float) {
     std::mt19937 gen(0xBEEF);
     Kernel1D<F32> kernel(4,{1,2,3,4,5,6});
 
@@ -173,7 +175,9 @@ U8 horizontal(uint32_t x , uint32_t y , const Kernel1D<S32>& kernel , const Imag
     return (U8)total;
 }
 
-TEST(ConvolveNaive, horizontal_1D_int) {
+class ConvolveNaiveTest : public boofcv::BoofCPPTest {};
+
+TEST_F(ConvolveNaiveTest, horizontal_1D_int) {
     std::mt19937 gen(0xBEEF);
     Kernel1D<S32> kernel(4,{1,2,3,4,5,6});
 
@@ -212,7 +216,7 @@ U8 vertical(uint32_t x , uint32_t y , const Kernel1D<S32>& kernel , const ImageB
     return (U8)total;
 }
 
-TEST(ConvolveNaive, vertical_1D_int) {
+TEST_F(ConvolveNaiveTest, vertical_1D_int) {
     std::mt19937 gen(0xBEEF);
     Kernel1D<S32> kernel(4,{1,2,3,4,5,6});
 
@@ -254,7 +258,7 @@ U8 convolve2D(uint32_t x , uint32_t y , const Kernel2D<S32>& kernel , const Imag
     return (U8)total;
 }
 
-TEST(ConvolveNaive, convolve_2D_int) {
+TEST_F(ConvolveNaiveTest, convolve_2D_int) {
     std::mt19937 gen(0xBEEF);
     Kernel2D<S32> kernel(3,{{1,2,3,4},{5,6,7,8},{4,0,5,6},{4,-1,3,-9}});
 
@@ -296,7 +300,7 @@ F32 convolve2D(uint32_t x , uint32_t y , const Kernel2D<F32>& kernel , const Ima
     return total;
 }
 
-TEST(ConvolveNaive, convolve_2D_float) {
+TEST_F(ConvolveNaiveTest, convolve_2D_float) {
     std::mt19937 gen(0xBEEF);
     Kernel2D<F32> kernel(3,{{1,2,3,4},{5,6,7,8},{4,0,5,6},{4,-1,3,-9}});
 
@@ -335,7 +339,7 @@ U8 horizontal_divide(uint32_t x , uint32_t y , const Kernel1D<S32>& kernel , con
     return static_cast<U8>((total+divisor/2)/divisor);
 }
 
-TEST(ConvolveNaive, horizontal_divide_1D_int) {
+TEST_F(ConvolveNaiveTest, horizontal_divide_1D_int) {
     std::mt19937 gen(0xBEEF);
     Kernel1D<S32> kernel(4,{1,2,3,4,5,6});
 
@@ -376,7 +380,7 @@ F32 horizontal_divide(uint32_t x , uint32_t y , const Kernel1D<F32>& kernel , co
     return total/divisor;
 }
 
-TEST(ConvolveNaive, horizontal_divide_1D_float) {
+TEST_F(ConvolveNaiveTest, horizontal_divide_1D_float) {
     std::mt19937 gen(0xBEEF);
     Kernel1D<F32> kernel(4,{1,2,3,4,5,6});
 
@@ -421,7 +425,7 @@ S32 convolve2D_divide(uint32_t x , uint32_t y , const Kernel2D<S32>& kernel , co
 }
 
 
-TEST(ConvolveNaive, convolve2D_divide_int) {
+TEST_F(ConvolveNaiveTest, convolve2D_divide_int) {
     std::mt19937 gen(0xBEEF);
     Kernel2D<S32> kernel(3,{{1,2,3,4},{5,6,7,8},{4,0,5,6},{4,-1,3,-9}});
 
@@ -465,7 +469,7 @@ F32 convolve2D_divide(uint32_t x , uint32_t y , const Kernel2D<F32>& kernel , co
     return total/divisor;
 }
 
-TEST(ConvolveNaive, convolve2D_divide_float) {
+TEST_F(ConvolveNaiveTest, convolve2D_divide_float) {
     std::mt19937 gen(0xBEEF);
     Kernel2D<F32> kernel(3,{{1,2,3,4},{5,6,7,8},{4,0,5,6},{4,-1,3,-9}});
 
@@ -506,7 +510,7 @@ U8 vertical_divide(uint32_t x , uint32_t y , const Kernel1D<S32>& kernel , const
     return static_cast<U8>((total+divisor/2)/divisor);
 }
 
-TEST(ConvolveNaive, vertical_divide_1D_int) {
+TEST_F(ConvolveNaiveTest, vertical_divide_1D_int) {
     std::mt19937 gen(0xBEEF);
     Kernel1D<S32> kernel(4,{1,2,3,4,5,6});
 
@@ -547,7 +551,7 @@ F32 vertical_divide(uint32_t x , uint32_t y , const Kernel1D<F32>& kernel , cons
     return total/divisor;
 }
 
-TEST(ConvolveNaive, vertical_divide_1D_float) {
+TEST_F(ConvolveNaiveTest, vertical_divide_1D_float) {
     std::mt19937 gen(0xBEEF);
     Kernel1D<F32> kernel(4,{1,2,3,4,5,6});
 
@@ -847,7 +851,9 @@ public:
 
 };
 
-TEST(ConvolveNormalized_JustBorder, horizontal_U8) {
+class ConvolveNormalized_JustBorderTest : public boofcv::BoofCPPTest {};
+
+TEST_F(ConvolveNormalized_JustBorderTest, horizontal_U8) {
     CompareToNaive<U8> compare;
 
     for( uint32_t i = 0; i < 2; i++ ) {
@@ -868,7 +874,7 @@ TEST(ConvolveNormalized_JustBorder, horizontal_U8) {
     }
 }
 
-TEST(ConvolveNormalized_JustBorder, horizontal_F32) {
+TEST_F(ConvolveNormalized_JustBorderTest, horizontal_F32) {
     CompareToNaive<F32> compare;
 
     for( uint32_t i = 0; i < 2; i++ ) {
@@ -889,7 +895,7 @@ TEST(ConvolveNormalized_JustBorder, horizontal_F32) {
     }
 }
 
-TEST(ConvolveNormalized_JustBorder, vertical_U8) {
+TEST_F(ConvolveNormalized_JustBorderTest, vertical_U8) {
     CompareToNaive<U8> compare;
 
     for( uint32_t i = 0; i < 2; i++ ) {
@@ -910,7 +916,7 @@ TEST(ConvolveNormalized_JustBorder, vertical_U8) {
     }
 }
 
-TEST(ConvolveNormalized_JustBorder, vertical_F32) {
+TEST_F(ConvolveNormalized_JustBorderTest, vertical_F32) {
     CompareToNaive<F32> compare;
 
     for( uint32_t i = 0; i < 2; i++ ) {
@@ -931,7 +937,9 @@ TEST(ConvolveNormalized_JustBorder, vertical_F32) {
     }
 }
 
-TEST(ConvolveImage_Inner, horizontal_div_U8) {
+class ConvolveImage_InnerTest : public boofcv::BoofCPPTest {};
+
+TEST_F(ConvolveImage_InnerTest, horizontal_div_U8) {
     CompareToNaive<U8> compare;
 
     for( uint32_t i = 0; i < 2; i++ ) {
@@ -952,7 +960,7 @@ TEST(ConvolveImage_Inner, horizontal_div_U8) {
     }
 }
 
-TEST(ConvolveImage_Inner, horizontal_div_F32) {
+TEST_F(ConvolveImage_InnerTest, horizontal_div_F32) {
     CompareToNaive<F32> compare;
 
     for( uint32_t i = 0; i < 2; i++ ) {
@@ -973,7 +981,7 @@ TEST(ConvolveImage_Inner, horizontal_div_F32) {
     }
 }
 
-TEST(ConvolveImage_Inner, vertical_div_U8) {
+TEST_F(ConvolveImage_InnerTest, vertical_div_U8) {
     CompareToNaive<U8> compare;
 
     for( uint32_t i = 0; i < 2; i++ ) {
@@ -994,7 +1002,7 @@ TEST(ConvolveImage_Inner, vertical_div_U8) {
     }
 }
 
-TEST(ConvolveImage_Inner, vertical_div_F32) {
+TEST_F(ConvolveImage_InnerTest, vertical_div_F32) {
     CompareToNaive<F32> compare;
 
     for( uint32_t i = 0; i < 2; i++ ) {
@@ -1015,7 +1023,7 @@ TEST(ConvolveImage_Inner, vertical_div_F32) {
     }
 }
 
-TEST(ConvolveImage_Inner, horizontal_U8) {
+TEST_F(ConvolveImage_InnerTest, horizontal_U8) {
     CompareToNaive<U8> compare;
 
     for( uint32_t i = 0; i < 2; i++ ) {
@@ -1036,7 +1044,7 @@ TEST(ConvolveImage_Inner, horizontal_U8) {
     }
 }
 
-TEST(ConvolveImage_Inner, horizontal_F32) {
+TEST_F(ConvolveImage_InnerTest, horizontal_F32) {
     CompareToNaive<F32> compare;
 
     for( uint32_t i = 0; i < 2; i++ ) {
@@ -1057,7 +1065,7 @@ TEST(ConvolveImage_Inner, horizontal_F32) {
     }
 }
 
-TEST(ConvolveImage_Inner, vertical_U8) {
+TEST_F(ConvolveImage_InnerTest, vertical_U8) {
     CompareToNaive<U8> compare;
 
     for( uint32_t i = 0; i < 2; i++ ) {
@@ -1078,7 +1086,7 @@ TEST(ConvolveImage_Inner, vertical_U8) {
     }
 }
 
-TEST(ConvolveImage_Inner, vertical_F32) {
+TEST_F(ConvolveImage_InnerTest, vertical_F32) {
     CompareToNaive<F32> compare;
 
     for( uint32_t i = 0; i < 2; i++ ) {
@@ -1099,7 +1107,7 @@ TEST(ConvolveImage_Inner, vertical_F32) {
     }
 }
 
-TEST(ConvolveImage_Inner, convolve_U8) {
+TEST_F(ConvolveImage_InnerTest, convolve_U8) {
     CompareToNaive<U8> compare;
 
     for( uint32_t i = 0; i < 2; i++ ) {
@@ -1122,7 +1130,7 @@ TEST(ConvolveImage_Inner, convolve_U8) {
 
 /// Integer images with a wider output type, for every kernel width with unrolled code and a kernel that isn't centered.
 /// Pixels and weights are small enough that no sum overflows S16, 13*13*50*3 = 25350 at most
-TEST(ConvolveImage_Inner, convolve_U8_S16) {
+TEST_F(ConvolveImage_InnerTest, convolve_U8_S16) {
     std::mt19937 gen(0xBEEF);
     Gray<U8> input(30,25);
     ImageMiscOps::fill_uniform(input, (U8)0, (U8)50, gen);
@@ -1141,7 +1149,7 @@ TEST(ConvolveImage_Inner, convolve_U8_S16) {
     }
 }
 
-TEST(ConvolveImage_Inner, convolve_F32) {
+TEST_F(ConvolveImage_InnerTest, convolve_F32) {
     CompareToNaive<F32> compare;
 
     for( uint32_t i = 0; i < 2; i++ ) {
@@ -1162,7 +1170,7 @@ TEST(ConvolveImage_Inner, convolve_F32) {
     }
 }
 
-TEST(ConvolveImage_Inner, convolve_div_U8) {
+TEST_F(ConvolveImage_InnerTest, convolve_div_U8) {
     CompareToNaive<U8> compare;
 
     for( uint32_t i = 0; i < 2; i++ ) {
@@ -1183,7 +1191,7 @@ TEST(ConvolveImage_Inner, convolve_div_U8) {
     }
 }
 
-TEST(ConvolveImage_Inner, convolve_div_F32) {
+TEST_F(ConvolveImage_InnerTest, convolve_div_F32) {
     CompareToNaive<F32> compare;
 
     for( uint32_t i = 0; i < 2; i++ ) {
@@ -1204,7 +1212,9 @@ TEST(ConvolveImage_Inner, convolve_div_F32) {
     }
 }
 
-TEST(ConvolveImage_Border, horizontal_U8) {
+class ConvolveImage_BorderTest : public boofcv::BoofCPPTest {};
+
+TEST_F(ConvolveImage_BorderTest, horizontal_U8) {
     CompareToNaive<U8> compare;
 
     for( uint32_t i = 0; i < 2; i++ ) {
@@ -1225,7 +1235,7 @@ TEST(ConvolveImage_Border, horizontal_U8) {
     }
 }
 
-TEST(ConvolveImage_Border, vertical_U8) {
+TEST_F(ConvolveImage_BorderTest, vertical_U8) {
     CompareToNaive<U8> compare;
 
     for( uint32_t i = 0; i < 2; i++ ) {
@@ -1246,7 +1256,7 @@ TEST(ConvolveImage_Border, vertical_U8) {
     }
 }
 
-TEST(ConvolveImage_Border, convolve2D_U8) {
+TEST_F(ConvolveImage_BorderTest, convolve2D_U8) {
     CompareToNaive<U8> compare;
 
     for( uint32_t i = 0; i < 2; i++ ) {
@@ -1268,7 +1278,9 @@ TEST(ConvolveImage_Border, convolve2D_U8) {
 }
 
 
-TEST(ConvolveNormalized, horizontal_U8) {
+class ConvolveNormalizedTest : public boofcv::BoofCPPTest {};
+
+TEST_F(ConvolveNormalizedTest, horizontal_U8) {
     CompareToNaive<U8> compare;
 
     for( uint32_t i = 0; i < 2; i++ ) {
@@ -1289,7 +1301,7 @@ TEST(ConvolveNormalized, horizontal_U8) {
     }
 }
 
-TEST(ConvolveNormalized, horizontal_F32) {
+TEST_F(ConvolveNormalizedTest, horizontal_F32) {
     CompareToNaive<F32> compare;
 
     for( uint32_t i = 0; i < 2; i++ ) {
@@ -1310,7 +1322,7 @@ TEST(ConvolveNormalized, horizontal_F32) {
     }
 }
 
-TEST(ConvolveNormalized, vertical_U8) {
+TEST_F(ConvolveNormalizedTest, vertical_U8) {
     CompareToNaive<U8> compare;
 
     for( uint32_t i = 0; i < 2; i++ ) {
@@ -1331,7 +1343,7 @@ TEST(ConvolveNormalized, vertical_U8) {
     }
 }
 
-TEST(ConvolveNormalized, vertical_F32) {
+TEST_F(ConvolveNormalizedTest, vertical_F32) {
     CompareToNaive<F32> compare;
 
     for( uint32_t i = 0; i < 2; i++ ) {
@@ -1352,7 +1364,7 @@ TEST(ConvolveNormalized, vertical_F32) {
     }
 }
 
-TEST(ConvolveNormalized, convolve_with1D) {
+TEST_F(ConvolveNormalizedTest, convolve_with1D) {
     CompareToNaive<F32> compare;
 
     for( uint32_t i = 0; i < 2; i++ ) {
@@ -1373,7 +1385,9 @@ TEST(ConvolveNormalized, convolve_with1D) {
     }
 }
 
-TEST(ConvolveImage, horizontal_U8) {
+class ConvolveImageTest : public boofcv::BoofCPPTest {};
+
+TEST_F(ConvolveImageTest, horizontal_U8) {
     CompareToNaive<U8> compare;
 
     // pathological case where the kernel is larger than the image
@@ -1391,7 +1405,7 @@ TEST(ConvolveImage, horizontal_U8) {
     compare.setKernel(7,2);compare.horizontal();
 }
 
-TEST(ConvolveImage, horizontal_F32) {
+TEST_F(ConvolveImageTest, horizontal_F32) {
     CompareToNaive<F32> compare;
 
     // pathological case where the kernel is larger than the image
@@ -1409,7 +1423,7 @@ TEST(ConvolveImage, horizontal_F32) {
     compare.setKernel(7,2);compare.horizontal();
 }
 
-TEST(ConvolveImage, vertical_U8) {
+TEST_F(ConvolveImageTest, vertical_U8) {
     CompareToNaive<U8> compare;
 
     // pathological case where the kernel is larger than the image
@@ -1427,7 +1441,7 @@ TEST(ConvolveImage, vertical_U8) {
     compare.setKernel(7,2);compare.vertical();
 }
 
-TEST(ConvolveImage, vertical_F32) {
+TEST_F(ConvolveImageTest, vertical_F32) {
     CompareToNaive<F32> compare;
 
     // pathological case where the kernel is larger than the image
@@ -1445,7 +1459,7 @@ TEST(ConvolveImage, vertical_F32) {
     compare.setKernel(7,2);compare.vertical();
 }
 
-TEST(ConvolveImage, convolve_U8) {
+TEST_F(ConvolveImageTest, convolve_U8) {
     CompareToNaive<U8> compare;
 
     // pathological case where the kernel is larger than the image
@@ -1463,7 +1477,7 @@ TEST(ConvolveImage, convolve_U8) {
     compare.setKernel2(7,2);compare.convolve();
 }
 
-TEST(ConvolveImage, convolve_F32) {
+TEST_F(ConvolveImageTest, convolve_F32) {
     CompareToNaive<F32> compare;
 
     // pathological case where the kernel is larger than the image
@@ -1483,7 +1497,7 @@ TEST(ConvolveImage, convolve_F32) {
 /**
  * Kernel is only normalized when its sum isn't within 1e-4 of one, same as BoofCV
  */
-TEST(ConvolveNormalized, needs_normalization) {
+TEST_F(ConvolveNormalizedTest, needs_normalization) {
     Kernel1D<F32> k(3,1);
     k.data[0] = 0.25f; k.data[1] = 0.5f; k.data[2] = 0.25f;
     EXPECT_FALSE(ConvolveNormalized::needs_normalization(k));

@@ -192,7 +192,9 @@ namespace {
     };
 }
 
-TEST(GrowRow, compare_to_border) {
+class GrowRowTest : public boofcv::BoofCPPTest {};
+
+TEST_F(GrowRowTest, compare_to_border) {
     Gray<U8> image(7, 5);
     std::mt19937 gen(0xBEEF);
     ImageMiscOps::fill_uniform(image, (U8)0, (U8)255, gen);
@@ -210,7 +212,9 @@ TEST(GrowRow, compare_to_border) {
     }
 }
 
-TEST(BlockRowScoreSad, compare_to_naive) {
+class BlockRowScoreSadTest : public boofcv::BoofCPPTest {};
+
+TEST_F(BlockRowScoreSadTest, compare_to_naive) {
     const uint32_t width = 20, r = 2, region = 2*r + 1;
     Gray<U8> left(width, 1), right(width, 1);
     std::mt19937 gen(0xBEEF);
@@ -299,26 +303,30 @@ namespace {
     }
 }
 
-TEST(BlockRowScoreCensus, compare_to_naive) {
+class BlockRowScoreCensusTest : public boofcv::BoofCPPTest {};
+
+TEST_F(BlockRowScoreCensusTest, compare_to_naive) {
     census_row_compare_to_naive<U8>((U8)255);
     census_row_compare_to_naive<S32>((S32)0xFFFFFF);
     census_row_compare_to_naive<S64>((S64)0);
 }
 
-TEST(DisparityBlockMatchRowFormat, compare_to_naive_U8) {
+class DisparityBlockMatchRowFormatTest : public boofcv::BoofCPPTest {};
+
+TEST_F(DisparityBlockMatchRowFormatTest, compare_to_naive_U8) {
     for (const auto& c : CONFIGS) {
         compare_to_naive<U8>(c, true);
         compare_to_naive<U8>(c, false);
     }
 }
 
-TEST(DisparityBlockMatchRowFormat, compare_to_naive_subpixel) {
+TEST_F(DisparityBlockMatchRowFormatTest, compare_to_naive_subpixel) {
     for (const auto& c : CONFIGS) {
         compare_to_naive<F32>(c, true);
     }
 }
 
-TEST(DisparityBlockMatchRowFormat, run_twice_same_result) {
+TEST_F(DisparityBlockMatchRowFormatTest, run_twice_same_result) {
     Gray<U8> left(1, 1), right(1, 1);
     create_stereo_pair(left, right, 30, 25, 4);
     auto select = make_shared<SelectErrorWithChecks_S32<F32>>(0, 1, 0.15);
@@ -335,13 +343,15 @@ TEST(DisparityBlockMatchRowFormat, run_twice_same_result) {
         ASSERT_EQ(first.data[i], second.data[i]);
 }
 
-TEST(SelectErrorWithChecks_S32, range_too_large_for_U8) {
+class SelectErrorWithChecks_S32Test : public boofcv::BoofCPPTest {};
+
+TEST_F(SelectErrorWithChecks_S32Test, range_too_large_for_U8) {
     SelectErrorWithChecks_S32<U8> select(0, -1, 0);
     EXPECT_THROW(select.configure(0, 254, 30), std::invalid_argument);
     EXPECT_NO_THROW(select.configure(0, 253, 30));
 }
 
-TEST(DisparityBlockMatchRowFormat, bad_input) {
+TEST_F(DisparityBlockMatchRowFormatTest, bad_input) {
     auto select = make_shared<SelectErrorWithChecks_S32<U8>>(0, -1, 0);
     DisparityBlockMatchRowFormat<U8, int32_t> alg(2, 2, make_shared<BlockRowScoreSad<U8>>(), select);
     EXPECT_THROW(alg.configure(0, 0), std::invalid_argument);
@@ -393,13 +403,15 @@ namespace {
     }
 }
 
-TEST(BlockRowScoreSad, compare_to_naive_F32) {
+TEST_F(BlockRowScoreSadTest, compare_to_naive_F32) {
     BlockRowScoreSad<F32> alg;
     EXPECT_EQ(-1, alg.max_per_pixel_error());
     row_compare_to_naive<F32>(alg, []( double a, double b ) { return std::abs(a - b); }, 1.0f);
 }
 
-TEST(BlockRowScoreSsd, compare_to_naive) {
+class BlockRowScoreSsdTest : public boofcv::BoofCPPTest {};
+
+TEST_F(BlockRowScoreSsdTest, compare_to_naive) {
     BlockRowScoreSsd<U8> alg_u8;
     EXPECT_EQ(255*255, alg_u8.max_per_pixel_error());
     row_compare_to_naive<U8>(alg_u8, []( double a, double b ) { return (a - b)*(a - b); }, (U8)255);
@@ -507,7 +519,9 @@ namespace {
     }
 }
 
-TEST(BlockRowScoreZssd, block_match_compare_to_naive) {
+class BlockRowScoreZssdTest : public boofcv::BoofCPPTest {};
+
+TEST_F(BlockRowScoreZssdTest, block_match_compare_to_naive) {
     for (BorderType border : {REFLECT, EXTENDED, WRAP, ZERO}) {
         normalized_compare_to_naive<BlockRowScoreZssd>(false, 30, 25, 2, 2, -3, 10, border, 25);
         normalized_compare_to_naive<BlockRowScoreZssd>(false, 31, 23, 3, 1, 0, 40, border, 4);
@@ -516,7 +530,9 @@ TEST(BlockRowScoreZssd, block_match_compare_to_naive) {
     normalized_compare_to_naive<BlockRowScoreZssd>(false, 3, 2, 2, 3, -1, 3, REFLECT, 25);
 }
 
-TEST(BlockRowScoreNcc, block_match_compare_to_naive) {
+class BlockRowScoreNccTest : public boofcv::BoofCPPTest {};
+
+TEST_F(BlockRowScoreNccTest, block_match_compare_to_naive) {
     for (BorderType border : {REFLECT, EXTENDED, WRAP, ZERO}) {
         normalized_compare_to_naive<BlockRowScoreNcc>(true, 30, 25, 2, 2, -3, 10, border, 25);
         normalized_compare_to_naive<BlockRowScoreNcc>(true, 31, 23, 3, 1, 0, 40, border, 4);
@@ -562,7 +578,7 @@ namespace {
     }
 }
 
-TEST(DisparityBlockMatchRowFormat, F32_same_as_U8) {
+TEST_F(DisparityBlockMatchRowFormatTest, F32_same_as_U8) {
     for (const auto& c : CONFIGS) {
         f32_same_as_u8<U8, BlockRowScoreSad<U8>, BlockRowScoreSad<F32>>(c, false);
         f32_same_as_u8<F32, BlockRowScoreSad<U8>, BlockRowScoreSad<F32>>(c, false);
@@ -574,7 +590,7 @@ TEST(DisparityBlockMatchRowFormat, F32_same_as_U8) {
     }
 }
 
-TEST(DisparityBlockMatchRowFormat, catastrophic_reset_must_be_positive) {
+TEST_F(DisparityBlockMatchRowFormatTest, catastrophic_reset_must_be_positive) {
     auto select = make_shared<SelectErrorWithChecks_F32<U8>>(0, -1, 0);
     DisparityBlockMatchRowFormat<F32, F32> alg(2, 2, make_shared<BlockRowScoreSad<F32>>(), select);
     EXPECT_THROW(alg.set_catastrophic_reset(0), std::invalid_argument);
@@ -694,7 +710,9 @@ namespace {
     }
 }
 
-TEST(SelectCorrelationWithChecks_F32, compare_to_naive) {
+class SelectCorrelationWithChecks_F32Test : public boofcv::BoofCPPTest {};
+
+TEST_F(SelectCorrelationWithChecks_F32Test, compare_to_naive) {
     // width, dmin, range, r2l, texture
     for (auto c : {std::tuple{30, 0, 10, -1, 0.0f}, {30, -4, 12, -1, 0.0f}, {30, 3, 8, 1, 0.0f},
                    {30, -5, 12, 0, 0.0f}, {30, 0, 10, -1, 0.3f}, {12, 0, 20, 1, 0.1f}, {31, -3, 15, 1, 0.15f}}) {
@@ -704,7 +722,7 @@ TEST(SelectCorrelationWithChecks_F32, compare_to_naive) {
     }
 }
 
-TEST(SelectCorrelationWithChecks_F32, range_too_large_for_U8) {
+TEST_F(SelectCorrelationWithChecks_F32Test, range_too_large_for_U8) {
     SelectCorrelationWithChecks_F32<U8> select(-1, 0);
     EXPECT_THROW(select.configure(0, 254, 30), std::invalid_argument);
     EXPECT_NO_THROW(select.configure(0, 253, 30));

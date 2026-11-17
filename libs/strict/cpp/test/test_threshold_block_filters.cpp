@@ -24,7 +24,9 @@ public:
     }
 };
 
-TEST(ThresholdBlockCommon, selectBlockSize) {
+class ThresholdBlockCommonTest : public boofcv::BoofCPPTest {};
+
+TEST_F(ThresholdBlockCommonTest, selectBlockSize) {
     uint32_t width = 30;
 
     DummyThresholdBlockCommon alg(width);
@@ -43,17 +45,17 @@ TEST(ThresholdBlockCommon, selectBlockSize) {
 }
 
 template<class T, class S>
-class ThresholdBlockTest
+class ThresholdBlockChecks
 {
 public:
     ThresholdBlockCommon<T,S>* alg;
     std::mt19937 gen;
 
-    ThresholdBlockTest() : gen(0xBEEF) {
+    ThresholdBlockChecks() : gen(0xBEEF) {
         alg = nullptr;
     }
 
-    virtual ~ThresholdBlockTest()
+    virtual ~ThresholdBlockChecks()
     {
         if( alg != nullptr )
             delete alg;
@@ -122,7 +124,7 @@ public:
 };
 
 template<class E>
-class ThresholdBlockMeanTest : public ThresholdBlockTest<Gray<E>,Interleaved<E>>
+class ThresholdBlockMeanChecks : public ThresholdBlockChecks<Gray<E>,Interleaved<E>>
 {
 public:
     bool thresholdFromLocalBlocks=true;
@@ -135,8 +137,10 @@ public:
     }
 };
 
-TEST(ThresholdBlockMean, standard_tests_U8) {
-    ThresholdBlockMeanTest<U8> standard_tests;
+class ThresholdBlockMeanTest : public boofcv::BoofCPPTest {};
+
+TEST_F(ThresholdBlockMeanTest, standard_tests_U8) {
+    ThresholdBlockMeanChecks<U8> standard_tests;
 
     standard_tests.toggle_down();
     standard_tests.widthLargerThanImage();
@@ -144,7 +148,7 @@ TEST(ThresholdBlockMean, standard_tests_U8) {
 }
 
 template<class E>
-class ThresholdBlockOtsuTest : public ThresholdBlockTest<Gray<E>,Interleaved<S32>>
+class ThresholdBlockOtsuChecks : public ThresholdBlockChecks<Gray<E>,Interleaved<S32>>
 {
 public:
     bool thresholdFromLocalBlocks=true;
@@ -157,8 +161,10 @@ public:
     }
 };
 
-TEST(ThresholdBlockOtsu, standard_tests_U8) {
-    ThresholdBlockOtsuTest<U8> standard_tests;
+class ThresholdBlockOtsuTest : public boofcv::BoofCPPTest {};
+
+TEST_F(ThresholdBlockOtsuTest, standard_tests_U8) {
+    ThresholdBlockOtsuChecks<U8> standard_tests;
 
     standard_tests.toggle_down();
     standard_tests.widthLargerThanImage();
@@ -166,7 +172,7 @@ TEST(ThresholdBlockOtsu, standard_tests_U8) {
 }
 
 template<class E>
-class ThresholdBlocMinMaxTest : public ThresholdBlockTest<Gray<E>,Interleaved<E>>
+class ThresholdBlockMinMaxChecks : public ThresholdBlockChecks<Gray<E>,Interleaved<E>>
 {
 public:
     float minimumSpread = 1;
@@ -180,8 +186,10 @@ public:
     }
 };
 
-TEST(ThresholdBlocMinMaxTest, standard_tests_U8) {
-    ThresholdBlocMinMaxTest<U8> standard_tests;
+class ThresholdBlockMinMaxChecksTest : public boofcv::BoofCPPTest {};
+
+TEST_F(ThresholdBlockMinMaxChecksTest, standard_tests_U8) {
+    ThresholdBlockMinMaxChecks<U8> standard_tests;
 
     standard_tests.toggle_down();
     standard_tests.widthLargerThanImage();

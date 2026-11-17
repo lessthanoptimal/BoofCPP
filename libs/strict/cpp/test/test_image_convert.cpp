@@ -5,7 +5,9 @@
 using namespace std;
 using namespace boofcv;
 
-TEST(convert_average, interleaved_U8) {
+class convert_averageTest : public boofcv::BoofCPPTest {};
+
+TEST_F(convert_averageTest, interleaved_U8) {
     Interleaved<U8> color(5,6,3);
     Gray<U8> gray(5,6);
 
@@ -25,7 +27,9 @@ TEST(convert_average, interleaved_U8) {
     EXPECT_EQ(200, gray.at(2,4));
     EXPECT_EQ(0, gray.at(2,5));
 }
-TEST(convert, U8_to_F32) {
+class convertTest : public boofcv::BoofCPPTest {};
+
+TEST_F(convertTest, U8_to_F32) {
     Gray<U8> input(9, 7);
     for (uint32_t i = 0; i < input.data_length; i++)
         input.data[i] = (U8)(i*37);
