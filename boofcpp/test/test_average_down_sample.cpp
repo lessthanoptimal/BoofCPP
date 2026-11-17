@@ -120,3 +120,128 @@ TEST(AverageDownSampleOps, down_zero_width) {
     Gray<U8> input(4, 4), output(1, 1);
     EXPECT_THROW(AverageDownSampleOps::down(input, 0, output), std::invalid_argument);
 }
+
+/// Weight of each input pixel along one axis for output pixel 'index', in double precision. A region has length
+/// input/output and is shifted by -(scale-1)/2 if centered. The weight is the overlap of a pixel with the region
+/// divided by the length of the region inside the input
+std::vector<double> naive_weights( uint32_t input_length, uint32_t output_length, bool centered, uint32_t index ) {
+    const double scale = (double)input_length/output_length;
+    const double offset = centered ? -(scale - 1.0)/2.0 : 0.0;
+    const double r0 = std::max(0.0, index*scale + offset);
+    const double r1 = std::min((double)input_length, (index + 1)*scale + offset);
+
+    std::vector<double> weights(input_length, 0.0);
+    for (uint32_t i = 0; i < input_length; i++) {
+        weights[i] = std::max(0.0, std::min(i + 1.0, r1) - std::max((double)i, r0))/(r1 - r0);
+    }
+    return weights;
+}
+
+/// Mean of the region for each output pixel, in double precision. Row-major with output_width columns
+template<class E>
+std::vector<double> naive_general( const Gray<E>& input, bool centered, uint32_t output_width, uint32_t output_height ) {
+    std::vector<double> output(output_width*output_height, 0.0);
+    for (uint32_t y = 0; y < output_height; y++) {
+        std::vector<double> wy = naive_weights(input.height, output_height, centered, y);
+        for (uint32_t x = 0; x < output_width; x++) {
+            std::vector<double> wx = naive_weights(input.width, output_width, centered, x);
+            double total = 0;
+            for (uint32_t j = 0; j < input.height; j++)
+                for (uint32_t i = 0; i < input.width; i++)
+                    total += wx[i]*wy[j]*input.at(i, j);
+            output[y*output_width + x] = total;
+        }
+    }
+    return output;
+}
+
+/// Integers round to the nearest value, which can differ by 1 from BoofCV's float math at a half
+template<class E>
+void check_general( const std::vector<double>& expected, const Gray<E>& found ) {
+    for (uint32_t y = 0; y < found.height; y++) {
+        for (uint32_t x = 0; x < found.width; x++) {
+            double value = expected[y*found.width + x];
+            if (std::is_integral<E>::value)
+                ASSERT_NEAR(std::floor(value + 0.5), found.at(x, y), 1.0) << x << " " << y;
+            else
+                ASSERT_NEAR(value, found.at(x, y), 1e-3) << x << " " << y;
+        }
+    }
+}
+
+/// Output sizes with integer and non-integer scales, the same size as the input, and one pixel
+const std::vector<std::pair<uint32_t, uint32_t>> GENERAL_SHAPES = {{21, 16}, {10, 8}, {7, 5}, {6, 11}, {3, 2}, {2, 1}};
+
+template<class E>
+void general_compare_to_naive() {
+    std::mt19937 gen(0xBEEF);
+    Gray<E> input(21, 16);
+    ImageMiscOps::fill_uniform(input, (E)0, (E)255, gen);
+    Gray<E> sub_input = create_subimage(input);
+
+    for (bool centered : {false, true}) {
+        for (auto shape : GENERAL_SHAPES) {
+            Gray<E> found(shape.first, shape.second);
+            Gray<AverageDownSampleOps::middle_type<E>> middle(1, 1);
+            AverageDownSampleOps::down(sub_input, centered, found, middle);
+            check_general(naive_general(input, centered, shape.first, shape.second), found);
+        }
+    }
+}
+
+TEST(AverageDownSampleOps, general_compare_to_naive_U8) { general_compare_to_naive<U8>(); }
+TEST(AverageDownSampleOps, general_compare_to_naive_U16) { general_compare_to_naive<U16>(); }
+TEST(AverageDownSampleOps, general_compare_to_naive_F32) { general_compare_to_naive<F32>(); }
+TEST(AverageDownSampleOps, general_compare_to_naive_F64) { general_compare_to_naive<F64>(); }
+
+/// The horizontal pass alone is the general down sample with the input's height
+TEST(AverageDownSampleOps, horizontal) {
+    std::mt19937 gen(0xBEEF);
+    Gray<U8> input(21, 16);
+    ImageMiscOps::fill_uniform(input, (U8)0, (U8)255, gen);
+
+    for (bool centered : {false, true}) {
+        for (uint32_t width : {21, 10, 7, 2}) {
+            Gray<F32> found(width, input.height);
+            AverageDownSampleOps::horizontal(input, centered, found);
+            check_general(naive_general(input, centered, width, input.height), found);
+        }
+    }
+}
+
+/// The vertical pass alone is the general down sample with the input's width. Integer outputs round
+TEST(AverageDownSampleOps, vertical) {
+    std::mt19937 gen(0xBEEF);
+    Gray<F32> input(21, 16);
+    ImageMiscOps::fill_uniform(input, 0.0f, 255.0f, gen);
+
+    for (bool centered : {false, true}) {
+        for (uint32_t height : {16, 8, 5, 1}) {
+            Gray<U8> found_u8(input.width, height);
+            AverageDownSampleOps::vertical(input, centered, found_u8);
+            check_general(naive_general(input, centered, input.width, height), found_u8);
+
+            Gray<F32> found_f32(input.width, height);
+            AverageDownSampleOps::vertical(input, centered, found_f32);
+            check_general(naive_general(input, centered, input.width, height), found_f32);
+        }
+    }
+}
+
+/// The output can't be larger than the input, and a centered output can't be one pixel wide
+TEST(AverageDownSampleOps, general_bad_shapes) {
+    Gray<U8> input(10, 8);
+    Gray<F32> middle(5, 8);
+    Gray<U8> output(5, 4);
+
+    Gray<F32> wide(11, 8), short_middle(5, 7), narrow(1, 8);
+    EXPECT_THROW(AverageDownSampleOps::horizontal(input, false, wide), std::invalid_argument);
+    EXPECT_THROW(AverageDownSampleOps::horizontal(input, false, short_middle), std::invalid_argument);
+    EXPECT_THROW(AverageDownSampleOps::horizontal(input, true, narrow), std::invalid_argument);
+    AverageDownSampleOps::horizontal(input, false, narrow);
+
+    Gray<U8> tall(5, 9), thin(4, 4);
+    EXPECT_THROW(AverageDownSampleOps::vertical(middle, false, tall), std::invalid_argument);
+    EXPECT_THROW(AverageDownSampleOps::vertical(middle, false, thin), std::invalid_argument);
+    AverageDownSampleOps::vertical(middle, true, output);
+}
