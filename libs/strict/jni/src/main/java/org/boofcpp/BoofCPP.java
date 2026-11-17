@@ -60,6 +60,9 @@ public class BoofCPP {
         // intentionally empty
     }
 
+    /// Compiler, build type and compiler flags of the native library
+    public static native String nativeBuildInfo();
+
     /// Registers the strict hooks with BoofCV, then the hooks of every other variant that's available, e.g. fast. Each
     /// variant only replaces the hooks it has
     public static void initialize() {

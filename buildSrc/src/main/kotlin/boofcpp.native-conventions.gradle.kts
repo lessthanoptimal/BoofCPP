@@ -1,4 +1,5 @@
-// A Java module with a JNI library built by CMake: the native jar for this platform, and JMH benchmarks
+// A Java module with a JNI library built by CMake: the native jar for this platform, JMH benchmarks and the accuracy
+// tool
 plugins {
     id("boofcpp.java-conventions")
 }
@@ -41,11 +42,18 @@ val benchmark by sourceSets.creating {
     runtimeClasspath += sourceSets.main.get().output + sourceSets.main.get().runtimeClasspath
 }
 
+// Measures how far the native results are from BoofCV's Java code. See CodeStandards.md, Accuracy
+val accuracy by sourceSets.creating {
+    compileClasspath += sourceSets.main.get().output + sourceSets.main.get().compileClasspath
+    runtimeClasspath += sourceSets.main.get().output + sourceSets.main.get().runtimeClasspath
+}
+
 dependencies {
+    "accuracyImplementation"(testFixtures(project(":boofcpp-common")))
     "benchmarkImplementation"(libs.findLibrary("jmh-core").get())
     "benchmarkImplementation"(libs.findLibrary("jmh-generator-annprocess").get())
     "benchmarkAnnotationProcessor"(libs.findLibrary("jmh-generator-annprocess").get())
-    "benchmarkImplementation"(libs.findLibrary("boofcv-io").get())
+    "benchmarkImplementation"(testFixtures(project(":boofcpp-common")))
 }
 
 // Runs the JMH benchmarks matching -Pinclude=<regex>. Results are saved in build/reports/benchmark
@@ -61,4 +69,11 @@ tasks.register<JavaExec>("benchmarkRun") {
     doFirst { resultFile.parentFile.mkdirs() }
 
     args(include, "-rf", format, "-rff", resultFile)
+}
+
+// Runs the module's accuracy tool, the main class set by the module, and saves its record in results/accuracy
+tasks.register<JavaExec>("accuracyRun") {
+    description = "Measures the accuracy of the native code against BoofCV's Java code"
+    classpath = accuracy.runtimeClasspath
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
 }

@@ -19,4 +19,5 @@ dependencies {
     testFixturesApi(platform(libs.junit.bom))
     testFixturesApi(libs.junit.jupiter.api)
     testFixturesApi(libs.boofcv.ip)
+    testFixturesApi(libs.boofcv.io)
 }

@@ -8,9 +8,8 @@ import boofcv.factory.disparity.FactoryStereoDisparity;
 import boofcv.io.image.ConvertBufferedImage;
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayU8;
-import org.boofcpp.BenchmarkUtils;
+import org.boofcpp.testing.BenchmarkUtils;
 import org.boofcpp.BoofCPP;
-import org.boofcpp.contour.BenchmarkContour;
 import org.openjdk.jmh.annotations.*;
 
 import java.awt.image.BufferedImage;
@@ -42,7 +41,7 @@ public class BenchmarkDisparityBlockMatch {
     }
 
     public BenchmarkDisparityBlockMatch() {
-        BufferedImage buffered = BenchmarkUtils.loadImage(BenchmarkContour.IMAGE_PATH);
+        BufferedImage buffered = BenchmarkUtils.loadImage(BenchmarkUtils.TEST_IMAGE);
         GrayU8 full = ConvertBufferedImage.convertFrom(buffered, (GrayU8)null);
         left = new GrayU8(full.width/6, full.height/6);
         AverageDownSampleOps.down(full, 6, left);

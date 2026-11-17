@@ -160,6 +160,15 @@ Example Results: C++ Benchmark
 NOTE: Most the performance difference between C++ and C++/JNI comes from being built as an application vs library.
 When built as an application the compiler can unroll loops and other optimizations much easier.
 
+# Accuracy
+
+The accuracy tool measures how far the native results are from BoofCV's Java code: the largest absolute and
+relative error, RMS error, the largest distance in ULPs, and the fraction of pixels which differ. It saves a record in
+`results/accuracy/<library>/<platform>.json` and reports metrics which grew more than 2x since the saved record.
+```bash
+./gradlew :boofcpp-jni:accuracyRun
+```
+
 # Trouble Shooting
 
 * When I load this project into IntelliJ the IDE becomes unstable

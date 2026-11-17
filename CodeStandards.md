@@ -59,6 +59,7 @@ libs/
 android/    One module that packages the native libraries of every variant
 benchmark/  C++ benchmarks
 datasets/   Test images
+results/    Accuracy records, see Accuracy
 ```
 
 - Each library in `libs/` has `cpp/` and `jni/`
@@ -101,4 +102,14 @@ datasets/   Test images
     `Tolerance.IDENTICAL` by default, and fast's test classes set `Tolerance.FLOAT`
   - When fast adds an op, that op's strict tests are moved into shared tests first, without removing or weakening any
 - Benchmark against strict's native code and BoofCV's Java code
+- When fast adds an op, the op is added to the accuracy tool of strict and fast
 - `libs/fast/CLAUDE.md` has instructions for AI agents working on fast
+
+# Accuracy
+
+- Each variant's `accuracyRun` measures how far its results are from BoofCV's Java code, and saves a record in
+  `results/accuracy/<variant>/<platform>.json`. Strict's metrics are all zero
+- The shared cases are in `libs/common/jni/src/testFixtures`, e.g. `MeanBlurAccuracy`
+- It only reports, including metrics which grew more than 2x since the saved record. It never fails a build
+- Records are committed only for stable releases
+- CI compiles it but doesn't run it

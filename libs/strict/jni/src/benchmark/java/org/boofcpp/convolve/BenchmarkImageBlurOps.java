@@ -9,9 +9,8 @@ import boofcv.struct.image.GrayF64;
 import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
-import org.boofcpp.BenchmarkUtils;
+import org.boofcpp.testing.BenchmarkUtils;
 import org.boofcpp.BoofCPP;
-import org.boofcpp.contour.BenchmarkContour;
 import org.openjdk.jmh.annotations.*;
 
 import java.awt.image.BufferedImage;
@@ -43,7 +42,7 @@ public class BenchmarkImageBlurOps {
     }
 
     @Setup public void setup() {
-        BufferedImage buffered = BenchmarkUtils.loadImage(BenchmarkContour.IMAGE_PATH);
+        BufferedImage buffered = BenchmarkUtils.loadImage(BenchmarkUtils.TEST_IMAGE);
         GrayU8 gray = ConvertBufferedImage.convertFrom(buffered, (GrayU8)null);
 
         Class type;

@@ -36,4 +36,6 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
     - name: Java Unit Tests
-      run: ./gradlew :boofcpp-jni:test
+      run: ./gradlew test
+    - name: Compile the JMH benchmarks and the accuracy tool
+      run: ./gradlew compileBenchmarkJava compileAccuracyJava
