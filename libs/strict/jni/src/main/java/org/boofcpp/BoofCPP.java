@@ -4,6 +4,7 @@ import boofcv.alg.filter.blur.BOverrideBlurImageOps;
 import boofcv.alg.filter.convolve.BOverrideConvolveImage;
 import boofcv.alg.filter.convolve.BOverrideConvolveImageNormalized;
 import boofcv.alg.filter.misc.BOverrideAverageDownSampleOps;
+import boofcv.alg.transform.census.BOverrideCensusTransform;
 import boofcv.abst.disparity.StereoDisparityBlockMatch;
 import boofcv.factory.disparity.BOverrideStereoDisparity;
 import boofcv.factory.disparity.ConfigDisparityBM;
@@ -18,6 +19,7 @@ import org.boofcpp.convolve.NativeImageConvolveNormalized;
 import org.boofcpp.disparity.NativeDisparityBlockMatch;
 import org.boofcpp.misc.NativeAverageDownSampleOps;
 import org.boofcpp.threshold.*;
+import org.boofcpp.transform.NativeCensusTransform;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -68,6 +70,8 @@ public class BoofCPP {
         BOverrideAverageDownSampleOps.general = new NativeAverageDownSampleOps();
         BOverrideAverageDownSampleOps.horizontal = new NativeAverageDownSampleOps();
         BOverrideAverageDownSampleOps.vertical = new NativeAverageDownSampleOps();
+
+        BOverrideCensusTransform.census = new NativeCensusTransform<>();
 
 
         BOverrideFactoryBinaryContourFinder.chang2004 = NativeChang2004::new;

@@ -264,6 +264,8 @@ ImageAndInfo<boofcv::Gray<E>,JImageInfo> wrapCriticalGray( JNIEnv *env, jobject 
         type = "[S";
     else if constexpr (std::is_same<E, boofcv::S32>::value)
         type = "[I";
+    else if constexpr (std::is_same<E, boofcv::S64>::value)
+        type = "[J";
     else if constexpr (std::is_same<E, boofcv::F32>::value)
         type = "[F";
     else if constexpr (std::is_same<E, boofcv::F64>::value)
