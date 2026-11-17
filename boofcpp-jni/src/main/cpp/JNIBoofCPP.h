@@ -242,7 +242,7 @@ JImageInfo extractInfoCritical( JNIEnv *env, jobject& jimage , const char*type )
 template<class E>
 ImageAndInfo<boofcv::Gray<E>,JImageInfo> wrapCriticalGray( JNIEnv *env, jobject jimage ) {
     const char* type;
-    if constexpr (std::is_same<E, boofcv::U8>::value)
+    if constexpr (std::is_same<E, boofcv::U8>::value || std::is_same<E, boofcv::S8>::value)
         type = "[B";
     else if constexpr (std::is_same<E, boofcv::U16>::value || std::is_same<E, boofcv::S16>::value)
         type = "[S";

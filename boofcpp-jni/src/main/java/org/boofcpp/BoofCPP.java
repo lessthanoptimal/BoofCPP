@@ -3,6 +3,7 @@ package org.boofcpp;
 import boofcv.alg.filter.blur.BOverrideBlurImageOps;
 import boofcv.alg.filter.convolve.BOverrideConvolveImage;
 import boofcv.alg.filter.convolve.BOverrideConvolveImageNormalized;
+import boofcv.alg.filter.misc.BOverrideAverageDownSampleOps;
 import boofcv.factory.filter.binary.BOverrideFactoryBinaryContourFinder;
 import boofcv.factory.filter.binary.BOverrideFactoryThresholdBinary;
 import cz.adamh.utils.NativeUtils;
@@ -10,6 +11,7 @@ import org.boofcpp.contour.NativeChang2004;
 import org.boofcpp.convolve.NativeConvolveImage;
 import org.boofcpp.convolve.NativeImageBlurOps;
 import org.boofcpp.convolve.NativeImageConvolveNormalized;
+import org.boofcpp.misc.NativeAverageDownSampleOps;
 import org.boofcpp.threshold.*;
 
 import java.io.File;
@@ -67,6 +69,8 @@ public class BoofCPP {
         BOverrideConvolveImage.horizontal = new NativeConvolveImage();
         BOverrideConvolveImage.vertical = new NativeConvolveImage();
         BOverrideConvolveImage.convolve = new NativeConvolveImage();
+
+        BOverrideAverageDownSampleOps.square = new NativeAverageDownSampleOps();
 
 
         BOverrideFactoryBinaryContourFinder.chang2004 = NativeChang2004::new;

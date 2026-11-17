@@ -317,7 +317,7 @@ public class TestNativeImageBlurOps {
     }
 
     /// Pixel values must be identical. Floats are compared by their bits, so NaN must match NaN
-    static void assertIdentical( ImageGray<?> expected, ImageGray<?> found ) {
+    public static void assertIdentical( ImageGray<?> expected, ImageGray<?> found ) {
         assertEquals(expected.width, found.width);
         assertEquals(expected.height, found.height);
         for (int y = 0; y < expected.height; y++) {
