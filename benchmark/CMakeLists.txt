@@ -48,4 +48,4 @@ ENDFOREACH()
 
 # Fast against strict
 add_executable(fast_blur src/fast_blur.cpp ${BENCHMARK_COMMON})
-target_link_libraries(fast_blur BoofCPPFast BoofCPP ${IMAGE_LIBS})
+target_link_libraries(fast_blur BoofCPPFastObjects BoofCPPObjects BoofCPPCommon ${IMAGE_LIBS})

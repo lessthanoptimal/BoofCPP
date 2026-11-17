@@ -39,3 +39,8 @@ jobs:
       run: ./gradlew test
     - name: Compile the JMH benchmarks and the accuracy tool
       run: ./gradlew compileBenchmarkJava compileAccuracyJava
+    - name: Native jars work on their own
+      run: |
+        mv build build_hidden
+        ./gradlew nativeJarCheck -Pnative_build_location=build_hidden
+        mv build_hidden build

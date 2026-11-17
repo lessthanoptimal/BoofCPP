@@ -4,9 +4,16 @@ project(boofcpp)
 file(GLOB BOOFCPP_HDR "include/boofcv/*.h")
 file(GLOB BOOFCPP_SRC "src/*.cpp")
 
-add_library(BoofCPP SHARED ${BOOFCPP_HDR} ${BOOFCPP_SRC})
-target_include_directories(BoofCPP PUBLIC include)
-target_link_libraries(BoofCPP PUBLIC BoofCPPCommon)
+# Compiled once, then linked into the shared library for C++ users and into the JNI library, so the JNI library needs
+# no other BoofCPP library at run time. CMake only links the objects of an OBJECT library into targets that link it
+# directly, so those targets also link BoofCPPCommon
+add_library(BoofCPPObjects OBJECT ${BOOFCPP_HDR} ${BOOFCPP_SRC})
+target_include_directories(BoofCPPObjects PUBLIC include)
+target_link_libraries(BoofCPPObjects PUBLIC BoofCPPCommon)
+set_target_properties(BoofCPPObjects PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+add_library(BoofCPP SHARED)
+target_link_libraries(BoofCPP PUBLIC BoofCPPObjects BoofCPPCommon)
 
 # Install library
 install(TARGETS BoofCPP DESTINATION lib ARCHIVE DESTINATION lib)

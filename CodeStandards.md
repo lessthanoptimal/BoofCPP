@@ -51,6 +51,8 @@
   - C++ exceptions must never escape a JNI function. `jni_call()` turns them into Java exceptions
   - Hold critical arrays with `CriticalArray`, so an exception releases them
   - No JNI calls while a critical array (`GetPrimitiveArrayCritical`) is held
+  - A JNI library contains all of its variant's code, so its native jar needs no other BoofCPP library.
+    `./gradlew nativeJarCheck` loads each one from its jar alone
   - If a configuration isn't supported natively, BoofCV must fall back to its Java implementation, e.g. the override returns `null`
 
 # Directory Layout
