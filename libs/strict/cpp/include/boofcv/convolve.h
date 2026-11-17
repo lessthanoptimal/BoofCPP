@@ -373,8 +373,12 @@ namespace boofcv {
         static void horizontal_rows( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
                                      const Gray<E>& input, Gray<R>& output, Result result )
         {
+            if constexpr (W == 0) {
+                horizontal_rows_blocked(kernel, input, output, result);
+                return;
+            }
             typedef typename TypeInfo<E>::signed_type signed_type;
-            const uint32_t width = W > 0 ? (uint32_t)W : kernel.width;
+            const uint32_t width = (uint32_t)W;
             const signed_type* kernel_data = kernel.data.data;
 
             for( uint32_t i = 0; i < input.height; i++ ) {
@@ -389,6 +393,36 @@ namespace boofcv {
                         total += input_ptr[k] * kernel_data[k];
                     }
                     output_ptr[x] = result(total);
+                }
+            }
+        }
+
+        /// Kernels whose width is only known at run time. Each weight is added to a block of sums at once, so the
+        /// compiler can vectorize across pixels. Each sum adds the weights in the same order as one sum per pixel
+        /// would, so the results are identical. ConvolveNaive::horizontal is the simple equivalent
+        template<class E, class R, class Result>
+        static void horizontal_rows_blocked( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
+                                             const Gray<E>& input, Gray<R>& output, Result result )
+        {
+            typedef typename TypeInfo<E>::signed_type signed_type;
+            constexpr uint32_t BLOCK = 256;
+            const uint32_t length = input.width - (kernel.width - 1);
+            signed_type totals[BLOCK];
+
+            for( uint32_t i = 0; i < input.height; i++ ) {
+                const E* input_row = &input.data[input.offset + i*input.stride];
+                R* output_row = &output.data[output.offset + i*output.stride + kernel.offset];
+                for( uint32_t x0 = 0; x0 < length; x0 += BLOCK ) {
+                    const uint32_t n = std::min(BLOCK, length - x0);
+                    std::fill_n(totals, n, signed_type(0));
+                    for( uint32_t k = 0; k < kernel.width; k++ ) {
+                        const E* src = input_row + x0 + k;
+                        const signed_type weight = kernel.data[k];
+                        for( uint32_t x = 0; x < n; x++ )
+                            totals[x] += src[x]*weight;
+                    }
+                    for( uint32_t x = 0; x < n; x++ )
+                        output_row[x0 + x] = result(totals[x]);
                 }
             }
         }
@@ -567,25 +601,9 @@ namespace boofcv {
                               typename std::enable_if<std::is_integral<E>::value >::type* = 0 )
         {
             typedef typename TypeInfo<E>::signed_type signed_type;
-            signed_type halfDivisor = divisor/2;
-
-            int32_t offsetL = kernel.offset;
-            int32_t offsetR = kernel.width-kernel.offset-1;
-
-            for( uint32_t y = offsetL; y < input.height-offsetR; y++ ) {
-                uint32_t indexDst = output.offset + y*output.stride+offsetL;
-                for( uint32_t x = offsetL; x < input.width-offsetR; x++ ) {
-                    signed_type total = 0;
-                    signed_type* kernel_ptr = kernel.data.data;
-                    for( uint32_t ki = 0; ki < kernel.width; ki++ ) {
-                        E* input_ptr = &input.data[input.offset + (y+ki-offsetL)*input.stride + x-offsetL];
-                        for( uint32_t kj = 0; kj <  kernel.width; kj++ ) {
-                            total += *input_ptr++ * *kernel_ptr++;
-                        }
-                    }
-                    output.data[indexDst++] = (E)((total+halfDivisor)/divisor);
-                }
-            }
+            const signed_type halfDivisor = divisor/2;
+            convolve_blocked(kernel, input, output, [=]( signed_type total ) {
+                return (E)((total+halfDivisor)/divisor); });
         }
 
         template<class E>
@@ -595,24 +613,7 @@ namespace boofcv {
                               typename std::enable_if<std::is_floating_point<E>::value >::type* = 0 )
         {
             typedef typename TypeInfo<E>::signed_type signed_type;
-
-            int32_t offsetL = kernel.offset;
-            int32_t offsetR = kernel.width-kernel.offset-1;
-
-            for( uint32_t y = offsetL; y < input.height-offsetR; y++ ) {
-                uint32_t indexDst = output.offset + y*output.stride+offsetL;
-                for( uint32_t x = offsetL; x < input.width-offsetR; x++ ) {
-                    signed_type total = 0;
-                    signed_type* kernel_ptr = kernel.data.data;
-                    for( uint32_t ki = 0; ki < kernel.width; ki++ ) {
-                        E* input_ptr = &input.data[input.offset + (y+ki-offsetL)*input.stride + x-offsetL];
-                        for( uint32_t kj = 0; kj <  kernel.width; kj++ ) {
-                            total += *input_ptr++ * *kernel_ptr++;
-                        }
-                    }
-                    output.data[indexDst++] = (E)(total/divisor);
-                }
-            }
+            convolve_blocked(kernel, input, output, [=]( signed_type total ) { return (E)(total/divisor); });
         }
 
         /**
@@ -682,22 +683,40 @@ namespace boofcv {
             // here so floating point results are bit identical. Integer results don't depend on the order
             if( convolve_rows(kernel,input,output) )
                 return;
+            convolve_blocked(kernel, input, output, []( signed_type total ) { return (R)total; });
+        }
 
-            uint32_t offsetL = kernel.offset;
-            uint32_t offsetR = kernel.width-kernel.offset-1;
+        /// 2D convolution where 'result' turns each sum into the output pixel. Each sum adds the kernel's rows, then
+        /// columns, in the same order as one sum per pixel would, but for a block of pixels at once, so the compiler
+        /// can vectorize across pixels. ConvolveNaive::convolve is the simple equivalent
+        template<class E, class R, class Result>
+        static void convolve_blocked( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel ,
+                                      const Gray<E>& input, Gray<R>& output, Result result )
+        {
+            typedef typename TypeInfo<E>::signed_type signed_type;
+            constexpr uint32_t BLOCK = 256;
+            const uint32_t width = kernel.width;
+            const uint32_t offsetL = kernel.offset;
+            const uint32_t offsetR = width - offsetL - 1;
+            const uint32_t length = input.width - (width - 1);
+            signed_type totals[BLOCK];
 
             for( uint32_t y = offsetL; y < input.height-offsetR; y++ ) {
-                uint32_t indexDst = output.offset + y*output.stride+offsetL;
-                for( uint32_t x = offsetL; x < input.width-offsetR; x++ ) {
-                    signed_type total = 0;
-                    signed_type* kernel_ptr = kernel.data.data;
-                    for( uint32_t ki = 0; ki < kernel.width; ki++ ) {
-                        E* input_ptr = &input.data[input.offset + (y+ki-offsetL)*input.stride + x-offsetL];
-                        for( uint32_t kj = 0; kj <  kernel.width; kj++ ) {
-                            total += (*input_ptr++) * (*kernel_ptr++);
+                R* output_row = &output.data[output.offset + y*output.stride + offsetL];
+                for( uint32_t x0 = 0; x0 < length; x0 += BLOCK ) {
+                    const uint32_t n = std::min(BLOCK, length - x0);
+                    std::fill_n(totals, n, signed_type(0));
+                    for( uint32_t ki = 0; ki < width; ki++ ) {
+                        const E* input_row = &input.data[input.offset + (y+ki-offsetL)*input.stride + x0];
+                        for( uint32_t kj = 0; kj < width; kj++ ) {
+                            const E* src = input_row + kj;
+                            const signed_type weight = kernel.data[ki*width + kj];
+                            for( uint32_t x = 0; x < n; x++ )
+                                totals[x] += src[x]*weight;
                         }
                     }
-                    output.data[indexDst++] = (R)total;
+                    for( uint32_t x = 0; x < n; x++ )
+                        output_row[x0 + x] = result(totals[x]);
                 }
             }
         }

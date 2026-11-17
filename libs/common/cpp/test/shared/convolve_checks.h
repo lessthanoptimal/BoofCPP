@@ -74,8 +74,9 @@ namespace convolve_checks {
         check_within(expected, found, float_tolerance<R>(), sum_weights*max_pixel);
     }
 
-    /// Every operation and border with kernels smaller than, equal to and larger than the image. Floats also get
-    /// inputs which are hard for floating point: cancellation, long rows and columns, wide kernels and large values
+    /// Every operation and border with kernels smaller than, equal to and larger than the image, and wider than 13,
+    /// which strict doesn't unroll. Floats also get inputs which are hard for floating point: cancellation, long rows
+    /// and columns, wide kernels and large values
     template<class E, class R = E>
     void check_all() {
         const Op ops[] = {Op::HORIZONTAL, Op::VERTICAL, Op::CONVOLVE};
@@ -93,6 +94,9 @@ namespace convolve_checks {
                     check<E, R>(op, 15 + i, 20 + i, 7, 1, border, 0, 50, 10, false);
                     check<E, R>(op, 15 + i, 20 + i, 7, 4, border, 0, 50, 10, true);
                 }
+                // Wider than the kernels with a width known at compile time
+                check<E, R>(op, 40, 37, 15, 7, border, 0, 50, 10, true);
+                check<E, R>(op, 300, 37, 17, 3, border, 0, 50, 10, false);
                 if constexpr (is_float) {
                     check<E, R>(op, 31, 29, 7, 3, border, -50, 50, 10, true);
                     check<E, R>(op, 40, 37, 9, 4, border, -1e5, 1e5, 1, true);
