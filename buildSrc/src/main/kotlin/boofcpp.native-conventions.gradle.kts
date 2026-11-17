@@ -37,6 +37,18 @@ val nativeJar by tasks.registering(Jar::class) {
 
 publishing.publications.named<MavenPublication>("mavenJava") { artifact(nativeJar) }
 
+// Loads the JNI library from the native jar, the way users get it. It runs in an empty directory, so the native build
+// directory isn't found. CI also renames the native build directory, so a library that links another one from it
+// fails
+tasks.register<JavaExec>("nativeJarCheck") {
+    description = "Loads the JNI library from the native jar alone"
+    classpath = files(nativeJar) + sourceSets.main.get().runtimeClasspath
+    mainClass = "org.boofcpp.NativeLoader"
+    workingDir = temporaryDir
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
+    argumentProviders.add(CommandLineArgumentProvider { listOf(nativeLibrary.name.get(), nativeLibrary.directory.get()) })
+}
+
 val benchmark by sourceSets.creating {
     compileClasspath += sourceSets.main.get().output + sourceSets.main.get().compileClasspath
     runtimeClasspath += sourceSets.main.get().output + sourceSets.main.get().runtimeClasspath

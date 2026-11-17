@@ -32,4 +32,12 @@ public class NativeLoader {
         System.err.println("Failed to load native library " + name);
         return false;
     }
+
+    /// Loads the library given by the arguments, e.g. `JNIBoofCPP boofcpp-jni`, and exits with 1 if it fails. The
+    /// nativeJarCheck task runs it with only the native jar, to check that the jar works on its own
+    public static void main( String[] args ) {
+        if (!load(args[0], args[1]))
+            System.exit(1);
+        System.out.println("Loaded " + args[0]);
+    }
 }

@@ -23,6 +23,12 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64" AND CMAKE_CXX_COMPILER_ID MATCH
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=x86-64-v2")
 endif()
 
+# A shared library must contain everything it needs, so a missing object library fails the build instead of loading
+# the JNI library
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-undefined")
+endif()
+
 # Remove any ambiguity about what mode it is in
 IF(CMAKE_BUILD_TYPE STREQUAL "Debug")
     message("-- Debug Mode --")

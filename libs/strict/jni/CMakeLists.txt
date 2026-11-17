@@ -8,6 +8,6 @@ file(GLOB JNI_SRC "src/main/cpp/*.cpp")
 
 add_library(JNIBoofCPP SHARED ${JNI_SRC})
 
-target_link_libraries(JNIBoofCPP BoofCPP JNIBoofCPPCommon)
+target_link_libraries(JNIBoofCPP BoofCPPObjects BoofCPPCommon JNIBoofCPPCommon)
 # The Java code and the native jar load it from build/boofcpp-jni
 set_target_properties(JNIBoofCPP PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/boofcpp-jni)
