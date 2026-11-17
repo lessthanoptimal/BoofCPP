@@ -5,10 +5,10 @@
 using namespace boofcv;
 
 namespace {
-    /// Mean of the pixels of the Java gray images. They're held as critical arrays, so no JNI calls are made while
-    /// the mean is computed
-    template<class E>
-    void mean( JNIEnv* env, jobject jinput, jobject joutput, jint radius_x, jint radius_y ) {
+    /// Calls func(input, output) with the pixels of the Java gray images. They're held as critical arrays, so 'func'
+    /// can't make JNI calls
+    template<class E, class Func>
+    void with_images( JNIEnv* env, jobject jinput, jobject joutput, Func func ) {
         ImageAndInfo<Gray<E>, JImageInfo> input = wrapCriticalGray<E>(env, jinput);
         ImageAndInfo<Gray<E>, JImageInfo> output = wrapCriticalGray<E>(env, joutput);
 
@@ -16,23 +16,42 @@ namespace {
         CriticalArray output_data(env, output.info.jdata, 0);
         input.image.data = (E*)input_data.data;
         output.image.data = (E*)output_data.data;
+        func(input.image, output.image);
+    }
 
-        Gray<E> storage(0, 0);
-        fast::BlurImageOps::mean(input.image, output.image, (uint32_t)radius_x, (uint32_t)radius_y, storage);
+    template<class E>
+    void mean( JNIEnv* env, jobject jinput, jobject joutput, jint radius_x, jint radius_y ) {
+        with_images<E>(env, jinput, joutput, [&]( Gray<E>& input, Gray<E>& output ) {
+            Gray<E> storage(0, 0);
+            fast::BlurImageOps::mean(input, output, (uint32_t)radius_x, (uint32_t)radius_y, storage);
+        });
+    }
+
+    template<class E>
+    void mean_border( JNIEnv* env, jobject jinput, jobject joutput, jint radius_x, jint radius_y, jobject jtype,
+                      jdouble value ) {
+        // Look up the border before acquiring critical arrays
+        std::shared_ptr<ImageBorder<E>> border = border_from_java<E>(env, jtype, value);
+        with_images<E>(env, jinput, joutput, [&]( Gray<E>& input, Gray<E>& output ) {
+            Gray<E> storage(0, 0);
+            std::vector<E> totals;
+            fast::BlurImageOps::mean_border(input, output, radius_x, radius_y, *border, storage, totals);
+        });
     }
 }
 
 extern "C" {
 
-// C++ exceptions become Java exceptions
+// The JNI functions for one pixel type, e.g. Java_org_boofcpp_fast_convolve_NativeImageBlurOps_nativeMeanF32()
 #define BOOFCPP_FAST_MEAN_JNI(T) \
 JNIEXPORT void JNICALL Java_org_boofcpp_fast_convolve_NativeImageBlurOps_nativeMean##T( \
         JNIEnv* env, jobject, jobject jinput, jobject joutput, jint radius_x, jint radius_y ) { \
-    try { \
-        mean<T>(env, jinput, joutput, radius_x, radius_y); \
-    } catch (...) { \
-        throw_java_exception(env); \
-    } \
+    jni_call(env, [&] { mean<T>(env, jinput, joutput, radius_x, radius_y); }); \
+} \
+JNIEXPORT void JNICALL Java_org_boofcpp_fast_convolve_NativeImageBlurOps_nativeMeanBorder##T( \
+        JNIEnv* env, jobject, jobject jinput, jobject joutput, jint radius_x, jint radius_y, jobject jtype, \
+        jdouble value ) { \
+    jni_call(env, [&] { mean_border<T>(env, jinput, joutput, radius_x, radius_y, jtype, value); }); \
 }
 
 BOOFCPP_FAST_MEAN_JNI(F32)

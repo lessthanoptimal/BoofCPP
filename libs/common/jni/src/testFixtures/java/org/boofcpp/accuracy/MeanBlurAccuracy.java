@@ -5,7 +5,9 @@ import boofcv.alg.filter.blur.GBlurImageOps;
 import boofcv.alg.misc.GImageMiscOps;
 import boofcv.core.image.GConvertImage;
 import boofcv.core.image.GeneralizedImageOps;
+import boofcv.core.image.border.FactoryImageBorder;
 import boofcv.io.image.ConvertBufferedImage;
+import boofcv.struct.border.BorderType;
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayF64;
 import boofcv.struct.image.GrayU8;
@@ -14,8 +16,9 @@ import org.boofcpp.testing.BenchmarkUtils;
 
 import java.util.Random;
 
-/// Accuracy of a variant's mean blur hook against BoofCV's Java code. Inputs are the test image and, for floats, ones
-/// which are hard for floating point: long running sums and large values
+/// Accuracy of a variant's mean blur hook, without a border (op "mean") and with one (op "mean_border"), against
+/// BoofCV's Java code. Inputs are the test image and, for floats, ones which are hard for floating point: long running
+/// sums and large values. The border is reflected, and the test image is also run with every other border
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class MeanBlurAccuracy implements AccuracyCase {
     private final BOverrideBlurImageOps.Mean hook;
@@ -35,6 +38,9 @@ public class MeanBlurAccuracy implements AccuracyCase {
             for (int radius : new int[]{1, 5, 30}) {
                 compare(record, image, radius, radius, "test_image r=" + radius);
             }
+            for (BorderType border : new BorderType[]{BorderType.EXTENDED, BorderType.WRAP, BorderType.ZERO}) {
+                compareBorder(record, image, 5, 5, border, "test_image r=5 " + border);
+            }
 
             if (type != GrayF32.class && type != GrayF64.class)
                 continue;
@@ -45,19 +51,36 @@ public class MeanBlurAccuracy implements AccuracyCase {
         }
     }
 
+    /// Without a border, then with a reflected border
     private void compare( AccuracyRecord record, ImageGray input, int radiusX, int radiusY, String name ) {
         ImageGray expected = (ImageGray)input.createSameShape();
         ImageGray found = (ImageGray)input.createSameShape();
-        // BoofCV's Java code, not a registered hook
+        withoutHook(() -> GBlurImageOps.mean(input, expected, radiusX, radiusY, null, null));
+        hook.processMeanWeighted(input, found, radiusX, radiusY, null);
+        record.add("mean", input.getClass().getSimpleName(), name, ImageDifference.measure(expected, found));
+        compareBorder(record, input, radiusX, radiusY, BorderType.REFLECT, name);
+    }
+
+    private void compareBorder( AccuracyRecord record, ImageGray input, int radiusX, int radiusY, BorderType border,
+                                String name ) {
+        Class type = input.getClass();
+        ImageGray expected = (ImageGray)input.createSameShape();
+        ImageGray found = (ImageGray)input.createSameShape();
+        withoutHook(() -> GBlurImageOps.meanB(input, expected, radiusX, radiusY, FactoryImageBorder.single(border, type),
+                null, null));
+        hook.processMeanBorder(input, found, radiusX, radiusY, FactoryImageBorder.single(border, type), null);
+        record.add("mean_border", type.getSimpleName(), name, ImageDifference.measure(expected, found));
+    }
+
+    /// Runs BoofCV's Java code, not a registered hook
+    private static void withoutHook( Runnable boofcv ) {
         BOverrideBlurImageOps.Mean registered = BOverrideBlurImageOps.mean;
         BOverrideBlurImageOps.mean = null;
         try {
-            GBlurImageOps.mean(input, expected, radiusX, radiusY, null, null);
+            boofcv.run();
         } finally {
             BOverrideBlurImageOps.mean = registered;
         }
-        hook.processMeanWeighted(input, found, radiusX, radiusY, null);
-        record.add("mean", input.getClass().getSimpleName(), name, ImageDifference.measure(expected, found));
     }
 
     private static ImageGray random( Class type, int width, int height, double max, Random rand ) {

@@ -139,12 +139,17 @@ public class AccuracyRecord {
 
     /// The metrics as a table
     public String table() {
-        StringBuilder sb = new StringBuilder(String.format(Locale.US, "%-34s", "op image case"));
+        int width = "op image case".length();
+        for (String key : results.keySet()) {
+            width = Math.max(width, key.length());
+        }
+        String name = "%-" + width + "s";
+        StringBuilder sb = new StringBuilder(String.format(Locale.US, name, "op image case"));
         for (String m : METRICS) {
             sb.append(String.format(Locale.US, " %11s", m));
         }
         for (Map.Entry<String, double[]> e : results.entrySet()) {
-            sb.append(String.format(Locale.US, "\n%-34s", e.getKey().replace('|', ' ')));
+            sb.append(String.format(Locale.US, "\n" + name, e.getKey().replace('|', ' ')));
             for (double v : e.getValue()) {
                 sb.append(String.format(Locale.US, " %11.3g", v));
             }
