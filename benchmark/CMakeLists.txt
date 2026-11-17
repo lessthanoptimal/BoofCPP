@@ -45,3 +45,7 @@ list(APPEND BechmarkList disparity)
 FOREACH(FILENAME ${BechmarkList})
     target_link_libraries(${FILENAME} BoofCPP ${IMAGE_LIBS})
 ENDFOREACH()
+
+# Fast against strict
+add_executable(fast_blur src/fast_blur.cpp ${BENCHMARK_COMMON})
+target_link_libraries(fast_blur BoofCPPFast BoofCPP ${IMAGE_LIBS})

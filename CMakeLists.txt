@@ -37,9 +37,11 @@ enable_testing()
 
 add_subdirectory(libs/common/cpp)
 add_subdirectory(libs/strict/cpp)
+add_subdirectory(libs/fast/cpp)
 add_subdirectory(benchmark)
 add_subdirectory(libs/common/jni)
 add_subdirectory(libs/strict/jni)
+add_subdirectory(libs/fast/jni)
 
 # Only googletest is needed, not googlemock, and it shouldn't be installed with BoofCPP
 set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)

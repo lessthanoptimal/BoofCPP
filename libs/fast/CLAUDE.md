@@ -13,14 +13,15 @@ weakened to make code pass. Read `CodeStandards.md` in the repository root first
 3. Test it with the shared tests, using the fast tolerance. If the op's tests aren't shared yet, move them into shared
    tests first, see [Testing Fast](../../CodeStandards.md#testing-fast). Add inputs which are hard for floating point
    if the tests don't have them yet
-4. Self-review against `CodeStandards.md` and the design goals: within tolerance, integers identical to strict,
+4. Add the op to the accuracy tool of strict and fast, see [Accuracy](../../CodeStandards.md#accuracy), and run both
+5. Self-review against `CodeStandards.md` and the design goals: within tolerance, integers identical to strict,
    deterministic, simple and readable, no duplicated code, shared code in `libs/common`
-5. Fix every issue the review found, then review again until nothing is left
-6. Run every C++ and JNI test. All of them must pass
-7. Benchmark against strict's native code and BoofCV's Java code. Keep the function only if it's at least 1.5x faster
+6. Fix every issue the review found, then review again until nothing is left
+7. Run every C++ and JNI test. All of them must pass
+8. Benchmark with JMH against strict's native code and BoofCV's Java code. Keep the function only if it's at least 1.3x faster
    than strict. Otherwise remove it and record why. If it combines techniques, benchmark each one alone, see
    [Prefer simple code](#prefer-simple-code)
-8. Commit with the speedup over strict and Java, and the kept techniques with their share of it, in the message.
+9. Commit with the speedup over strict and Java, and the kept techniques with their share of it, in the message.
    Intermediate commits are fine for saving progress. Once the approach is final, squash them into one commit per op,
    e.g. one for the Gaussian blur
 

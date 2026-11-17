@@ -54,6 +54,14 @@ BoofCPP.initialize()
 Now all functions which BoofCPP supports will be overrided. This will also override any previously loaded overrides.
 Initialize must be called before any image processing is done.
 
+The `fast` library is optional. Its results are within floating point tolerance of BoofCV instead of identical, and
+it's at least 1.3x faster than the default library for the functions it has. With it on the classpath,
+`BoofCPP.initialize()` uses it for those functions:
+
+```Gradle
+implementation group: 'org.boofcpp', name: "boofcpp-fast", version: '0.30', classifier: "linux-amd64"
+```
+
 # Dependencies
 
 The main source code has no external dependencies, making it very easy to build. It needs a C++17 compiler and
@@ -86,13 +94,13 @@ make -j8
 ctest
 ```
 
-Inside the repository the Java library loads the native library from `build/boofcpp-jni`, so build it first. To run
-the unit tests which compare it against BoofCV:
+Inside the repository the Java libraries load the native libraries from `build/boofcpp-jni` and
+`build/boofcpp-fast-jni`, so build them first. To run the unit tests which compare them against BoofCV:
 ```bash
-./gradlew :boofcpp-jni:test
+./gradlew test
 ```
 
-To install boofcpp-common, boofcpp-jni and, if there's an Android SDK, boofcpp-android:
+To install boofcpp-common, boofcpp-jni, boofcpp-fast and, if there's an Android SDK, boofcpp-android:
 ```bash
 ./gradlew publishToMavenLocal
 ```
@@ -114,7 +122,7 @@ The main benchmarks are done to directly compare Java and JNI code. There is als
 as a form of sanity check to make sure JNI or simply building the C++ code as a library does slow it down too much.
 
 C++ Benchmark: benchmark
-Java/JNI Benchmark: libs/strict/jni/src/benchmark
+Java/JNI Benchmark: libs/strict/jni/src/benchmark and libs/fast/jni/src/benchmark
 
 To run a C++ benchmark, run the generated executable from the `datasets` directory, which has the test image:
 ```bash
@@ -124,10 +132,11 @@ cd datasets
 Every file in `benchmark/src` that has a `main()` is its own executable.
 
 The Java benchmark code is created using JMH (https://openjdk.java.net/projects/code-tools/jmh/). Run all of them,
-or only the ones matching a regex with `-Pinclude`. Results are saved in `libs/strict/jni/build/reports/benchmark`.
+or only the ones matching a regex with `-Pinclude`. Results are saved in the module's `build/reports/benchmark`.
 ```bash
 ./gradlew :boofcpp-jni:benchmarkRun
 ./gradlew :boofcpp-jni:benchmarkRun -Pinclude=BenchmarkThresholding
+./gradlew :boofcpp-fast:benchmarkRun
 ```
 They can also be run from IntelliJ with the JMH plugin.
 
@@ -162,11 +171,12 @@ When built as an application the compiler can unroll loops and other optimizatio
 
 # Accuracy
 
-The accuracy tool measures how far the native results are from BoofCV's Java code: the largest absolute and
+The accuracy tool measures how far each library's results are from BoofCV's Java code: the largest absolute and
 relative error, RMS error, the largest distance in ULPs, and the fraction of pixels which differ. It saves a record in
 `results/accuracy/<library>/<platform>.json` and reports metrics which grew more than 2x since the saved record.
 ```bash
 ./gradlew :boofcpp-jni:accuracyRun
+./gradlew :boofcpp-fast:accuracyRun
 ```
 
 # Trouble Shooting
@@ -207,8 +217,7 @@ run much faster in C++ (e.g. a simple global threshold) while complex algorithm 
 General expectations:
 * Algorithms which consume sparse data structures typically run at the same speed in C++ and Java.
 * Dense, vector heavy code should be faster in C++.
-* Once there is a fast library in addition to the strict one (see CodeStandards.md), how much faster it is will vary
-  by algorithm, but it's often 2x to 5x faster than strict.
+* The fast library (see CodeStandards.md) is at least 1.3x faster than strict for the functions it has.
 
 It's worth mentioning that the reason Java was used as the language for
 BoofCV is because Java projects are easier to write and maintain as

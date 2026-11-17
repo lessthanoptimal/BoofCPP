@@ -36,17 +36,29 @@ public abstract class NativeMeanBlurChecks extends BoofCPPStandardJUnit {
             for (boolean concurrent : new boolean[]{false, true}) {
                 for (int[] r : radii) {
                     ImageGray input = randomImage(type, 61, 45);
+                    double scale = maxValue(type);
                     ImageGray expected = callBoofCV(null, concurrent,
                             () -> GBlurImageOps.mean(input, null, r[0], r[1], null, null));
 
                     ImageGray found = (ImageGray)input.createSameShape();
                     hook.processMeanWeighted(input, found, r[0], r[1], null);
-                    assertMatches(expected, found);
+                    assertMatches(expected, found, scale);
 
                     assertMatches(expected, callBoofCV(hook, concurrent,
-                            () -> GBlurImageOps.mean(input, null, r[0], r[1], null, null)));
+                            () -> GBlurImageOps.mean(input, null, r[0], r[1], null, null)), scale);
                 }
             }
+        }
+    }
+
+    /// The output is the input
+    @Test
+    public void compareMeanInPlace() {
+        for (Class type : imageTypes) {
+            ImageGray image = randomImage(type, 61, 45);
+            ImageGray expected = callBoofCV(null, false, () -> GBlurImageOps.mean(image, null, 2, 3, null, null));
+            hook.processMeanWeighted(image, image, 2, 3, null);
+            assertMatches(expected, image, maxValue(type));
         }
     }
 
@@ -60,10 +72,16 @@ public abstract class NativeMeanBlurChecks extends BoofCPPStandardJUnit {
         }
     }
 
+    /// Largest input value. It's the tolerance's scale because the mean is a running sum of raw pixel values, so
+    /// floating point rounding error grows with their range
+    protected static double maxValue( Class type ) {
+        return type == GrayU16.class ? 65535 : 255;
+    }
+
     /// Random sub-image, so that its offset and stride aren't the defaults
     protected ImageGray randomImage( Class type, int width, int height ) {
         ImageGray input = GeneralizedImageOps.createSingleBand(type, width, height);
-        GImageMiscOps.fillUniform(input, rand, 0, type == GrayU16.class ? 65535 : 255);
+        GImageMiscOps.fillUniform(input, rand, 0, maxValue(type));
         return BoofTesting.createSubImageOf(input);
     }
 
