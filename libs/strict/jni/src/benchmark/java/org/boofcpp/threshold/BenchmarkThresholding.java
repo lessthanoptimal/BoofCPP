@@ -2,8 +2,10 @@ package org.boofcpp.threshold;
 
 import boofcv.abst.filter.binary.InputToBinary;
 import boofcv.factory.filter.binary.FactoryThresholdBinary;
+import boofcv.core.image.ConvertImage;
 import boofcv.io.image.ConvertBufferedImage;
 import boofcv.struct.ConfigLength;
+import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayU8;
 import org.boofcpp.testing.BenchmarkUtils;
 import org.boofcpp.BoofCPP;
@@ -22,6 +24,7 @@ public class BenchmarkThresholding
 {
     Class<GrayU8> type = GrayU8.class;
     GrayU8 input;
+    GrayF32 inputF32;
     GrayU8 output;
 
     boolean down = true;
@@ -35,6 +38,9 @@ public class BenchmarkThresholding
 
     InputToBinary<GrayU8> global_otsu_native = new NativeGlobalOtsu<>(0,255,1.0,down, type);
     InputToBinary<GrayU8> global_otsu_java = FactoryThresholdBinary.globalOtsu(0,255,1.0,down, type);
+
+    InputToBinary<GrayF32> global_otsu_native_f32 = new NativeGlobalOtsu<>(0,255,1.0,down, GrayF32.class);
+    InputToBinary<GrayF32> global_otsu_java_f32 = FactoryThresholdBinary.globalOtsu(0,255,1.0,down, GrayF32.class);
 
     InputToBinary<GrayU8> local_mean_native = new NativeLocalMean<>(regionWidth, scale, down, type);
     InputToBinary<GrayU8> local_mean_java = FactoryThresholdBinary.localMean(regionWidth, scale, down, type);
@@ -55,6 +61,7 @@ public class BenchmarkThresholding
     {
         BufferedImage buffered = BenchmarkUtils.loadImage(BenchmarkUtils.TEST_IMAGE);
         input=ConvertBufferedImage.convertFrom(buffered,(GrayU8)null);
+        inputF32 = ConvertImage.convert(input, (GrayF32)null);
 
         output = new GrayU8(input.width,input.height);
     }
@@ -70,6 +77,12 @@ public class BenchmarkThresholding
 
     @Benchmark
     public void global_otsu_java() { global_otsu_java.process(input,output); }
+
+    @Benchmark
+    public void global_otsu_native_f32() { global_otsu_native_f32.process(inputF32,output); }
+
+    @Benchmark
+    public void global_otsu_java_f32() { global_otsu_java_f32.process(inputF32,output); }
 
     @Benchmark
     public void local_mean_native() { local_mean_native.process(input,output); }
