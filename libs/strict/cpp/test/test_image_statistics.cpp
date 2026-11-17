@@ -94,3 +94,61 @@ TEST_F(ImageStatisticsTest, histogram_FLOAT) {
         }
     }
 }
+/// Pixels without a bin throw, same as BoofCV, including pixels below minValue when the histogram has more bins than
+/// the type has values
+template<class T>
+void check_histogram_unsigned_outside() {
+    Gray<T> image(5,6);
+    GrowArray<uint32_t> histogram(5);
+
+    ImageMiscOps::fill(image,(T)14);
+    ImageStatistics::histogram(image,(T)10,histogram);
+    ASSERT_EQ(30u,histogram[4]);
+
+    for( T value : {(T)9, (T)15, (T)0, std::numeric_limits<T>::max()} ) {
+        image.at(3,2) = value;
+        ASSERT_THROW(ImageStatistics::histogram(image,(T)10,histogram), std::out_of_range);
+    }
+
+    GrowArray<uint32_t> large(300);
+    image.at(3,2) = 9;
+    ASSERT_THROW(ImageStatistics::histogram(image,(T)10,large), std::out_of_range);
+}
+
+TEST_F(ImageStatisticsTest, histogram_U8_outside) {
+    check_histogram_unsigned_outside<U8>();
+}
+
+TEST_F(ImageStatisticsTest, histogram_U16_outside) {
+    check_histogram_unsigned_outside<U16>();
+}
+
+/// Bins are (int)(value - minValue), same as BoofCV. Values less than 1 outside the histogram and NaN are counted
+template<class T>
+void check_histogram_float_outside() {
+    Gray<T> image(5,6);
+    GrowArray<uint32_t> histogram(5);
+
+    ImageMiscOps::fill(image,(T)12);
+    image.at(0,0) = (T)9.01;
+    image.at(1,0) = (T)14.99;
+    image.at(2,0) = std::numeric_limits<T>::quiet_NaN();
+    ImageStatistics::histogram(image,(T)10,histogram);
+    ASSERT_EQ(2u,histogram[0]);
+    ASSERT_EQ(27u,histogram[2]);
+    ASSERT_EQ(1u,histogram[4]);
+
+    const T inf = std::numeric_limits<T>::infinity();
+    for( T value : {(T)9, (T)15, inf, -inf, (T)1e30} ) {
+        image.at(2,0) = value;
+        ASSERT_THROW(ImageStatistics::histogram(image,(T)10,histogram), std::out_of_range);
+    }
+}
+
+TEST_F(ImageStatisticsTest, histogram_F32_outside) {
+    check_histogram_float_outside<F32>();
+}
+
+TEST_F(ImageStatisticsTest, histogram_F64_outside) {
+    check_histogram_float_outside<F64>();
+}
