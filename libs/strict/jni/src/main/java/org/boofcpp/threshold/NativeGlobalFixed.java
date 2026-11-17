@@ -4,6 +4,9 @@ import boofcv.struct.ConfigLength;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
 
+/// Native global fixed threshold, created by BoofCV's FactoryThresholdBinary through BOverrideFactoryThresholdBinary
+///
+/// BOOFCPP_OVERRIDE BOverrideFactoryThresholdBinary.globalFixed
 public class NativeGlobalFixed<T extends ImageGray<T>> extends NativeThresholdBase<T>
 {
     public NativeGlobalFixed(double threshold, boolean down, Class<T> inputType ) {

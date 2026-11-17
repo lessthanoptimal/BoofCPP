@@ -13,6 +13,8 @@ import org.boofcpp.BoofCPP;
 
 /// Native stereo block matching. Behaves the same as BoofCV's WrapBaseBlockMatch. Use [#isSupported] to see
 /// if a configuration can be computed natively.
+///
+/// BOOFCPP_OVERRIDE BOverrideStereoDisparity.opCreateBlockMatch
 public class NativeDisparityBlockMatch<T extends ImageGray<T>, DI extends ImageGray<DI>>
         implements StereoDisparityBlockMatch<T, DI> {
     static {

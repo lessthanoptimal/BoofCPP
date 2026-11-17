@@ -22,6 +22,7 @@ import org.ddogleg.struct.FastAccess;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -93,6 +94,104 @@ public abstract class HookContractChecks extends BoofCPPStandardJUnit {
         assertFalse(hooks == 0, "No hooks were registered");
         if (!failures.isEmpty())
             fail(String.join("\n", failures));
+    }
+
+    /// Every class in the variant's main sources that implements a BOverride interface has a hook tag, see
+    /// [HookTags]. After [#registerHooks()], each
+    /// BOOFCPP_OVERRIDE field is claimed by one class and registered, and holds an instance of the class, or creates
+    /// one if it's a factory; every BOverride interface the class implements has a tagged field; a BOOFCPP_IGNORE class
+    /// isn't registered
+    @Test
+    public void hookTagsMatchRegistration() throws Exception {
+        BOverrideManager.clear();
+        registerHooks();
+
+        List<String> failures = new ArrayList<>();
+        Map<String, String> claimed = new HashMap<>();
+        for (HookTags tags : HookTags.load(new File("src/main/java"))) {
+            String name = tags.className;
+            if (tags.interfaces.isEmpty() && tags.overrides.isEmpty() && !tags.ignore)
+                continue;
+            if (tags.overrides.isEmpty() && !tags.ignore) {
+                failures.add(name + " implements " + tags.interfaces + " but has no BOOFCPP_OVERRIDE or BOOFCPP_IGNORE");
+                continue;
+            }
+            if (tags.ignore && !tags.overrides.isEmpty()) {
+                failures.add(name + " has both BOOFCPP_OVERRIDE and BOOFCPP_IGNORE");
+                continue;
+            }
+            Class type = Class.forName(name);
+
+            List<String> taggedTypes = new ArrayList<>();
+            for (String override : tags.overrides) {
+                Field field = hookField(override);
+                if (field == null) {
+                    failures.add(name + ": " + override + " isn't a hook field of a BOverride class BoofCV knows");
+                    continue;
+                }
+                taggedTypes.add(interfaceName(field.getType()));
+                String other = claimed.put(override, name);
+                if (other != null)
+                    failures.add(name + " and " + other + " both claim " + override);
+                Object hook = field.get(null);
+                if (hook == null) {
+                    failures.add(name + ": " + override + " isn't registered");
+                } else if (field.getType().isAssignableFrom(type)) {
+                    if (!type.isInstance(hook))
+                        failures.add(name + ": " + override + " holds a " + hook.getClass().getName());
+                } else if (!createdClasses(field).stream().anyMatch(type::isAssignableFrom)) {
+                    // A factory hook, e.g. a constructor reference, which creates the tagged class
+                    failures.add(name + ": " + override + " creates " + createdClasses(field));
+                }
+            }
+            for (String implemented : tags.interfaces) {
+                if (!taggedTypes.contains(implemented))
+                    failures.add(name + " implements " + implemented + " but no field of that type is tagged");
+            }
+            if (tags.ignore) {
+                for (Field field : hookFields()) {
+                    if (type.isInstance(field.get(null)))
+                        failures.add(name + " has BOOFCPP_IGNORE but is registered with " + field.getName());
+                }
+            }
+        }
+        if (!failures.isEmpty())
+            fail(String.join("\n", failures));
+    }
+
+    /// Classes of the objects a registered hook creates, calling each of its functions for every gray image type
+    private List<Class> createdClasses( Field field ) throws IllegalAccessException {
+        Object hook = field.get(null);
+        String name = field.getDeclaringClass().getSimpleName() + "." + field.getName();
+        Function<Class, Object[]> custom = customArguments.get(name);
+        List<Class> created = new ArrayList<>();
+        for (Class type : BoofCPPTesting.GRAY_TYPES) {
+            for (Method method : interfaceMethods(hook.getClass())) {
+                Object[] args = custom != null ? custom.apply(type) : arguments(method, type);
+                Object result = call(hook, method, args, type, name, new ArrayList<>());
+                if (result != null && !created.contains(result.getClass()))
+                    created.add(result.getClass());
+            }
+        }
+        return created;
+    }
+
+    /// The hook field named "BOverride class.field", or null if BoofCV doesn't know it
+    private static Field hookField( String name ) {
+        String[] parts = name.split("\\.");
+        if (parts.length != 2)
+            return null;
+        for (Field field : hookFields()) {
+            if (field.getDeclaringClass().getSimpleName().equals(parts[0]) && field.getName().equals(parts[1]))
+                return field;
+        }
+        return null;
+    }
+
+    /// "BOverride class.interface", the way a class declaration names it
+    private static String interfaceName( Class type ) {
+        Class enclosing = type.getEnclosingClass();
+        return (enclosing == null ? "" : enclosing.getSimpleName() + ".") + type.getSimpleName();
     }
 
     /// Calls the function and records it if it throws anything other than a RuntimeException. Returns its result

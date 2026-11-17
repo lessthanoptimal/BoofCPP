@@ -11,6 +11,8 @@ import org.boofcpp.NativeImageBorder;
 /// Fast's native mean blur, without and with a border, for GrayF32 and GrayF64. Everything else goes to the hook it
 /// replaced, e.g. strict's. Without one, it throws a RuntimeException, which causes BoofCV to fall back to its Java
 /// implementation.
+///
+/// BOOFCPP_OVERRIDE BOverrideBlurImageOps.mean
 public class NativeImageBlurOps<T extends ImageBase<T>> implements BOverrideBlurImageOps.Mean<T> {
     private final BOverrideBlurImageOps.Mean<T> previous;
 

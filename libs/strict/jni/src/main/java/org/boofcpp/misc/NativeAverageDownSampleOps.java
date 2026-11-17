@@ -16,6 +16,11 @@ import boofcv.struct.image.ImageGray;
 /// Native average down sampling, called by BoofCV through BOverrideAverageDownSampleOps. Supports the same gray images
 /// as BoofCV's AverageDownSampleOps. Anything native doesn't support throws a RuntimeException, which causes BoofCV to
 /// fall back to its Java implementation.
+///
+/// BOOFCPP_OVERRIDE BOverrideAverageDownSampleOps.square
+/// BOOFCPP_OVERRIDE BOverrideAverageDownSampleOps.general
+/// BOOFCPP_OVERRIDE BOverrideAverageDownSampleOps.horizontal
+/// BOOFCPP_OVERRIDE BOverrideAverageDownSampleOps.vertical
 public class NativeAverageDownSampleOps implements BOverrideAverageDownSampleOps.Square,
         BOverrideAverageDownSampleOps.General, BOverrideAverageDownSampleOps.Horizontal,
         BOverrideAverageDownSampleOps.Vertical {

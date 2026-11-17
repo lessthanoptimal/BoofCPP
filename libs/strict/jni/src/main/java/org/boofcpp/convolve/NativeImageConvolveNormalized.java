@@ -9,6 +9,10 @@ import org.boofcpp.NativeBase;
 
 /// Native normalized convolution, called by BoofCV through BOverrideConvolveImageNormalized. Anything native doesn't
 /// support throws a RuntimeException, which causes BoofCV to fall back to its Java implementation.
+///
+/// BOOFCPP_OVERRIDE BOverrideConvolveImageNormalized.horizontal
+/// BOOFCPP_OVERRIDE BOverrideConvolveImageNormalized.vertical
+/// BOOFCPP_OVERRIDE BOverrideConvolveImageNormalized.convolve
 public class NativeImageConvolveNormalized extends NativeBase
         implements
         BOverrideConvolveImageNormalized.Horizontal,

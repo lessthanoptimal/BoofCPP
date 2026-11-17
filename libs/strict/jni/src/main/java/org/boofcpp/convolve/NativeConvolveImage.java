@@ -10,9 +10,12 @@ import boofcv.struct.image.ImageBase;
 import boofcv.struct.image.*;
 import org.boofcpp.NativeBase;
 
-/**
- * @author Peter Abeles
- */
+/// Native convolution, called by BoofCV through BOverrideConvolveImage. Anything native doesn't support throws a
+/// RuntimeException, which causes BoofCV to fall back to its Java implementation.
+///
+/// BOOFCPP_OVERRIDE BOverrideConvolveImage.horizontal
+/// BOOFCPP_OVERRIDE BOverrideConvolveImage.vertical
+/// BOOFCPP_OVERRIDE BOverrideConvolveImage.convolve
 public class NativeConvolveImage extends NativeBase implements
         BOverrideConvolveImage.Horizontal,
         BOverrideConvolveImage.Vertical,
