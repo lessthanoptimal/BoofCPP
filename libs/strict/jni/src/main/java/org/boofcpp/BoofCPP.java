@@ -5,13 +5,10 @@ import boofcv.alg.filter.convolve.BOverrideConvolveImage;
 import boofcv.alg.filter.convolve.BOverrideConvolveImageNormalized;
 import boofcv.alg.filter.misc.BOverrideAverageDownSampleOps;
 import boofcv.alg.transform.census.BOverrideCensusTransform;
-import boofcv.abst.disparity.StereoDisparityBlockMatch;
 import boofcv.factory.disparity.BOverrideStereoDisparity;
-import boofcv.factory.disparity.ConfigDisparityBM;
 import boofcv.factory.filter.binary.BOverrideFactoryBinaryContourFinder;
 import boofcv.factory.filter.binary.BOverrideFactoryThresholdBinary;
 import boofcv.override.BOverrideManager;
-import boofcv.struct.image.ImageGray;
 import org.boofcpp.contour.NativeChang2004;
 import org.boofcpp.convolve.NativeConvolveImage;
 import org.boofcpp.convolve.NativeImageBlurOps;
@@ -76,15 +73,7 @@ public class BoofCPP {
 
         BOverrideFactoryBinaryContourFinder.chang2004 = NativeChang2004::new;
 
-        // Returning null means BoofCV uses its Java implementation
-        BOverrideStereoDisparity.opCreateBlockMatch = new BOverrideStereoDisparity.CreateBlockMatch() {
-            @Override public <T extends ImageGray<T>, DI extends ImageGray<DI>> StereoDisparityBlockMatch<T, DI>
-            create( ConfigDisparityBM config, Class<T> imageType, Class<DI> dispType ) {
-                if (!NativeDisparityBlockMatch.isSupported(config, imageType))
-                    return null;
-                return new NativeDisparityBlockMatch<>(config, imageType, dispType);
-            }
-        };
+        BOverrideStereoDisparity.opCreateBlockMatch = NativeDisparityBlockMatch::create;
 
         for (NativeVariant variant : variants()) {
             variant.initialize();

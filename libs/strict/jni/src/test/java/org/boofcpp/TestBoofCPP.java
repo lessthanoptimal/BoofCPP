@@ -1,5 +1,11 @@
 package org.boofcpp;
 
+import boofcv.alg.filter.blur.BOverrideBlurImageOps;
+import boofcv.factory.disparity.ConfigDisparityBM;
+import boofcv.factory.disparity.FactoryStereoDisparity;
+import boofcv.struct.image.GrayF32;
+import boofcv.struct.image.GrayU8;
+import org.boofcpp.disparity.NativeDisparityBlockMatch;
 import org.boofcpp.testing.BoofCPPStandardJUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -8,6 +14,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestBoofCPP extends BoofCPPStandardJUnit {
     /// Names of the test variants, in the order they were initialized
@@ -23,6 +31,15 @@ public class TestBoofCPP extends BoofCPPStandardJUnit {
     @Test void initialize_variants() {
         BoofCPP.initialize();
         assertEquals(List.of("low", "high"), initialized);
+    }
+
+    /// After uninitialize() BoofCV uses its Java implementations again
+    @Test void uninitialize() {
+        BoofCPP.initialize();
+        BoofCPP.uninitialize();
+        assertFalse(FactoryStereoDisparity.blockMatch(new ConfigDisparityBM(), GrayU8.class, GrayF32.class)
+                instanceof NativeDisparityBlockMatch);
+        assertNull(BOverrideBlurImageOps.mean);
     }
 
     @Test void variants() {

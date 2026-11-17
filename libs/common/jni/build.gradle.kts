@@ -22,6 +22,6 @@ dependencies {
     testFixturesApi(libs.junit.jupiter.api)
     testFixturesApi(libs.boofcv.ip)
     testFixturesApi(libs.boofcv.io)
-    // NativeConfigs compares the disparity configurations
-    testImplementation(libs.boofcv.ip.multiview)
+    // Disparity checks, and NativeConfigs compares the disparity configurations
+    testFixturesApi(libs.boofcv.ip.multiview)
 }
