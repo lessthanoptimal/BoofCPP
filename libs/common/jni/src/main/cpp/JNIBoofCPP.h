@@ -108,6 +108,19 @@ private:
 /// critical arrays have been released. Does nothing if a Java exception is already pending.
 void throw_java_exception( JNIEnv* env );
 
+/// Calls func() for a JNI function and returns its result. A C++ exception becomes a Java exception, and a default
+/// value is returned. Critical arrays must be held by CriticalArray inside func, so they're released first
+template<class Func>
+auto jni_call( JNIEnv* env, Func func ) -> decltype(func()) {
+    try {
+        return func();
+    } catch (...) {
+        throw_java_exception(env);
+        if constexpr (!std::is_void_v<decltype(func())>)
+            return {};
+    }
+}
+
 /// Index of the Java enum's name() in 'names'. Throws if it isn't there
 int32_t java_enum_index( JNIEnv* env, jobject jenum, const char* const* names, size_t count );
 

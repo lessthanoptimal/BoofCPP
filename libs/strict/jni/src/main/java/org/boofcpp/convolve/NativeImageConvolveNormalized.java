@@ -4,7 +4,7 @@ import boofcv.alg.filter.convolve.BOverrideConvolveImageNormalized;
 import boofcv.struct.convolve.Kernel1D;
 import boofcv.struct.convolve.Kernel2D;
 import boofcv.struct.image.ImageBase;
-import boofcv.struct.image.ImageType;
+import boofcv.struct.image.*;
 import org.boofcpp.NativeBase;
 
 public class NativeImageConvolveNormalized extends NativeBase
@@ -13,12 +13,18 @@ public class NativeImageConvolveNormalized extends NativeBase
         BOverrideConvolveImageNormalized.Vertical,
         BOverrideConvolveImageNormalized.Convolve
 {
-    private RuntimeException notSupported = new RuntimeException("Only gray images supported");
+    /// Native supports GrayU8 and GrayF32. Others throw a RuntimeException, so BoofCV uses its Java code
+    private static void checkTypes( ImageBase input, ImageBase output ) {
+        boolean u8 = input instanceof GrayU8 && output instanceof GrayU8;
+        boolean f32 = input instanceof GrayF32 && output instanceof GrayF32;
+        if (!u8 && !f32)
+            throw new RuntimeException("Unsupported image types " + input.getClass().getSimpleName() + " " +
+                    output.getClass().getSimpleName());
+    }
 
     @Override
     public void horizontal(Kernel1D kernel, ImageBase input, ImageBase output) {
-        if( input.getImageType().getFamily() != ImageType.Family.GRAY )
-            throw notSupported;
+        checkTypes(input, output);
         setImageType(input.imageType.getImageClass());
         nativehorizontal(kernel, input, output);
     }
@@ -26,8 +32,7 @@ public class NativeImageConvolveNormalized extends NativeBase
 
     @Override
     public void vertical(Kernel1D kernel, ImageBase input, ImageBase output) {
-        if( input.getImageType().getFamily() != ImageType.Family.GRAY )
-            throw notSupported;
+        checkTypes(input, output);
         setImageType(input.imageType.getImageClass());
         nativevertical(kernel, input, output);
     }

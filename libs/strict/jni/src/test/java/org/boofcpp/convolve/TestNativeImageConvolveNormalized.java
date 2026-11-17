@@ -14,6 +14,9 @@ import boofcv.BoofTesting;
 import org.boofcpp.BoofCPP;
 import org.boofcpp.testing.BoofCPPStandardJUnit;
 import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import boofcv.struct.image.GrayU16;
+import boofcv.struct.image.GrayS8;
 
 public class TestNativeImageConvolveNormalized extends BoofCPPStandardJUnit {
     Class types[] = new Class[]{GrayU8.class, GrayF32.class};
@@ -94,5 +97,23 @@ public class TestNativeImageConvolveNormalized extends BoofCPPStandardJUnit {
             for (int i = 0; i < d.length; i++) d[i] *= scale;
         }
         return kernel;
+    }
+
+    /// Types native doesn't support throw a RuntimeException, so BoofCV uses its Java code
+    @Test
+    public void unsupportedTypesThrow() {
+        NativeImageConvolveNormalized alg = new NativeImageConvolveNormalized();
+        Kernel1D_S32 kernel = new Kernel1D_S32(3, new int[]{1, 2, 1});
+        assertThrows(RuntimeException.class, () -> alg.horizontal(kernel, new GrayS8(10, 8), new GrayS8(10, 8)));
+        assertThrows(RuntimeException.class, () -> alg.vertical(kernel, new GrayU16(10, 8), new GrayU16(10, 8)));
+    }
+
+    /// A C++ exception in the native code becomes a Java RuntimeException. Here the kernel doesn't match the image
+    @Test
+    public void nativeExceptionBecomesJava() {
+        NativeImageConvolveNormalized alg = new NativeImageConvolveNormalized();
+        alg.setImageType(GrayU8.class);
+        Kernel1D_F32 kernel = new Kernel1D_F32(3, new float[]{1, 2, 1});
+        assertThrows(RuntimeException.class, () -> alg.nativehorizontal(kernel, new GrayU8(10, 8), new GrayU8(10, 8)));
     }
 }

@@ -28,8 +28,7 @@ BorderType borderJavaToCpp( int type ) {
     throw std::invalid_argument("Unknown Java border type");
 }
 
-JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeConvolveImage_nativeHorizontal(
-    JNIEnv *env, jobject obj, jobject jkernel, jobject jinput, jobject joutput, jint jborderType ) {
+static void nativeHorizontal( JNIEnv *env, jobject obj, jobject jkernel, jobject jinput, jobject joutput, jint jborderType ) {
 
     jclass objClass = env->GetObjectClass(obj);
     jfieldID fid = env->GetFieldID(objClass, "isInteger", "Z");
@@ -97,8 +96,12 @@ JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeConvolveImage_nativeHoriz
     }
 }
 
-JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeConvolveImage_nativeVertical(
+JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeConvolveImage_nativeHorizontal(
     JNIEnv *env, jobject obj, jobject jkernel, jobject jinput, jobject joutput, jint jborderType ) {
+    jni_call(env, [&] { nativeHorizontal(env, obj, jkernel, jinput, joutput, jborderType); });
+}
+
+static void nativeVertical( JNIEnv *env, jobject obj, jobject jkernel, jobject jinput, jobject joutput, jint jborderType ) {
 
     jclass objClass = env->GetObjectClass(obj);
     jfieldID fid = env->GetFieldID(objClass, "isInteger", "Z");
@@ -160,8 +163,12 @@ JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeConvolveImage_nativeVerti
     }
 }
 
-JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeConvolveImage_nativeConvolve(
+JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeConvolveImage_nativeVertical(
     JNIEnv *env, jobject obj, jobject jkernel, jobject jinput, jobject joutput, jint jborderType ) {
+    jni_call(env, [&] { nativeVertical(env, obj, jkernel, jinput, joutput, jborderType); });
+}
+
+static void nativeConvolve( JNIEnv *env, jobject obj, jobject jkernel, jobject jinput, jobject joutput, jint jborderType ) {
 
    jclass objClass = env->GetObjectClass(obj);
     jfieldID fid = env->GetFieldID(objClass, "isInteger", "Z");
@@ -221,6 +228,11 @@ JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeConvolveImage_nativeConvo
         env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.image.data, 0);
         delete kernel;
     }
+}
+
+JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeConvolveImage_nativeConvolve(
+    JNIEnv *env, jobject obj, jobject jkernel, jobject jinput, jobject joutput, jint jborderType ) {
+    jni_call(env, [&] { nativeConvolve(env, obj, jkernel, jinput, joutput, jborderType); });
 }
 
 

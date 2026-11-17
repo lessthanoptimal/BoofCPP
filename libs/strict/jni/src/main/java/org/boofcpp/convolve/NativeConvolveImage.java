@@ -7,7 +7,7 @@ import boofcv.core.image.ImageBorderValue;
 import boofcv.struct.convolve.Kernel1D;
 import boofcv.struct.convolve.Kernel2D;
 import boofcv.struct.image.ImageBase;
-import boofcv.struct.image.ImageType;
+import boofcv.struct.image.*;
 import org.boofcpp.NativeBase;
 
 /**
@@ -18,10 +18,19 @@ public class NativeConvolveImage extends NativeBase implements
         BOverrideConvolveImage.Vertical,
         BOverrideConvolveImage.Convolve
 {
+    /// Native supports GrayU8 input with GrayI16 or GrayS32 output, and GrayF32 input and output. Others throw a
+    /// RuntimeException, so BoofCV uses its Java code
+    private static void checkTypes( ImageBase input, ImageBase output ) {
+        boolean u8 = input instanceof GrayU8 && (output instanceof GrayI16 || output instanceof GrayS32);
+        boolean f32 = input instanceof GrayF32 && output instanceof GrayF32;
+        if (!u8 && !f32)
+            throw new RuntimeException("Unsupported image types " + input.getClass().getSimpleName() + " " +
+                    output.getClass().getSimpleName());
+    }
+
     @Override
     public void convolve(Kernel2D kernel, ImageBase input, ImageBase output, ImageBorder border) {
-        if( input.getImageType().getFamily() != ImageType.Family.GRAY )
-            throw new RuntimeException("Only supports gray images");
+        checkTypes(input, output);
         setImageType(input.imageType.getImageClass(), output.imageType.getImageClass());
 
         output.reshape(input.width,input.height);
@@ -31,8 +40,7 @@ public class NativeConvolveImage extends NativeBase implements
 
     @Override
     public void horizontal(Kernel1D kernel, ImageBase input, ImageBase output, ImageBorder border) {
-        if( input.getImageType().getFamily() != ImageType.Family.GRAY )
-            throw new RuntimeException("Only supports gray images");
+        checkTypes(input, output);
         setImageType(input.imageType.getImageClass(), output.imageType.getImageClass());
 
         output.reshape(input.width,input.height);
@@ -42,8 +50,7 @@ public class NativeConvolveImage extends NativeBase implements
 
     @Override
     public void vertical(Kernel1D kernel, ImageBase input, ImageBase output, ImageBorder border) {
-        if( input.getImageType().getFamily() != ImageType.Family.GRAY )
-            throw new RuntimeException("Only supports gray images");
+        checkTypes(input, output);
         setImageType(input.imageType.getImageClass(), output.imageType.getImageClass());
 
         output.reshape(input.width,input.height);

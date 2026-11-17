@@ -17,6 +17,10 @@ import boofcv.BoofTesting;
 import org.boofcpp.BoofCPP;
 import org.boofcpp.testing.BoofCPPStandardJUnit;
 import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import boofcv.struct.convolve.Kernel1D_S32;
+import boofcv.struct.image.GrayS16;
+import boofcv.struct.image.GrayS8;
 
 public class TestNativeConvolveImage extends BoofCPPStandardJUnit {
     Class types[] = new Class[]{GrayU8.class, GrayF32.class};
@@ -123,5 +127,15 @@ public class TestNativeConvolveImage extends BoofCPPStandardJUnit {
             }
 
         }
+    }
+
+    /// Types native doesn't support throw a RuntimeException, so BoofCV uses its Java code
+    @Test
+    public void unsupportedTypesThrow() {
+        NativeConvolveImage alg = new NativeConvolveImage();
+        Kernel1D_S32 kernel = new Kernel1D_S32(3, new int[]{1, 2, 1});
+        ImageBorder<GrayS8> border = FactoryImageBorder.single(BorderType.EXTENDED, GrayS8.class);
+        assertThrows(RuntimeException.class, () -> alg.horizontal(kernel, new GrayS8(10, 8), new GrayS16(10, 8), border));
+        assertThrows(RuntimeException.class, () -> alg.vertical(kernel, new GrayU8(10, 8), new GrayU8(10, 8), border));
     }
 }

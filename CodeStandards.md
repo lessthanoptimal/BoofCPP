@@ -40,8 +40,12 @@
     module's `TestEnforceCodeStandards` checks it
   - gtest tests use `TEST_F` with a fixture derived from `BoofCPPTest`, which has `rng`, e.g.
     `class BlurImageOpsTest : public boofcv::BoofCPPTest {};`. `test_code_standards` checks it
+  - Each variant's `TestHookContracts` calls every function of its hooks, and of the objects they create, with every
+    gray image type. Each call must finish or throw a RuntimeException. Results aren't checked. Hooks that need
+    specific argument values are listed in `customArguments` of `HookContractChecks`
 - JNI
-  - C++ exceptions must never escape a JNI function. Catch them and throw a Java exception instead
+  - C++ exceptions must never escape a JNI function. `jni_call()` turns them into Java exceptions
+  - Hold critical arrays with `CriticalArray`, so an exception releases them
   - No JNI calls while a critical array (`GetPrimitiveArrayCritical`) is held
   - If a configuration isn't supported natively, BoofCV must fall back to its Java implementation, e.g. the override returns `null`
 
