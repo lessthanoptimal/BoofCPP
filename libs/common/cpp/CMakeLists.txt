@@ -17,6 +17,7 @@ if (test)
     include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
     list(APPEND CommonTestList test_base_types)
+    list(APPEND CommonTestList test_config_disparity)
     list(APPEND CommonTestList test_config_types)
     list(APPEND CommonTestList test_convolve_kernels)
     list(APPEND CommonTestList test_convolve_naive)

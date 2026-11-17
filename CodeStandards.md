@@ -71,7 +71,10 @@ results/    Accuracy records, see Accuracy
 - Each library in `libs/` has `cpp/` and `jni/`
   - `cpp/` has `include/boofcv/` for headers, `src/` and `test/`
   - `jni/` is the Java module with its JNI code: `src/main/java`, `src/main/cpp`, `src/test` and `src/benchmark`
-- `common` never depends on a variant, and the variants don't depend on each other
+  - JNI functions only tests use are in `src/test/cpp` and built into a test-only library, e.g. common's
+    `JNIBoofCPPCommonTest`, never into a library that's shipped
+- `common` never depends on a variant, and the variants don't depend on each other, except that fast's benchmarks
+  compare with strict
 - Variants have the same class and function names in their own namespace, so code and tests can switch between them
 - Includes always start with `boofcv/`. Strict is `#include "boofcv/convolve.h"`, fast is
   `#include "boofcv/fast/convolve.h"`
