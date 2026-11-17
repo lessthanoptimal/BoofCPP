@@ -1,8 +1,8 @@
 #ifndef BOOFCPP_BENCHMARK_COMMON_H
 #define BOOFCPP_BENCHMARK_COMMON_H
 
-#include <boofcv/image_types.h>
-#include <boofcv/base_types.h>
+#include "boofcv/image_types.h"
+#include "boofcv/base_types.h"
 
 #include <algorithm>
 #include <chrono>

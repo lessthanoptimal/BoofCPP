@@ -35,9 +35,11 @@ ENDIF()
 option(test "Build all tests." ON) # Makes boolean 'test' available.
 enable_testing()
 
-add_subdirectory(boofcpp)
+add_subdirectory(libs/common/cpp)
+add_subdirectory(libs/strict/cpp)
 add_subdirectory(benchmark)
-add_subdirectory(boofcpp-jni)
+add_subdirectory(libs/common/jni)
+add_subdirectory(libs/strict/jni)
 
 # Only googletest is needed, not googlemock, and it shouldn't be installed with BoofCPP
 set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)

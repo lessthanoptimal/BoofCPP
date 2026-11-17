@@ -1,0 +1,8 @@
+// Java code every variant shares. Test fixtures have the helpers shared by the variants' tests
+apply plugin: 'java-test-fixtures'
+
+dependencies {
+    testFixturesApi platform('org.junit:junit-bom:5.14.4')
+    testFixturesApi 'org.junit.jupiter:junit-jupiter-api'
+    testFixturesApi('org.boofcv:boofcv-ip:'+BOOFCV_VERSION)
+}
