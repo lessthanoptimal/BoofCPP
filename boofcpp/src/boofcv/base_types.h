@@ -19,6 +19,7 @@
 #endif
 
 namespace boofcv {
+    typedef int8_t S8;
     typedef uint8_t U8;
     typedef uint16_t U16;
     typedef int16_t S16;
@@ -32,6 +33,12 @@ namespace boofcv {
     // variables follow what is done in java
     // sum_type is an int for all 32-bit integers or smaller. otherwise it matches the type
     // signed_type is a type that can be used to store the difference of two numbers
+    template<> class TypeInfo<S8> {
+    public:
+        typedef int32_t sum_type;
+        typedef int32_t signed_type;
+    };
+
     template<> class TypeInfo<U8> {
     public:
         typedef uint32_t sum_type;

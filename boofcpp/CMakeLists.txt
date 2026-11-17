@@ -18,6 +18,7 @@ if (test)
 #    file(GLOB TestList "test/*.cpp")
         # then go through the list and remove test/ and .cpp
 
+    list(APPEND TestList test_average_down_sample)
     list(APPEND TestList test_base_types)
     list(APPEND TestList test_binary_ops)
     list(APPEND TestList test_config_types)
