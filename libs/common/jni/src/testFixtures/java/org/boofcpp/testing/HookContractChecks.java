@@ -16,6 +16,9 @@ import boofcv.struct.convolve.Kernel2D_F32;
 import boofcv.struct.convolve.Kernel2D_F64;
 import boofcv.struct.convolve.Kernel2D_S32;
 import boofcv.struct.image.*;
+import georegression.struct.point.Point2D_I32;
+import org.ddogleg.struct.DogArray;
+import org.ddogleg.struct.FastAccess;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -129,9 +132,16 @@ public abstract class HookContractChecks extends BoofCPPStandardJUnit {
             return param.getEnumConstants()[0];
         if (ImageBase.class.isAssignableFrom(param)) {
             Class imageType = param.isAssignableFrom(type) ? type : param;
-            ImageGray image = GeneralizedImageOps.createSingleBand(imageType, 12, 10);
+            ImageBase image = GeneralizedImageOps.createImage(imageType, 12, 10, 2);
             GImageMiscOps.fillUniform(image, rand, 0, 100);
             return image;
+        }
+        // Points, e.g. census sample points
+        if (param == FastAccess.class) {
+            var points = new DogArray<>(Point2D_I32::new);
+            points.grow().setTo(1, 0);
+            points.grow().setTo(0, -1);
+            return points;
         }
         boolean f32 = type == GrayF32.class, f64 = type == GrayF64.class;
         if (param == Kernel1D.class)
