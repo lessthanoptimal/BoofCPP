@@ -10,7 +10,7 @@ target_include_directories(BoofCPPCommon PUBLIC include)
 set_target_properties(BoofCPPCommon PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 if (test)
-    # Helpers shared by the unit tests of every variant, e.g. testing_utils.h
+    # Helpers and checks shared by the unit tests of every variant, e.g. testing_utils.h and shared/
     add_library(BoofCPPCommonTest INTERFACE)
     target_include_directories(BoofCPPCommonTest INTERFACE test)
 
@@ -18,6 +18,8 @@ if (test)
 
     list(APPEND CommonTestList test_base_types)
     list(APPEND CommonTestList test_config_types)
+    list(APPEND CommonTestList test_convolve_kernels)
+    list(APPEND CommonTestList test_convolve_naive)
     list(APPEND CommonTestList test_geometry_types)
     list(APPEND CommonTestList test_image_border)
     list(APPEND CommonTestList test_image_misc_ops)

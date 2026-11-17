@@ -100,9 +100,10 @@ results/    Accuracy records, see Accuracy
 - Tolerances are never widened, and shared tests aren't changed, without the maintainer's approval
 - Shared tests
   - Shared test classes and headers end with `Checks`, so a search for `Test` finds each variant's own tests
-  - C++: checks in `libs/strict/cpp/test/shared/` are written against namespace `tested` and compare with strict's
-    naive implementations using the fast tolerance. A variant's test file includes its variant header, e.g.
-    `variant_strict.h`, which sets `tested`, then the checks, and declares a test for each image type it supports
+  - C++: checks in `libs/common/cpp/test/shared/` are written against namespace `tested` and compare with the naive
+    implementations in common, e.g. `convolve_naive.h`, using the fast tolerance. A variant's test file includes its
+    variant header, e.g. `variant_strict.h`, which sets `tested`, then the checks, and declares a test for each image
+    type it supports
   - Java: abstract classes in `libs/common/jni/src/testFixtures` compare with BoofCV using `assertMatches()` from
     `BoofCPPStandardJUnit`. A variant's test class passes its hook and the image types it supports. Its `tolerance` is
     `Tolerance.IDENTICAL` by default, and fast's test classes set `Tolerance.FLOAT`
