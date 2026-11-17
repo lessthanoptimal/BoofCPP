@@ -113,7 +113,7 @@ The main benchmarks are done to directly compare Java and JNI code. There is als
 as a form of sanity check to make sure JNI or simply building the C++ code as a library does slow it down too much.
 
 C++ Benchmark: benchmark
-Java/JNI Benchmark: boofcpp-jni/src/benchmark
+Java/JNI Benchmark: libs/strict/jni/src/benchmark
 
 To run a C++ benchmark, run the generated executable from the `datasets` directory, which has the test image:
 ```bash
@@ -123,7 +123,7 @@ cd datasets
 Every file in `benchmark/src` that has a `main()` is its own executable.
 
 The Java benchmark code is created using JMH (https://openjdk.java.net/projects/code-tools/jmh/). Run all of them,
-or only the ones matching a regex with `-Pinclude`. Results are saved in `boofcpp-jni/build/reports/benchmark`.
+or only the ones matching a regex with `-Pinclude`. Results are saved in `libs/strict/jni/build/reports/benchmark`.
 ```bash
 ./gradlew :boofcpp-jni:benchmarkRun
 ./gradlew :boofcpp-jni:benchmarkRun -Pinclude=BenchmarkThresholding

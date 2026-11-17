@@ -1,0 +1,229 @@
+#include "gtest/gtest.h"
+#include "boofcv/binary_ops.h"
+
+using namespace std;
+using namespace boofcv;
+
+// TODO Add subimage test for all functions
+void set3x3( Gray<U8>& image, int* values ) {
+    image.reshape(3,3);
+
+    for( int i = 0; i < 9; i++ ) {
+        image.data[i] = (U8)values[i];
+    }
+}
+
+TEST(BinaryImageOps, logicAnd) {
+    Gray<U8> image0(5,6);
+    Gray<U8> image1(5,6);
+    Gray<U8> output;
+
+    image0.at(0,0)=1;
+    image0.at(1,1)=1;
+    image0.at(2,2)=0;
+
+    image1.at(0,0)=0;
+    image1.at(1,1)=1;
+    image1.at(2,2)=1;
+
+    BinaryImageOps::logicAnd(image0,image1,output);
+
+    EXPECT_EQ(0,output.at(0,0));
+    EXPECT_EQ(1,output.at(1,1));
+    EXPECT_EQ(0,output.at(0,1));
+    EXPECT_EQ(0,output.at(2,2));
+}
+
+
+TEST(BinaryImageOps, logicOr) {
+    Gray<U8> image0(5,6);
+    Gray<U8> image1(5,6);
+    Gray<U8> output;
+
+    image0.at(0,0)=1;
+    image0.at(1,1)=1;
+    image0.at(2,2)=0;
+
+    image1.at(0,0)=0;
+    image1.at(1,1)=1;
+    image1.at(2,2)=1;
+
+    BinaryImageOps::logicOr(image0,image1,output);
+
+    EXPECT_EQ(1,output.at(0,0));
+    EXPECT_EQ(1,output.at(1,1));
+    EXPECT_EQ(0,output.at(0,1));
+    EXPECT_EQ(1,output.at(2,2));
+}
+
+
+TEST(BinaryImageOps, erode4) {
+    Gray<U8> img,out;
+
+    int case0[] = {0,0,0, 0,1,0, 0,0,0};
+    int case1[] = {0,1,0, 1,1,1, 0,1,0};
+    int case2[] = {0,0,0, 1,1,1, 0,1,0};
+    int case3[] = {0,1,0, 0,1,1, 0,1,0};
+    int case4[] = {0,1,0, 1,1,0, 0,1,0};
+    int case5[] = {0,1,0, 1,1,1, 0,0,0};
+    int case6[] = {1,1,1, 1,1,1, 1,1,1};
+
+    set3x3(img,case0); BinaryImageOps::erode4(img,out); EXPECT_EQ(0,out.at(1,1));
+    set3x3(img,case1); BinaryImageOps::erode4(img,out); EXPECT_EQ(1,out.at(1,1));
+    set3x3(img,case2); BinaryImageOps::erode4(img,out); EXPECT_EQ(0,out.at(1,1));
+    set3x3(img,case3); BinaryImageOps::erode4(img,out); EXPECT_EQ(0,out.at(1,1));
+    set3x3(img,case4); BinaryImageOps::erode4(img,out); EXPECT_EQ(0,out.at(1,1));
+    set3x3(img,case5); BinaryImageOps::erode4(img,out); EXPECT_EQ(0,out.at(1,1));
+    set3x3(img,case6); BinaryImageOps::erode4(img,out); EXPECT_EQ(1,out.at(1,1));
+}
+
+
+TEST(BinaryImageOps, dilate4) {
+    Gray<U8> img,out;
+
+    int case0[] = {0,0,0, 0,1,0, 0,0,0};
+    int case1[] = {0,1,0, 0,0,0, 0,0,0};
+    int case2[] = {0,0,0, 1,0,0, 0,0,0};
+    int case3[] = {0,0,0, 0,0,1, 0,0,0};
+    int case4[] = {0,0,0, 0,0,0, 0,1,0};
+    int case5[] = {1,0,0, 0,0,0, 0,0,0};
+    int case6[] = {0,0,0, 0,0,0, 1,0,0};
+
+    set3x3(img,case0); BinaryImageOps::dilate4(img,out); EXPECT_EQ(1,out.at(1,1));
+    set3x3(img,case1); BinaryImageOps::dilate4(img,out); EXPECT_EQ(1,out.at(1,1));
+    set3x3(img,case2); BinaryImageOps::dilate4(img,out); EXPECT_EQ(1,out.at(1,1));
+    set3x3(img,case3); BinaryImageOps::dilate4(img,out); EXPECT_EQ(1,out.at(1,1));
+    set3x3(img,case4); BinaryImageOps::dilate4(img,out); EXPECT_EQ(1,out.at(1,1));
+    set3x3(img,case5); BinaryImageOps::dilate4(img,out); EXPECT_EQ(0,out.at(1,1));
+    set3x3(img,case6); BinaryImageOps::dilate4(img,out); EXPECT_EQ(0,out.at(1,1));
+}
+
+TEST(ThresholdOps, threshold) {
+    Gray<U8> img(4,5);
+    Gray<U8> out(4,5);
+
+    img.at(1,2) = 200;
+    img.at(2,2) = 150;
+    img.at(2,1) = 100;
+    img.at(0,1) = 100;
+
+    ThresholdOps::threshold(img,(U8)100,true,out);
+
+    for( uint32_t y = 0; y < 5; y++ ) {
+        for( uint32_t x = 0; x < 4; x++ ) {
+            if( img.at(x,y) <= 100 ) {
+                EXPECT_EQ(1,out.at(x,y));
+            } else {
+                EXPECT_EQ(0,out.at(x,y));
+            }
+        }
+    }
+
+    ThresholdOps::threshold(img,(U8)100,false,out);
+
+    for( uint32_t y = 0; y < 5; y++ ) {
+        for( uint32_t x = 0; x < 4; x++ ) {
+            if( img.at(x,y) > 100 ) {
+                EXPECT_EQ(1,out.at(x,y));
+            } else {
+                EXPECT_EQ(0,out.at(x,y));
+            }
+        }
+    }
+}
+
+/**
+ * A threshold wider than the pixel type must not wrap around. Matches Java where an int threshold is used
+ */
+TEST(ThresholdOps, threshold_outside_range) {
+    Gray<U8> img(4,5);
+    Gray<U8> out(4,5);
+    img.at(1,2) = 255;
+    img.at(2,2) = 150;
+
+    ThresholdOps::threshold(img,(int32_t)300,true,out);
+    for( uint32_t i = 0; i < out.total_pixels(); i++ ) EXPECT_EQ(1,out.data[i]);
+    ThresholdOps::threshold(img,(int32_t)300,false,out);
+    for( uint32_t i = 0; i < out.total_pixels(); i++ ) EXPECT_EQ(0,out.data[i]);
+    ThresholdOps::threshold(img,(int32_t)-1,true,out);
+    for( uint32_t i = 0; i < out.total_pixels(); i++ ) EXPECT_EQ(0,out.data[i]);
+    ThresholdOps::threshold(img,(int32_t)-1,false,out);
+    for( uint32_t i = 0; i < out.total_pixels(); i++ ) EXPECT_EQ(1,out.data[i]);
+}
+
+/**
+ * Scale should adjust the Otsu threshold the same way as BoofCV's GlobalBinaryFilter
+ */
+TEST(GlobalOtsuBinaryFilter, scale) {
+    Gray<U8> img(20,10);
+    for( uint32_t i = 0; i < img.total_pixels(); i++ ) img.data[i] = static_cast<U8>((i*37)%256);
+    Gray<U8> found(20,10);
+    Gray<U8> expected(20,10);
+
+    double otsu = ThresholdOps::computeOtsu(img,(U8)0,(U8)255,false); // min=0 so no offset
+
+    for( double scale : {1.0, 0.0, 0.5, 1.2, 3.0} ) {
+        for( bool down : {true, false} ) {
+            GlobalOtsuBinaryFilter<U8> alg(0,255,down,scale);
+            alg.process(img,found);
+
+            double s = down ? scale : (scale <= 0.0 ? 0.0 : 1.0/scale);
+            auto threshold = static_cast<int32_t>(otsu*s);
+            for( uint32_t i = 0; i < img.total_pixels(); i++ ) {
+                int v = img.data[i];
+                expected.data[i] = static_cast<U8>(down ? v <= threshold : v > threshold);
+            }
+            for( uint32_t i = 0; i < img.total_pixels(); i++ )
+                ASSERT_EQ(expected.data[i],found.data[i]) << "scale=" << scale << " down=" << down;
+        }
+    }
+}
+
+/**
+ * Thresholds are doubles like in Java. Out of range values must not wrap and fractions truncate like (int)
+ */
+TEST(GlobalFixedBinaryFilter, double_threshold) {
+    Gray<U8> img(7,5);
+    for( uint32_t i = 0; i < img.total_pixels(); i++ ) img.data[i] = static_cast<U8>((i*41)%256);
+    Gray<U8> found(7,5);
+
+    for( double t : {-1.0, 0.0, 125.0, 125.5, 255.0, 300.0} ) {
+        for( bool down : {true, false} ) {
+            GlobalFixedBinaryFilter<U8> alg(t,down);
+            alg.process(img,found);
+            auto ti = static_cast<int>(t);
+            for( uint32_t i = 0; i < img.total_pixels(); i++ ) {
+                int v = img.data[i];
+                ASSERT_EQ(down ? v <= ti : v > ti, found.data[i]) << "t=" << t << " down=" << down;
+            }
+        }
+    }
+}
+
+/**
+ * Otsu threshold is a histogram index offset by min_value, same as Java
+ */
+TEST(GlobalOtsuBinaryFilter, min_value_offset) {
+    Gray<U8> img(20,10);
+    for( uint32_t i = 0; i < img.total_pixels(); i++ ) img.data[i] = static_cast<U8>(20 + (i*37)%181);
+    Gray<U8> found(20,10);
+
+    int threshold = static_cast<int>(ThresholdOps::computeOtsu(img,(U8)20,(U8)200,false)) + 20;
+    GlobalOtsuBinaryFilter<U8> alg(20,200,true);
+    alg.process(img,found);
+    for( uint32_t i = 0; i < img.total_pixels(); i++ )
+        ASSERT_EQ(img.data[i] <= threshold, found.data[i]);
+}
+
+TEST(ThresholdOps, computeOtsu) {
+    // This is intentionally omitted and is handled by comparing it to Java
+    // a port of the java unit test would be complex
+}
+
+TEST(ThresholdOps, localMean) {
+    // TODO Finish this function and write a test
+}
+
+TEST(ComputeOtsu, ComputeOtsu) {
+    // Test of the class ComputeOtsu is intentionally omitted. Done by comparing results to Java
+}

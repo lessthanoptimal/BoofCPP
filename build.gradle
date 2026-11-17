@@ -1,5 +1,5 @@
 // The Android module uses the Android Gradle Plugin, which can't be combined with java-library. It has its own
-// build and publishing configuration in boofcpp-android/build.gradle
+// build and publishing configuration in android/build.gradle
 configure(allprojects.findAll { it.name != 'boofcpp-android' }) {
     apply plugin: 'java-library'
     apply plugin: 'maven-publish'
@@ -9,6 +9,44 @@ configure(allprojects.findAll { it.name != 'boofcpp-android' }) {
     version = '0.30'
 
     ext.BOOFCV_VERSION = '1.6.1-SNAPSHOT'
+
+    java {
+        withJavadocJar()
+        withSourcesJar()
+        // Same as BoofCV. Markdown (///) Javadoc needs JDK 23+. Bytecode target is set by options.release below
+        toolchain { languageVersion = JavaLanguageVersion.of(25) }
+    }
+
+    repositories {
+        mavenLocal()
+        mavenCentral()
+
+        // Same as BoofCV, which publishes its snapshots here
+        maven { url = "https://central.sonatype.com/repository/maven-snapshots/" }
+    }
+
+    // Fail on jar conflict
+    configurations.configureEach { resolutionStrategy { failOnVersionConflict() } }
+
+    dependencies {
+        testImplementation platform('org.junit:junit-bom:5.14.4')
+        testImplementation 'org.junit.jupiter:junit-jupiter-api'
+        testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+
+    test {
+        useJUnitPlatform()
+        // JDK 24+ warns when native libraries are loaded unless native access is enabled
+        jvmArgs '--enable-native-access=ALL-UNNAMED'
+    }
+
+    javadoc {
+        configure(options) { failOnError = false }
+    }
+
+    // Same bytecode target as BoofCV
+    tasks.withType(JavaCompile).configureEach { options.release = 11 }
 
     // if Maven central isn't setup in ~/.gradle/gradle.properties fill in these variables to make it happy
     if (!project.hasProperty('ossrhUsername')) {

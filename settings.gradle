@@ -10,7 +10,10 @@ pluginManagement {
     }
 }
 
+include 'boofcpp-common'
+project(':boofcpp-common').projectDir = file('libs/common/jni')
 include 'boofcpp-jni'
+project(':boofcpp-jni').projectDir = file('libs/strict/jni')
 
 // The Android module is optional so that the rest of the project builds without an Android SDK.
 // The SDK is located the same way the Android Gradle Plugin does it.
@@ -28,6 +31,7 @@ static boolean hasAndroidSdk(File rootDir) {
 
 if (hasAndroidSdk(rootDir)) {
     include 'boofcpp-android'
+    project(':boofcpp-android').projectDir = file('android')
 } else {
     logger.warn('Skipping boofcpp-android because no Android SDK was found (ANDROID_HOME, ANDROID_SDK_ROOT or local.properties sdk.dir)')
 }
