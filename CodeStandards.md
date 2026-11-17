@@ -35,6 +35,11 @@
   - C++ configurations have the same field names (in snake case) and default values as the Java configuration
   - They implement `visit_fields()`, which lists every field with its Java name
   - A test checks the field names and defaults against Java and that every field survives a copy to C++ and back
+- Unit tests
+  - JUnit test classes extend `BoofCPPStandardJUnit`, which has `rand`, `tolerance` and `assertMatches()`. Each
+    module's `TestEnforceCodeStandards` checks it
+  - gtest tests use `TEST_F` with a fixture derived from `BoofCPPTest`, which has `rng`, e.g.
+    `class BlurImageOpsTest : public boofcv::BoofCPPTest {};`. `test_code_standards` checks it
 - JNI
   - C++ exceptions must never escape a JNI function. Catch them and throw a Java exception instead
   - No JNI calls while a critical array (`GetPrimitiveArrayCritical`) is held
@@ -75,10 +80,21 @@ datasets/   Test images
 
 ## Testing Fast
 
-- Use the same tests as strict, with a tolerance instead of exact comparisons:
-  `|found - expected| <= tol*max(1, |expected|)` with `tol` 1e-5 for F32 and 1e-12 for F64
+- Use the same tests as strict, with a tolerance instead of exact comparisons
+- Results must satisfy `|found - expected| <= tol*scale`, with `tol` 1e-5 for F32 and 1e-12 for F64
+  - `scale` starts at 1. If a test fails, inspect the algorithm's logic before changing it
+  - A `scale` other than 1 is justified in the test's documentation, preferably in 50 words or fewer
 - Tests must include inputs which are hard for floating point: large values, cancellation, long sums, and image sizes
   which aren't a multiple of the vector width
 - Tolerances are never widened, and shared tests aren't changed, without the maintainer's approval
+- Shared tests
+  - Shared test classes and headers end with `Checks`, so a search for `Test` finds each variant's own tests
+  - C++: checks in `libs/strict/cpp/test/shared/` are written against namespace `tested` and compare with strict's
+    naive implementations using the fast tolerance. A variant's test file includes its variant header, e.g.
+    `variant_strict.h`, which sets `tested`, then the checks, and declares a test for each image type it supports
+  - Java: abstract classes in `libs/common/jni/src/testFixtures` compare with BoofCV using `assertMatches()` from
+    `BoofCPPStandardJUnit`. A variant's test class passes its hook and the image types it supports. Its `tolerance` is
+    `Tolerance.IDENTICAL` by default, and fast's test classes set `Tolerance.FLOAT`
+  - When fast adds an op, that op's strict tests are moved into shared tests first, without removing or weakening any
 - Benchmark against strict's native code and BoofCV's Java code
 - `libs/fast/CLAUDE.md` has instructions for AI agents working on fast

@@ -1,11 +1,14 @@
 #include "gtest/gtest.h"
+#include "testing_utils.h"
 #include "boofcv/base_types.h"
 #include "boofcv/image_misc_ops.h"
 
 using namespace boofcv;
 using namespace std;
 
-TEST(ImageMiscOps, fill) {
+class ImageMiscOpsTest : public boofcv::BoofCPPTest {};
+
+TEST_F(ImageMiscOpsTest, fill) {
     Gray<U8> image(5,6);
 
     ImageMiscOps::fill(image,(U8)8);
@@ -18,7 +21,7 @@ TEST(ImageMiscOps, fill) {
 
 }
 
-TEST(ImageMiscOps, fill_subimage) {
+TEST_F(ImageMiscOpsTest, fill_subimage) {
     Gray<U8> image(5,6);
     Gray<U8> subimage = image.makeSubimage(1,1,4,5);
 
@@ -36,7 +39,7 @@ TEST(ImageMiscOps, fill_subimage) {
 
 }
 
-TEST(ImageMiscOps, fill_border) {
+TEST_F(ImageMiscOpsTest, fill_border) {
     Gray<U8> image(5,6);
 
     ImageMiscOps::fill_border(image,(U8)8,2);
@@ -51,7 +54,7 @@ TEST(ImageMiscOps, fill_border) {
     }
 }
 
-TEST(ImageMiscOps, fill_border_LargeRadius) {
+TEST_F(ImageMiscOpsTest, fill_border_LargeRadius) {
     Gray<U8> image(5,6);
 
     ImageMiscOps::fill_border(image,(U8)8,6);
@@ -63,7 +66,7 @@ TEST(ImageMiscOps, fill_border_LargeRadius) {
     }
 }
 
-TEST(ImageMiscOps, fill_uniform_INTEGER) {
+TEST_F(ImageMiscOpsTest, fill_uniform_INTEGER) {
     Gray<U8> image(30,40);
 
     U8 min_value = 5;
@@ -89,7 +92,7 @@ TEST(ImageMiscOps, fill_uniform_INTEGER) {
     }
 }
 
-TEST(ImageMiscOps, fill_uniform_FLOAT) {
+TEST_F(ImageMiscOpsTest, fill_uniform_FLOAT) {
     Gray<F32> image(30,40);
 
     F32 min_value = 5;

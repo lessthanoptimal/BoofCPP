@@ -15,13 +15,10 @@ import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
 import boofcv.BoofTesting;
 import org.boofcpp.BoofCPP;
+import org.boofcpp.testing.BoofCPPStandardJUnit;
 import org.junit.jupiter.api.Test;
 
-import java.util.Random;
-
-public class TestNativeConvolveImage {
-    Random rand = new Random(23423);
-
+public class TestNativeConvolveImage extends BoofCPPStandardJUnit {
     Class types[] = new Class[]{GrayU8.class, GrayF32.class};
 
     BorderType borderTypes[] = new BorderType[]{BorderType.WRAP,BorderType.REFLECT,BorderType.EXTENDED,BorderType.ZERO};
@@ -45,7 +42,6 @@ public class TestNativeConvolveImage {
             GImageMiscOps.fillUniform(input,rand,0,255);
 
             input = BoofTesting.createSubImageOf(input); // non-zero offset/stride
-
 
             for( int radius : new int[]{1,2,3,4,5,24} ) {
                 for(BorderType borderType : borderTypes) {
@@ -76,7 +72,6 @@ public class TestNativeConvolveImage {
             GImageMiscOps.fillUniform(input,rand,0,255);
 
             input = BoofTesting.createSubImageOf(input); // non-zero offset/stride
-
 
             for( int radius : new int[]{1,2,3,4,5,24} ) {
                 for(BorderType borderType : borderTypes) {
@@ -112,7 +107,6 @@ public class TestNativeConvolveImage {
             GImageMiscOps.fillUniform(input,rand,0,255);
 
             input = BoofTesting.createSubImageOf(input); // non-zero offset/stride
-
 
             for( int radius : new int[]{1,2,3,4,5,24} ) {
                 for(BorderType borderType : borderTypes) {

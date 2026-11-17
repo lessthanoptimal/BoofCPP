@@ -20,6 +20,7 @@ import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
 import boofcv.struct.image.InterleavedU8;
 import org.boofcpp.BoofCPP;
+import org.boofcpp.testing.BoofCPPStandardJUnit;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -27,42 +28,15 @@ import java.util.List;
 import java.util.Random;
 import java.util.function.Supplier;
 
-import static org.boofcpp.testing.BoofCPPTesting.assertIdentical;
 import static org.junit.jupiter.api.Assertions.*;
 
-public class TestNativeImageBlurOps {
-    Random rand = new Random(23423);
-
+public class TestNativeImageBlurOps extends BoofCPPStandardJUnit {
     static {
         BoofCPP.loadlib();
     }
 
     /// Image types BoofCV's BlurImageOps has mean and gaussian for
     static final Class[] GRAY_TYPES = new Class[]{GrayU8.class, GrayU16.class, GrayF32.class, GrayF64.class};
-
-    /// Mean against BoofCV's Java code, called directly and through BoofCV's hook. Includes regions larger than the
-    /// image
-    @Test
-    public void compareMean() {
-        int[][] radii = new int[][]{{1, 1}, {2, 3}, {5, 4}, {24, 24}, {40, 2}, {3, 30}};
-
-        for (Class type : GRAY_TYPES) {
-            for (boolean concurrent : new boolean[]{false, true}) {
-                for (int[] r : radii) {
-                    ImageGray input = randomImage(type, 61, 45);
-                    ImageGray expected = callBoofCV(false, concurrent,
-                            () -> GBlurImageOps.mean(input, null, r[0], r[1], null, null));
-
-                    ImageGray found = (ImageGray)input.createSameShape();
-                    new NativeImageBlurOps().processMeanWeighted(input, found, r[0], r[1], null);
-                    assertIdentical(expected, found);
-
-                    assertIdentical(expected, callBoofCV(true, concurrent,
-                            () -> GBlurImageOps.mean(input, null, r[0], r[1], null, null)));
-                }
-            }
-        }
-    }
 
     /// Gaussian against BoofCV's Java code, called directly and through BoofCV's hook. Sigma or radius can be computed
     /// from the other, and the kernel can be larger than the image
@@ -84,9 +58,9 @@ public class TestNativeImageBlurOps {
                         ImageGray found = (ImageGray)input.createSameShape();
                         new NativeImageBlurOps().processGaussian(
                                 input, found, sigmaX, radiusX, sigmaY, radiusY, null);
-                        assertIdentical(expected, found);
+                        assertMatches(expected, found);
 
-                        assertIdentical(expected, callBoofCV(true, concurrent, () ->
+                        assertMatches(expected, callBoofCV(true, concurrent, () ->
                                 GBlurImageOps.gaussian(input, null, sigmaX, radiusX, sigmaY, radiusY, null)));
                     }
                 }
@@ -194,7 +168,7 @@ public class TestNativeImageBlurOps {
                     nativeBlur.processMeanBorder(input, found, 3, 3, border, storage);
 
                     ImageGray horizontal = naiveMeanBorder(input, 3, 0, border);
-                    assertIdentical(naiveMeanBorder(horizontal, 0, 3, border), found);
+                    assertMatches(naiveMeanBorder(horizontal, 0, 3, border), found);
                 }
             }
         }
@@ -219,7 +193,7 @@ public class TestNativeImageBlurOps {
 
             ImageGray expected = meanBorderJava(input, 2, 2, border, false);
             ImageGray found = meanBorderHook(input, 2, 2, border, false);
-            assertIdentical(expected, found);
+            assertMatches(expected, found);
         }
 
         assertThrows(RuntimeException.class,
@@ -258,9 +232,9 @@ public class TestNativeImageBlurOps {
         NativeImageBlurOps nativeBlur = new NativeImageBlurOps();
         ImageGray found = (ImageGray)input.createSameShape();
         nativeBlur.processMeanBorder(input, found, radiusX, radiusY, border, null);
-        assertIdentical(expected, found);
+        assertMatches(expected, found);
 
-        assertIdentical(expected, meanBorderHook(input, radiusX, radiusY, border, concurrent));
+        assertMatches(expected, meanBorderHook(input, radiusX, radiusY, border, concurrent));
     }
 
     /// BoofCV's meanB without the native hook

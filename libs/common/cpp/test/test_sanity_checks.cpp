@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include "testing_utils.h"
 #include "boofcv/sanity_checks.h"
 
 using namespace std;
@@ -6,7 +7,9 @@ using namespace boofcv;
 
 // Test methods
 
-TEST(IndependentMethod, checkSameShape2) {
+class IndependentMethodTest : public boofcv::BoofCPPTest {};
+
+TEST_F(IndependentMethodTest, checkSameShape2) {
     Gray<U8> imgA(10,20);
     Gray<U8> imgB(10,20);
 
@@ -29,7 +32,7 @@ TEST(IndependentMethod, checkSameShape2) {
     }
 }
 
-TEST(IndependentMethod, checkSameShape3) {
+TEST_F(IndependentMethodTest, checkSameShape3) {
     Gray<U8> imgA(10,20);
     Gray<U8> imgB(10,20);
     Gray<U8> imgC(10,20);

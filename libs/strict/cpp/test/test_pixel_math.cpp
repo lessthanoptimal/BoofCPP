@@ -19,7 +19,9 @@ namespace {
     }
 }
 
-TEST(PixelMath, pow2) {
+class PixelMathTest : public boofcv::BoofCPPTest {};
+
+TEST_F(PixelMathTest, pow2) {
     Gray<F32> input = random_F32(12, 9, -5.0f, 5.0f);
     for (bool sub : {false, true}) {
         Gray<F32> in = sub ? create_subimage(input) : input.makeSubimage(0, 0, 12, 9);
@@ -34,7 +36,7 @@ TEST(PixelMath, pow2) {
     }
 }
 
-TEST(PixelMath, stdev) {
+TEST_F(PixelMathTest, stdev) {
     Gray<F32> mean = random_F32(12, 9, -5.0f, 5.0f);
     Gray<F32> pow2(12, 9);
     for (uint32_t y = 0; y < 9; y++) {
@@ -67,7 +69,7 @@ TEST(PixelMath, stdev) {
     EXPECT_TRUE(std::isnan(found.at(0, 0)));
 }
 
-TEST(PixelMath, plus_minus_multiply) {
+TEST_F(PixelMathTest, plus_minus_multiply) {
     Gray<U8> input(12, 9);
     std::mt19937 gen(0xBEEF);
     ImageMiscOps::fill_uniform(input, (U8)0, (U8)255, gen);

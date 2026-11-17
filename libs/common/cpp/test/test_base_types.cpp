@@ -1,10 +1,13 @@
 #include "gtest/gtest.h"
+#include "testing_utils.h"
 #include "boofcv/base_types.h"
 
 using namespace std;
 using namespace boofcv;
 
-TEST(GrowArray, initial_zero) {
+class GrowArrayTest : public boofcv::BoofCPPTest {};
+
+TEST_F(GrowArrayTest, initial_zero) {
     GrowArray<U8> array(20);
 
     for( uint32_t i = 0; i < 20; i++ ) {
@@ -12,7 +15,7 @@ TEST(GrowArray, initial_zero) {
     }
 }
 
-TEST(GrowArray, constructor_list) {
+TEST_F(GrowArrayTest, constructor_list) {
     GrowArray<U8> array({1,2,3,4});
 
     ASSERT_EQ(4,array.size);
@@ -24,7 +27,7 @@ TEST(GrowArray, constructor_list) {
 }
 
 
-TEST(GrowArray, at) {
+TEST_F(GrowArrayTest, at) {
     GrowArray<U8> array(5);
 
     ASSERT_EQ(0,array.at(1));
@@ -39,7 +42,7 @@ TEST(GrowArray, at) {
     }
 }
 
-TEST(GrowArray, resize) {
+TEST_F(GrowArrayTest, resize) {
     uint32_t N = 10;
     GrowArray<U8> array(N);
 
@@ -67,7 +70,7 @@ TEST(GrowArray, resize) {
     }
 }
 
-TEST(GrowArray, grow) {
+TEST_F(GrowArrayTest, grow) {
     uint32_t N = 10;
     GrowArray<U8> array(N);
 
@@ -92,7 +95,7 @@ TEST(GrowArray, grow) {
     }
 }
 
-TEST(GrowArray, setTo_initializer_list) {
+TEST_F(GrowArrayTest, setTo_initializer_list) {
     GrowArray<U8> array(10);
 
     array.setTo({1,2,3,4,5,6});

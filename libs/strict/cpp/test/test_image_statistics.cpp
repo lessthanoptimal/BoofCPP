@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include "testing_utils.h"
 #include "boofcv/base_types.h"
 #include "boofcv/image_statistics.h"
 #include "boofcv/image_misc_ops.h"
@@ -6,7 +7,9 @@
 using namespace boofcv;
 using namespace std;
 
-TEST(ImageStatistics, min) {
+class ImageStatisticsTest : public boofcv::BoofCPPTest {};
+
+TEST_F(ImageStatisticsTest, min) {
     Gray<U8> image(5,6);
 
     ImageMiscOps::fill(image,(U8)10);
@@ -15,7 +18,7 @@ TEST(ImageStatistics, min) {
     ASSERT_EQ(6,ImageStatistics::min(image));
 }
 
-TEST(ImageStatistics, max) {
+TEST_F(ImageStatisticsTest, max) {
     Gray<U8> image(5,6);
 
     ImageMiscOps::fill(image,(U8)10);
@@ -24,7 +27,7 @@ TEST(ImageStatistics, max) {
     ASSERT_EQ(12,ImageStatistics::max(image));
 }
 
-TEST(ImageStatistics, sum) {
+TEST_F(ImageStatisticsTest, sum) {
     Gray<U8> image(5,6);
 
     ImageMiscOps::fill(image,(U8)2);
@@ -32,7 +35,7 @@ TEST(ImageStatistics, sum) {
     ASSERT_EQ(2*5*6,ImageStatistics::sum(image));
 }
 
-TEST(ImageStatistics, mean) {
+TEST_F(ImageStatisticsTest, mean) {
     Gray<U8> image(5,6);
 
     ImageMiscOps::fill(image,(U8)2);
@@ -40,7 +43,7 @@ TEST(ImageStatistics, mean) {
     ASSERT_EQ(2,ImageStatistics::mean(image));
 }
 
-TEST(ImageStatistics, histogram_INTEGER) {
+TEST_F(ImageStatisticsTest, histogram_INTEGER) {
     Gray<U8> image(5,6);
 
     ImageMiscOps::fill(image,(U8)10);
@@ -66,7 +69,7 @@ TEST(ImageStatistics, histogram_INTEGER) {
     }
 }
 
-TEST(ImageStatistics, histogram_FLOAT) {
+TEST_F(ImageStatisticsTest, histogram_FLOAT) {
     Gray<F32> image(5,6);
 
     ImageMiscOps::fill(image,(F32)10);

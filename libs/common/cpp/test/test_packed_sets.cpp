@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include "testing_utils.h"
 #include "boofcv/packed_sets.h"
 
 using namespace std;
@@ -17,7 +18,9 @@ public:
     TD() = default;
 };
 
-TEST(PackedSet, constructor) {
+class PackedSetTest : public boofcv::BoofCPPTest {};
+
+TEST_F(PackedSetTest, constructor) {
     PackedSet<TD> packed(100);
 
     ASSERT_EQ(1,packed._number_of_blocks);
@@ -26,7 +29,7 @@ TEST(PackedSet, constructor) {
     ASSERT_EQ(0,packed.set_info.size());
 }
 
-TEST(PackedSet, _add_element) {
+TEST_F(PackedSetTest, _add_element) {
     PackedSet<TD> packed(100);
 
     packed._add_element(TD(5,2));
@@ -44,7 +47,7 @@ TEST(PackedSet, _add_element) {
     ASSERT_EQ(7,packed.blocks[0][1].y);
 }
 
-TEST(PackedSet, _add_element_setoverflow) {
+TEST_F(PackedSetTest, _add_element_setoverflow) {
     PackedSet<TD> packed(10);
 
     for (uint32_t i = 0; i < 25; i++) {
@@ -63,7 +66,7 @@ TEST(PackedSet, _add_element_setoverflow) {
     }
 }
 
-TEST(PackedSet, push_tail) {
+TEST_F(PackedSetTest, push_tail) {
     PackedSet<TD> packed(100);
 
     ASSERT_EQ(0,packed.set_info.size());
@@ -83,7 +86,7 @@ TEST(PackedSet, push_tail) {
 }
 
 
-TEST(PackedSet, size_of_tail) {
+TEST_F(PackedSetTest, size_of_tail) {
     PackedSet<TD> packed(100);
 
     ASSERT_EQ(0,packed.size_of_tail());
@@ -92,7 +95,7 @@ TEST(PackedSet, size_of_tail) {
     ASSERT_EQ(2,packed.size_of_tail());
 }
 
-TEST(PackedSet, start_new_set) {
+TEST_F(PackedSetTest, start_new_set) {
     PackedSet<TD> packed(100);
 
     packed.push_tail(TD(5,2));
@@ -117,7 +120,7 @@ TEST(PackedSet, start_new_set) {
     ASSERT_EQ(1,packed.set_info.at(1).size);
 }
 
-TEST(PackedSet, reset) {
+TEST_F(PackedSetTest, reset) {
     PackedSet<TD> packed(100);
 
     packed.push_tail(TD(5,2));
@@ -133,7 +136,7 @@ TEST(PackedSet, reset) {
     ASSERT_EQ(0,packed.set_info.size());
 }
 
-TEST(PackedSet, at) {
+TEST_F(PackedSetTest, at) {
     PackedSet<TD> packed(100);
 
     packed.push_tail(TD(5,2));
@@ -150,7 +153,7 @@ TEST(PackedSet, at) {
     ASSERT_EQ(5,packed.at(1,0).y);
 }
 
-TEST(PackedSet, remove_tail_set) {
+TEST_F(PackedSetTest, remove_tail_set) {
     PackedSet<TD> packed(100);
 
     packed.push_tail(TD(5,2));
@@ -179,7 +182,7 @@ TEST(PackedSet, remove_tail_set) {
     ASSERT_EQ(0,packed.set_info.size());
 }
 
-TEST(PackedSet, load_set) {
+TEST_F(PackedSetTest, load_set) {
     PackedSet<TD> packed(100);
 
     packed.push_tail(TD(5,2));
@@ -204,7 +207,7 @@ TEST(PackedSet, load_set) {
     ASSERT_EQ(5,storage.at(0).y);
 }
 
-TEST(PackedSet, write_set) {
+TEST_F(PackedSetTest, write_set) {
     PackedSet<TD> packed(100);
 
     packed.push_tail(TD(5,2));

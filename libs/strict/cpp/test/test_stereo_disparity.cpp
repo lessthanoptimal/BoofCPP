@@ -82,7 +82,9 @@ namespace {
     }
 }
 
-TEST(ConfigDisparityBM, defaults_same_as_java) {
+class ConfigDisparityBMTest : public boofcv::BoofCPPTest {};
+
+TEST_F(ConfigDisparityBMTest, defaults_same_as_java) {
     ConfigDisparityBM config;
     EXPECT_EQ(0, config.disparity_min);
     EXPECT_EQ(100, config.disparity_range);
@@ -101,7 +103,7 @@ TEST(ConfigDisparityBM, defaults_same_as_java) {
     EXPECT_TRUE(config.config_ncc.normalize_input);
 }
 
-TEST(ConfigDisparityBM, visit_fields_unique_names) {
+TEST_F(ConfigDisparityBMTest, visit_fields_unique_names) {
     ConfigDisparityBM config;
     set<string> names;
     uint32_t count = 0;
@@ -113,7 +115,7 @@ TEST(ConfigDisparityBM, visit_fields_unique_names) {
     EXPECT_EQ(count, names.size());
 }
 
-TEST(ConfigDisparityBM, check_validity) {
+TEST_F(ConfigDisparityBMTest, check_validity) {
     ConfigDisparityBM config;
     EXPECT_NO_THROW(config.checkValidity());
     config.disparity_range = 0;
@@ -125,7 +127,9 @@ TEST(ConfigDisparityBM, check_validity) {
     }
 }
 
-TEST(FactoryStereoDisparity, block_match_same_as_hand_built) {
+class FactoryStereoDisparityTest : public boofcv::BoofCPPTest {};
+
+TEST_F(FactoryStereoDisparityTest, block_match_same_as_hand_built) {
     compare_to_hand_built<U8>(create_sad_config(false));
     compare_to_hand_built<F32>(create_sad_config(true));
 }
@@ -182,7 +186,7 @@ namespace {
     }
 }
 
-TEST(FactoryStereoDisparity, block_match_census_same_as_hand_built) {
+TEST_F(FactoryStereoDisparityTest, block_match_census_same_as_hand_built) {
     compare_census_to_hand_built<U8, U8>(CensusVariants::BLOCK_3_3, REFLECT);
     compare_census_to_hand_built<U8, F32>(CensusVariants::BLOCK_3_3, REFLECT);
     compare_census_to_hand_built<S32, U8>(CensusVariants::BLOCK_5_5, REFLECT);
@@ -195,7 +199,7 @@ TEST(FactoryStereoDisparity, block_match_census_same_as_hand_built) {
     }
 }
 
-TEST(FactoryStereoDisparity, block_match_census_F32_same_as_hand_built) {
+TEST_F(FactoryStereoDisparityTest, block_match_census_F32_same_as_hand_built) {
     compare_census_to_hand_built<U8, F32, F32>(CensusVariants::BLOCK_3_3, REFLECT);
     compare_census_to_hand_built<S32, U8, F32>(CensusVariants::BLOCK_5_5, ZERO);
     compare_census_to_hand_built<S64, F32, F32>(CensusVariants::CIRCLE_9, EXTENDED);
@@ -304,16 +308,16 @@ namespace {
     }
 }
 
-TEST(FactoryStereoDisparity, block_match_errors_same_as_hand_built_U8) {
+TEST_F(FactoryStereoDisparityTest, block_match_errors_same_as_hand_built_U8) {
     compare_every_error_to_hand_built<U8>();
 }
 
-TEST(FactoryStereoDisparity, block_match_errors_same_as_hand_built_F32) {
+TEST_F(FactoryStereoDisparityTest, block_match_errors_same_as_hand_built_F32) {
     compare_every_error_to_hand_built<F32>();
 }
 
 /// The local statistics of ZSSD and NCC need a region radius of at least 1, same as BoofCV
-TEST(FactoryStereoDisparity, block_match_zssd_ncc_zero_radius) {
+TEST_F(FactoryStereoDisparityTest, block_match_zssd_ncc_zero_radius) {
     Gray<U8> left(1, 1), right(1, 1);
     create_pair(left, right);
     for (DisparityError error : {DisparityError::ZSSD, DisparityError::NCC}) {
@@ -325,7 +329,9 @@ TEST(FactoryStereoDisparity, block_match_zssd_ncc_zero_radius) {
     }
 }
 
-TEST(FactoryCensusTransform, variant) {
+class FactoryCensusTransformTest : public boofcv::BoofCPPTest {};
+
+TEST_F(FactoryCensusTransformTest, variant) {
     EXPECT_NE(nullptr, (FactoryCensusTransform::variant<U8, U8>(CensusVariants::BLOCK_3_3, REFLECT)));
     EXPECT_NE(nullptr, (FactoryCensusTransform::variant<U8, S32>(CensusVariants::BLOCK_5_5, REFLECT)));
     // census image type must match the variant
@@ -341,7 +347,7 @@ TEST(FactoryCensusTransform, variant) {
 }
 
 /// Each S64 variant samples the block or circle it's named after, one point per bit
-TEST(FactoryCensusTransform, samples) {
+TEST_F(FactoryCensusTransformTest, samples) {
     struct Expected { CensusVariants variant; int32_t radius_x, radius_y; };
     for (Expected e : {Expected{CensusVariants::BLOCK_7_7, 3, 3}, {CensusVariants::BLOCK_9_7, 4, 3},
                        {CensusVariants::BLOCK_13_5, 6, 2}, {CensusVariants::CIRCLE_9, 4, 4}}) {
@@ -359,7 +365,7 @@ TEST(FactoryCensusTransform, samples) {
 }
 
 /// SKIP leaves the image border untouched, same as BoofCV
-TEST(FactoryCensusTransform, variant_skip_border) {
+TEST_F(FactoryCensusTransformTest, variant_skip_border) {
     Gray<U8> input(12, 10);
     std::mt19937 gen(0xBEEF);
     ImageMiscOps::fill_uniform(input, (U8)0, (U8)255, gen);
@@ -372,7 +378,7 @@ TEST(FactoryCensusTransform, variant_skip_border) {
     check_equals(expected, found, (U8)0);
 }
 
-TEST(FactoryStereoDisparity, block_match_unsupported) {
+TEST_F(FactoryStereoDisparityTest, block_match_unsupported) {
     // subpixel and the disparity type must agree
     EXPECT_THROW((FactoryStereoDisparity::block_match<U8, U8>(create_sad_config(true))), invalid_argument);
     EXPECT_THROW((FactoryStereoDisparity::block_match<U8, F32>(create_sad_config(false))), invalid_argument);
@@ -384,7 +390,9 @@ TEST(FactoryStereoDisparity, block_match_unsupported) {
     EXPECT_THROW((FactoryStereoDisparity::block_match<U8, F32>(config)), invalid_argument);
 }
 
-TEST(StereoDisparityBlockMatch, getters) {
+class StereoDisparityBlockMatchTest : public boofcv::BoofCPPTest {};
+
+TEST_F(StereoDisparityBlockMatchTest, getters) {
     auto alg = FactoryStereoDisparity::block_match<U8, F32>(create_sad_config(true));
     EXPECT_EQ(-2, alg->get_disparity_min());
     EXPECT_EQ(12u, alg->get_disparity_range());
@@ -393,7 +401,7 @@ TEST(StereoDisparityBlockMatch, getters) {
     EXPECT_EQ(1, alg->get_border_y());
 }
 
-TEST(StereoDisparityBlockMatch, score_enabled) {
+TEST_F(StereoDisparityBlockMatchTest, score_enabled) {
     Gray<U8> left(1, 1), right(1, 1);
     create_stereo_pair(left, right, 30, 20, 3);
     ConfigDisparityBM config = create_sad_config(false);
@@ -410,7 +418,7 @@ TEST(StereoDisparityBlockMatch, score_enabled) {
 }
 
 /// With every check off BoofCV's selector doesn't write the score, but it's still allocated
-TEST(StereoDisparityBlockMatch, basic_select_score_not_written) {
+TEST_F(StereoDisparityBlockMatchTest, basic_select_score_not_written) {
     Gray<U8> left(1, 1), right(1, 1);
     create_stereo_pair(left, right, 30, 20, 3);
     ConfigDisparityBM config = create_sad_config(false);
@@ -432,7 +440,7 @@ TEST(StereoDisparityBlockMatch, basic_select_score_not_written) {
     EXPECT_GT(valid, 0u);
 }
 
-TEST(StereoDisparityBlockMatch, caller_owned_images_must_match_shape) {
+TEST_F(StereoDisparityBlockMatchTest, caller_owned_images_must_match_shape) {
     Gray<U8> left(1, 1), right(1, 1);
     create_stereo_pair(left, right, 30, 20, 3);
     auto alg = FactoryStereoDisparity::block_match<U8, U8>(create_sad_config(false));

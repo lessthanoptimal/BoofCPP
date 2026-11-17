@@ -1,5 +1,6 @@
 package org.boofcpp;
 
+import org.boofcpp.testing.BoofCPPStandardJUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -8,7 +9,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class TestBoofCPP {
+public class TestBoofCPP extends BoofCPPStandardJUnit {
     /// Names of the test variants, in the order they were initialized
     static final List<String> initialized = new ArrayList<>();
 

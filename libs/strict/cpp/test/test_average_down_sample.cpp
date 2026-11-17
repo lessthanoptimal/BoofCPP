@@ -51,13 +51,15 @@ void compare_to_naive( E min_value, E max_value ) {
     }
 }
 
-TEST(AverageDownSampleOps, down_compare_to_naive_U8) { compare_to_naive<U8>(0, 255); }
-TEST(AverageDownSampleOps, down_compare_to_naive_S8) { compare_to_naive<S8>(-128, 127); }
-TEST(AverageDownSampleOps, down_compare_to_naive_U16) { compare_to_naive<U16>(0, 65535); }
-TEST(AverageDownSampleOps, down_compare_to_naive_S16) { compare_to_naive<S16>(-32768, 32767); }
-TEST(AverageDownSampleOps, down_compare_to_naive_S32) { compare_to_naive<S32>(-1000000, 1000000); }
-TEST(AverageDownSampleOps, down_compare_to_naive_F32) { compare_to_naive<F32>(-100, 100); }
-TEST(AverageDownSampleOps, down_compare_to_naive_F64) { compare_to_naive<F64>(-100, 100); }
+class AverageDownSampleOpsTest : public boofcv::BoofCPPTest {};
+
+TEST_F(AverageDownSampleOpsTest, down_compare_to_naive_U8) { compare_to_naive<U8>(0, 255); }
+TEST_F(AverageDownSampleOpsTest, down_compare_to_naive_S8) { compare_to_naive<S8>(-128, 127); }
+TEST_F(AverageDownSampleOpsTest, down_compare_to_naive_U16) { compare_to_naive<U16>(0, 65535); }
+TEST_F(AverageDownSampleOpsTest, down_compare_to_naive_S16) { compare_to_naive<S16>(-32768, 32767); }
+TEST_F(AverageDownSampleOpsTest, down_compare_to_naive_S32) { compare_to_naive<S32>(-1000000, 1000000); }
+TEST_F(AverageDownSampleOpsTest, down_compare_to_naive_F32) { compare_to_naive<F32>(-100, 100); }
+TEST_F(AverageDownSampleOpsTest, down_compare_to_naive_F64) { compare_to_naive<F64>(-100, 100); }
 
 /// Every pixel is the largest value, the largest sum MeanDivisor must divide exactly
 template<class E>
@@ -74,11 +76,11 @@ void max_value() {
     }
 }
 
-TEST(AverageDownSampleOps, down_max_value_U8) { max_value<U8>(); }
-TEST(AverageDownSampleOps, down_max_value_U16) { max_value<U16>(); }
+TEST_F(AverageDownSampleOpsTest, down_max_value_U8) { max_value<U8>(); }
+TEST_F(AverageDownSampleOpsTest, down_max_value_U16) { max_value<U16>(); }
 
 /// Negative halves round away from zero
-TEST(AverageDownSampleOps, down_signed_rounding) {
+TEST_F(AverageDownSampleOpsTest, down_signed_rounding) {
     Gray<S16> input(4, 2);
     input.at(0, 0) = -1; input.at(1, 0) = -1;   // -2/4 = -0.5 -> -1
     input.at(2, 0) = 1; input.at(3, 0) = 1;     //  2/4 =  0.5 ->  1
@@ -93,7 +95,7 @@ TEST(AverageDownSampleOps, down_signed_rounding) {
 }
 
 /// Input and output are sub-images
-TEST(AverageDownSampleOps, down_subimage) {
+TEST_F(AverageDownSampleOpsTest, down_subimage) {
     std::mt19937 gen(0xBEEF);
     Gray<U8> input(21, 15);
     ImageMiscOps::fill_uniform(input, (U8)0, (U8)255, gen);
@@ -110,13 +112,13 @@ TEST(AverageDownSampleOps, down_subimage) {
     }
 }
 
-TEST(AverageDownSampleOps, down_sample_size) {
+TEST_F(AverageDownSampleOpsTest, down_sample_size) {
     EXPECT_EQ(5u, AverageDownSampleOps::down_sample_size(10, 2));
     EXPECT_EQ(6u, AverageDownSampleOps::down_sample_size(11, 2));
     EXPECT_EQ(1u, AverageDownSampleOps::down_sample_size(3, 5));
 }
 
-TEST(AverageDownSampleOps, down_zero_width) {
+TEST_F(AverageDownSampleOpsTest, down_zero_width) {
     Gray<U8> input(4, 4), output(1, 1);
     EXPECT_THROW(AverageDownSampleOps::down(input, 0, output), std::invalid_argument);
 }
@@ -189,13 +191,13 @@ void general_compare_to_naive() {
     }
 }
 
-TEST(AverageDownSampleOps, general_compare_to_naive_U8) { general_compare_to_naive<U8>(); }
-TEST(AverageDownSampleOps, general_compare_to_naive_U16) { general_compare_to_naive<U16>(); }
-TEST(AverageDownSampleOps, general_compare_to_naive_F32) { general_compare_to_naive<F32>(); }
-TEST(AverageDownSampleOps, general_compare_to_naive_F64) { general_compare_to_naive<F64>(); }
+TEST_F(AverageDownSampleOpsTest, general_compare_to_naive_U8) { general_compare_to_naive<U8>(); }
+TEST_F(AverageDownSampleOpsTest, general_compare_to_naive_U16) { general_compare_to_naive<U16>(); }
+TEST_F(AverageDownSampleOpsTest, general_compare_to_naive_F32) { general_compare_to_naive<F32>(); }
+TEST_F(AverageDownSampleOpsTest, general_compare_to_naive_F64) { general_compare_to_naive<F64>(); }
 
 /// The horizontal pass alone is the general down sample with the input's height
-TEST(AverageDownSampleOps, horizontal) {
+TEST_F(AverageDownSampleOpsTest, horizontal) {
     std::mt19937 gen(0xBEEF);
     Gray<U8> input(21, 16);
     ImageMiscOps::fill_uniform(input, (U8)0, (U8)255, gen);
@@ -210,7 +212,7 @@ TEST(AverageDownSampleOps, horizontal) {
 }
 
 /// The vertical pass alone is the general down sample with the input's width. Integer outputs round
-TEST(AverageDownSampleOps, vertical) {
+TEST_F(AverageDownSampleOpsTest, vertical) {
     std::mt19937 gen(0xBEEF);
     Gray<F32> input(21, 16);
     ImageMiscOps::fill_uniform(input, 0.0f, 255.0f, gen);
@@ -229,7 +231,7 @@ TEST(AverageDownSampleOps, vertical) {
 }
 
 /// The output can't be larger than the input, and a centered output can't be one pixel wide
-TEST(AverageDownSampleOps, general_bad_shapes) {
+TEST_F(AverageDownSampleOpsTest, general_bad_shapes) {
     Gray<U8> input(10, 8);
     Gray<F32> middle(5, 8);
     Gray<U8> output(5, 4);

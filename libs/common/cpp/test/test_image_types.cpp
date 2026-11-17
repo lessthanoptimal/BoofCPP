@@ -1,11 +1,14 @@
 #include "gtest/gtest.h"
+#include "testing_utils.h"
 #include "boofcv/base_types.h"
 #include "boofcv/image_types.h"
 
 using namespace std;
 using namespace boofcv;
 
-TEST(Gray, Constructor_WH) {
+class GrayTest : public boofcv::BoofCPPTest {};
+
+TEST_F(GrayTest, Constructor_WH) {
     Gray<U8> imgA(10, 20);
 
     ASSERT_EQ(10,imgA.width);
@@ -19,7 +22,7 @@ TEST(Gray, Constructor_WH) {
     }
 }
 
-TEST(Gray, Constructor_List) {
+TEST_F(GrayTest, Constructor_List) {
     Gray<U8> imgA({{1,2},{4,5},{6,7}});
 
     ASSERT_EQ(2,imgA.width);
@@ -37,7 +40,7 @@ TEST(Gray, Constructor_List) {
     ASSERT_EQ(7,imgA.data[5]);
 }
 
-TEST(Gray, Constructor_NoArguments) {
+TEST_F(GrayTest, Constructor_NoArguments) {
     Gray<U8> imgA;
 
     ASSERT_EQ(0,imgA.width);
@@ -49,7 +52,7 @@ TEST(Gray, Constructor_NoArguments) {
 }
 
 // at in a subimage is tested in the subimage test
-TEST(Gray, at) {
+TEST_F(GrayTest, at) {
     Gray<U8> imgA(10, 20);
 
     ASSERT_EQ(0,imgA.at(2,1));
@@ -64,7 +67,7 @@ TEST(Gray, at) {
     }
 }
 
-TEST(Gray, reshape) {
+TEST_F(GrayTest, reshape) {
     Gray<U8> imgA(10, 20);
 
     U8 *orig_pts = imgA.data;
@@ -96,7 +99,7 @@ TEST(Gray, reshape) {
     }
 }
 
-TEST(Gray, makeSubimage) {
+TEST_F(GrayTest, makeSubimage) {
     Gray<U8> img(10, 20);
     Gray<U8> sub = img.makeSubimage(2,3,6,10);
 
@@ -109,35 +112,39 @@ TEST(Gray, makeSubimage) {
     ASSERT_EQ(2,img.at(2,3));
 }
 
-TEST(Planar, Constructor_WH) {
+class PlanarTest : public boofcv::BoofCPPTest {};
+
+TEST_F(PlanarTest, Constructor_WH) {
 
 }
 
-TEST(Planar, Constructor_NoArguments) {
+TEST_F(PlanarTest, Constructor_NoArguments) {
 
 }
 
-TEST(Planar, at) {
+TEST_F(PlanarTest, at) {
 
 }
 
-TEST(Planar, reshape) {
+TEST_F(PlanarTest, reshape) {
 
 }
 
-TEST(Planar, setNumberOfBands) {
+TEST_F(PlanarTest, setNumberOfBands) {
 
 }
 
-TEST(Planar, setTo) {
+TEST_F(PlanarTest, setTo) {
 
 }
 
-TEST(Planar, makeSubimage) {
+TEST_F(PlanarTest, makeSubimage) {
 
 }
 
-TEST(Interleaved, Constructor_WH) {
+class InterleavedTest : public boofcv::BoofCPPTest {};
+
+TEST_F(InterleavedTest, Constructor_WH) {
     Interleaved<U8> imgA(10, 15,2);
 
     ASSERT_EQ(10,imgA.width);
@@ -152,7 +159,7 @@ TEST(Interleaved, Constructor_WH) {
     }
 }
 
-TEST(Interleaved, Constructor_NoArguments) {
+TEST_F(InterleavedTest, Constructor_NoArguments) {
     Interleaved<U8> img;
 
     ASSERT_EQ(0,img.width);
@@ -164,7 +171,7 @@ TEST(Interleaved, Constructor_NoArguments) {
     ASSERT_EQ(0,img.data_length);
 }
 
-TEST(Interleaved, at) {
+TEST_F(InterleavedTest, at) {
     Interleaved<U8> img(10, 15,2);
 
     ASSERT_EQ(0,img.at(2,1,0));
@@ -179,7 +186,7 @@ TEST(Interleaved, at) {
     }
 }
 
-TEST(Interleaved, reshape) {
+TEST_F(InterleavedTest, reshape) {
     Interleaved<U8> img(10, 15,2);
 
     U8 *orig_pts = img.data;
@@ -213,7 +220,7 @@ TEST(Interleaved, reshape) {
     }
 }
 
-TEST(Interleaved, setNumberOfBands) {
+TEST_F(InterleavedTest, setNumberOfBands) {
     Interleaved<U8> img(10, 15, 2);
 
     img.setNumberOfBands(1);
@@ -241,7 +248,7 @@ TEST(Interleaved, setNumberOfBands) {
     }
 }
 
-TEST(Interleaved, setTo) {
+TEST_F(InterleavedTest, setTo) {
     Interleaved<U8> imgA(10, 15, 2);
     Interleaved<U8> imgB(4, 5, 1);
 
@@ -264,7 +271,7 @@ TEST(Interleaved, setTo) {
     }
 }
 
-TEST(Interleaved, makeSubimage) {
+TEST_F(InterleavedTest, makeSubimage) {
     Interleaved<U8> img(10, 15, 2);
 
     Interleaved<U8> subimage = img.makeSubimage(2,3,8,5);
