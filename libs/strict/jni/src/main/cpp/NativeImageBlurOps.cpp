@@ -8,14 +8,6 @@
 using namespace boofcv;
 
 namespace {
-    /// Native version of the Java border. A null 'jtype' is a border where every pixel outside has 'value'
-    template<class E>
-    std::shared_ptr<ImageBorder<E>> border_from_java( JNIEnv* env, jobject jtype, jdouble value ) {
-        if (jtype == nullptr)
-            return FactoryImageBorder::value_SB<E>((E)value);
-        return FactoryImageBorder::create_SB<E>(enum_from_java<BorderType>(env, jtype));
-    }
-
     /// Calls func(input, output, storage) with the pixels of the Java gray images. No JNI calls are allowed in
     /// 'func' since the arrays are held as critical arrays
     template<class E, class Func>

@@ -16,6 +16,8 @@ tasks.named("compileJava") { dependsOn("createVersionFile") }
 tasks.named("sourcesJar") { dependsOn("createVersionFile") }
 
 dependencies {
+    // NativeImageBorder reads BoofCV's borders
+    api(libs.boofcv.ip)
     testFixturesApi(platform(libs.junit.bom))
     testFixturesApi(libs.junit.jupiter.api)
     testFixturesApi(libs.boofcv.ip)

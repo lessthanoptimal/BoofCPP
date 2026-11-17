@@ -9,6 +9,7 @@
 #include "boofcv/packed_sets.h"
 #include "boofcv/image_border.h"
 #include <iterator>
+#include <memory>
 #include <stdexcept>
 #include <type_traits>
 
@@ -278,5 +279,13 @@ ImageAndInfo<boofcv::Gray<E>,JImageInfo> wrapCriticalGray( JNIEnv *env, jobject 
     return output;
 }
 
+/// Native version of a Java border, see org.boofcpp.NativeImageBorder. A null 'jtype' is a border where every pixel
+/// outside the image has 'value'
+template<class E>
+std::shared_ptr<boofcv::ImageBorder<E>> border_from_java( JNIEnv* env, jobject jtype, jdouble value ) {
+    if (jtype == nullptr)
+        return boofcv::FactoryImageBorder::value_SB<E>((E)value);
+    return boofcv::FactoryImageBorder::create_SB<E>(enum_from_java<boofcv::BorderType>(env, jtype));
+}
 
 #endif
