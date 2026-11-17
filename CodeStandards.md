@@ -102,6 +102,8 @@ results/    Accuracy records, see Accuracy
     `Tolerance.IDENTICAL` by default, and fast's test classes set `Tolerance.FLOAT`
   - When fast adds an op, that op's strict tests are moved into shared tests first, without removing or weakening any
 - Benchmark against strict's native code and BoofCV's Java code
+- Fast's tests check its results. Fast's benchmarks call BoofCV after `BoofCPP.initialize()`, so they show if fast
+  isn't hooked in
 - When fast adds an op, the op is added to the accuracy tool of strict and fast
 - `libs/fast/CLAUDE.md` has instructions for AI agents working on fast
 

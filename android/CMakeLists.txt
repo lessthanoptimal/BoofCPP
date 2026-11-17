@@ -38,3 +38,11 @@ target_link_libraries( # Specifies the target library.
                        # Links the target library to the log library
                        # included in the NDK.
                        ${log-lib} )
+# Fast: results within floating point tolerance of BoofCV
+set(path_to_fast_jni ${path_to_libs}/fast/jni/src/main/cpp)
+file(GLOB FAST_SRCS ${path_to_libs}/common/cpp/src/*.cpp ${path_to_libs}/fast/cpp/src/*.cpp)
+file(GLOB FAST_JNI_SRCS ${path_to_common_jni}/*.cpp ${path_to_fast_jni}/*.cpp)
+
+add_library(JNIBoofCPPFast SHARED ${FAST_SRCS} ${FAST_JNI_SRCS})
+target_include_directories(JNIBoofCPPFast PRIVATE ${path_to_libs}/fast/cpp/include)
+target_link_libraries(JNIBoofCPPFast ${log-lib})
