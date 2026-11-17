@@ -1,73 +1,17 @@
 package org.boofcpp.threshold;
 
-import boofcv.abst.filter.binary.InputToBinary;
-import boofcv.alg.misc.GImageMiscOps;
-import boofcv.core.image.GeneralizedImageOps;
-import boofcv.factory.filter.binary.FactoryThresholdBinary;
-import boofcv.struct.ConfigLength;
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayU8;
-import boofcv.struct.image.ImageGray;
-import boofcv.BoofTesting;
 import org.boofcpp.BoofCPP;
-import org.boofcpp.testing.BoofCPPStandardJUnit;
-import org.junit.jupiter.api.Test;
+import org.boofcpp.testing.NativeBlockOtsuChecks;
 
-/**
- * -ea -Djava.library.path=/Users/pabeles/projects/BoofCPP/build/jni
- */
-public class TestNativeBlockOtsu extends BoofCPPStandardJUnit {
-    Class types[] = new Class[]{GrayU8.class, GrayF32.class};
-
+/// The block otsu threshold checks shared with the other variants
+public class TestNativeBlockOtsu extends NativeBlockOtsuChecks {
     static {
         BoofCPP.loadlib();
     }
 
-    @Test
-    public void compareToBoofCV() {
-        double tuning = 0.05;
-
-        // Even and odd shapes (partial blocks), whole image and sub-image (offset/stride)
-        for (int[] shape : new int[][]{{400,300},{401,297}})
-        for (boolean sub : new boolean[]{false,true})
-        for( Class type : types ) {
-            // make the image larger to do a more careful test
-            ImageGray input = GeneralizedImageOps.createSingleBand(type,shape[0],shape[1]);
-            GImageMiscOps.fillUniform(input,rand,0,255);
-            if (sub) input = BoofTesting.createSubImageOf(input);
-
-            GrayU8 found = new GrayU8(input.width, input.height);
-            GrayU8 expected = new GrayU8( input.width, input.height);
-
-            double scale = 0.95;
-
-            for (ConfigLength regionWidth : new ConfigLength[]{ConfigLength.fixed(25), ConfigLength.fixed(7), ConfigLength.relative(0.05,5)})
-            for( boolean down : new boolean[]{true,false}) {
-                for( boolean useLocal : new boolean[]{true,false}) {
-                    for (boolean otsu2 : new boolean[]{true, false}) {
-//                        System.out.println(type.getSimpleName() + " down=" + down + " local=" + useLocal + " otsu2=" + otsu2);
-
-//                        for (int i = 0; i < 5; i++) {
-                        InputToBinary alg_native = new NativeBlockOtsu(otsu2, regionWidth, tuning, scale, down, useLocal, type);
-                        InputToBinary alg_java = FactoryThresholdBinary.blockOtsu(regionWidth, scale, down, useLocal, otsu2, tuning, type);
-
-//                        long time0 = System.currentTimeMillis();
-                        alg_native.process(input, found);
-//                        long time1 = System.currentTimeMillis();
-                        alg_java.process(input, expected);
-//                        long time2 = System.currentTimeMillis();
-
-//                        System.out.println("  native " + (time1 - time0) + " java " + (time2 - time1));
-//                        expected.print();
-//                        System.out.println();
-//                      found.print();
-
-                        BoofTesting.assertEquals(expected, found, 0);
-//                        }
-                    }
-                }
-            }
-        }
-
+    public TestNativeBlockOtsu() {
+        super(NativeBlockOtsu::new, GrayU8.class, GrayF32.class);
     }
 }
