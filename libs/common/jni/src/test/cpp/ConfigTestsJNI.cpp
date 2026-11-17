@@ -1,5 +1,5 @@
-// Only used by the Java tests (NativeConfigs is in src/test). They make sure the C++ and Java configurations have the
-// same fields, enum values, and defaults.
+// Test-only JNI functions of NativeConfigs, built into JNIBoofCPPCommonTest. They make sure the C++ and Java
+// configurations have the same fields, enum values, and defaults.
 #include <jni.h>
 #include <string>
 #include <vector>

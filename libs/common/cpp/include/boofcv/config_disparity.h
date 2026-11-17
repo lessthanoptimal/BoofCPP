@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <stdexcept>
 
-#include "boofcv/census_transform.h"
+#include "boofcv/census_variants.h"
 #include "boofcv/config_types.h"
 #include "boofcv/image_border.h"
 

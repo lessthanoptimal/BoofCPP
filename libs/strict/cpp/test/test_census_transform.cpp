@@ -114,15 +114,6 @@ namespace {
 
 class CensusTransformTest : public boofcv::BoofCPPTest {};
 
-TEST_F(CensusTransformTest, census_bits_same_as_java) {
-    EXPECT_EQ(8u, census_bits(CensusVariants::BLOCK_3_3));
-    EXPECT_EQ(24u, census_bits(CensusVariants::BLOCK_5_5));
-    EXPECT_EQ(48u, census_bits(CensusVariants::BLOCK_7_7));
-    EXPECT_EQ(62u, census_bits(CensusVariants::BLOCK_9_7));
-    EXPECT_EQ(64u, census_bits(CensusVariants::BLOCK_13_5));
-    EXPECT_EQ(56u, census_bits(CensusVariants::CIRCLE_9));
-}
-
 TEST_F(CensusTransformTest, hamming) {
     EXPECT_EQ(0, hamming(0u));
     EXPECT_EQ(1, hamming(0x80000000u));

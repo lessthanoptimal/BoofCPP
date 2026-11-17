@@ -8,7 +8,8 @@ import boofcv.struct.ConfigLength;
 /// and defaults.
 public class NativeConfigs {
     static {
-        BoofCPP.loadlib();
+        if (!NativeLoader.load("JNIBoofCPPCommonTest", "boofcpp-common-test"))
+            throw new RuntimeException("The test library JNIBoofCPPCommonTest didn't load. Build the native code first");
     }
 
     /// Java names of every field in the C++ configuration
