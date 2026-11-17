@@ -15,10 +15,10 @@
 
 - Pure C++ implementation is designed as a standalone library that can be used by itself without Java BoofCV
   - Secondary goal and for now isn't fully fleshed out
-- (Future) Two C++ libraries are provided; strict and fast
-  - Strict reproduces exact same results of BoofCV, warts and all
-  - Fast reproduces BoofCV up to floating point tolerance and can produce different results depending on architecture
-  - Only one implementation right now and that is `strict`, remove (Future) and this comment when updated.
+- Two C++ libraries are provided, `strict` and `fast`. See [Directory Layout](#directory-layout)
+  - Strict reproduces exact same results of BoofCV, warts and all. Namespace `boofcv`
+  - Fast reproduces BoofCV up to floating point tolerance and can produce different results depending on architecture.
+    Namespace `boofcv::fast`. See [Fast](#fast)
 - C++ standard is specified in the root `CMakeLists.txt`
 - Java version will match BoofCV
 - Library version will match BoofCV's version
@@ -39,3 +39,46 @@
   - C++ exceptions must never escape a JNI function. Catch them and throw a Java exception instead
   - No JNI calls while a critical array (`GetPrimitiveArrayCritical`) is held
   - If a configuration isn't supported natively, BoofCV must fall back to its Java implementation, e.g. the override returns `null`
+
+# Directory Layout
+
+```
+libs/
+  common/   Code every variant shares: image types, borders, configurations, JNI helpers, test helpers
+  strict/   Results identical to BoofCV
+  fast/     Results within floating point tolerance of BoofCV
+android/    One module that packages the native libraries of every variant
+benchmark/  C++ benchmarks
+datasets/   Test images
+```
+
+- Each library in `libs/` has `cpp/` and `jni/`
+  - `cpp/` has `include/boofcv/` for headers, `src/` and `test/`
+  - `jni/` is the Java module with its JNI code: `src/main/java`, `src/main/cpp`, `src/test` and `src/benchmark`
+- `common` never depends on a variant, and the variants don't depend on each other
+- Variants have the same class and function names in their own namespace, so code and tests can switch between them
+- Includes always start with `boofcv/`. Strict is `#include "boofcv/convolve.h"`, fast is
+  `#include "boofcv/fast/convolve.h"`
+- Each variant is its own native library and Java package, so several can be used in the same project.
+  `BoofCPP.initialize()` registers the strict hooks and then the hooks of every other variant that's available, each
+  replacing only the hooks it has
+- New architecture specific variants follow the same layout
+
+# Fast
+
+- Optimized for patterns which work on x64 and ARM64. Other architectures must build and be correct, but aren't tuned
+- Anything goes as long as floating point results stay within tolerance of BoofCV
+- Integer results are identical to strict
+- Intrinsics are allowed, but only with a portable C++ fallback
+- Must be at least 1.3x faster than strict's native code, measured with JMH. Otherwise use strict's
+- Deterministic: the same input, CPU and build always give the same output, single or multi-threaded
+
+## Testing Fast
+
+- Use the same tests as strict, with a tolerance instead of exact comparisons:
+  `|found - expected| <= tol*max(1, |expected|)` with `tol` 1e-5 for F32 and 1e-12 for F64
+- Tests must include inputs which are hard for floating point: large values, cancellation, long sums, and image sizes
+  which aren't a multiple of the vector width
+- Tolerances are never widened, and shared tests aren't changed, without the maintainer's approval
+- Benchmark against strict's native code and BoofCV's Java code
+- `libs/fast/CLAUDE.md` has instructions for AI agents working on fast
