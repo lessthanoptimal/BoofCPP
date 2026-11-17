@@ -9,7 +9,7 @@ boofcv::Kernel1D<S32>* extractKernel1D_S32( JNIEnv *env, jobject& jkernel ) {
     jint width = safe_GetInt(env,objClass,jkernel, "width");
     jint offset = safe_GetInt(env,objClass,jkernel, "offset");
 
-    jfieldID fid = env->GetFieldID(objClass, "data", "[I");
+    jfieldID fid = safe_GetFieldID(env, objClass, "data", "[I");
     jobject  jarray = env->GetObjectField (jkernel, fid);
     jint* data = env->GetIntArrayElements((jintArray)jarray, 0);
     jint length = env->GetArrayLength((jintArray)jarray);
@@ -30,7 +30,7 @@ boofcv::Kernel1D<F32>* extractKernel1D_F32( JNIEnv *env, jobject& jkernel ) {
     jint width = safe_GetInt(env,objClass,jkernel, "width");
     jint offset = safe_GetInt(env,objClass,jkernel, "offset");
 
-    jfieldID fid = env->GetFieldID(objClass, "data", "[F");
+    jfieldID fid = safe_GetFieldID(env, objClass, "data", "[F");
     jobject  jarray = env->GetObjectField (jkernel, fid);
     jfloat* data = env->GetFloatArrayElements((jfloatArray)jarray, 0);
     jint length = env->GetArrayLength((jfloatArray)jarray);
@@ -51,7 +51,7 @@ boofcv::Kernel2D<boofcv::S32>* extractKernel2D_S32( JNIEnv *env, jobject& jkerne
     jint width = safe_GetInt(env,objClass,jkernel, "width");
     jint offset = safe_GetInt(env,objClass,jkernel, "offset");
 
-    jfieldID fid = env->GetFieldID(objClass, "data", "[I");
+    jfieldID fid = safe_GetFieldID(env, objClass, "data", "[I");
     jobject  jarray = env->GetObjectField (jkernel, fid);
     jint* data = env->GetIntArrayElements((jintArray)jarray, 0);
     jint length = env->GetArrayLength((jintArray)jarray);
@@ -72,7 +72,7 @@ boofcv::Kernel2D<boofcv::F32>* extractKernel2D_F32( JNIEnv *env, jobject& jkerne
     jint width = safe_GetInt(env,objClass,jkernel, "width");
     jint offset = safe_GetInt(env,objClass,jkernel, "offset");
 
-    jfieldID fid = env->GetFieldID(objClass, "data", "[F");
+    jfieldID fid = safe_GetFieldID(env, objClass, "data", "[F");
     jobject  jarray = env->GetObjectField (jkernel, fid);
     jfloat* data = env->GetFloatArrayElements((jfloatArray)jarray, 0);
     jint length = env->GetArrayLength((jfloatArray)jarray);

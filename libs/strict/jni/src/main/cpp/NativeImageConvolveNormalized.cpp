@@ -8,8 +8,7 @@
 using namespace boofcv;
 
 extern "C" {
-JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeImageConvolveNormalized_nativehorizontal(
-    JNIEnv *env, jobject obj, jobject jkernel, jobject jinput, jobject joutput ) {
+static void nativehorizontal( JNIEnv *env, jobject obj, jobject jkernel, jobject jinput, jobject joutput ) {
 
     jclass objClass = env->GetObjectClass(obj);
     jfieldID fid = env->GetFieldID(objClass, "isInteger", "Z");
@@ -44,8 +43,12 @@ JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeImageConvolveNormalized_n
     }
 }
 
-JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeImageConvolveNormalized_nativevertical(
+JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeImageConvolveNormalized_nativehorizontal(
     JNIEnv *env, jobject obj, jobject jkernel, jobject jinput, jobject joutput ) {
+    jni_call(env, [&] { nativehorizontal(env, obj, jkernel, jinput, joutput); });
+}
+
+static void nativevertical( JNIEnv *env, jobject obj, jobject jkernel, jobject jinput, jobject joutput ) {
 
     jclass objClass = env->GetObjectClass(obj);
     jfieldID fid = env->GetFieldID(objClass, "isInteger", "Z");
@@ -78,6 +81,11 @@ JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeImageConvolveNormalized_n
         env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.image.data, 0);
         delete kernel;
     }
+}
+
+JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeImageConvolveNormalized_nativevertical(
+    JNIEnv *env, jobject obj, jobject jkernel, jobject jinput, jobject joutput ) {
+    jni_call(env, [&] { nativevertical(env, obj, jkernel, jinput, joutput); });
 }
 
 }

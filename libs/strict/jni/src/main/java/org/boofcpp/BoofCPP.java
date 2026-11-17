@@ -9,6 +9,7 @@ import boofcv.factory.disparity.BOverrideStereoDisparity;
 import boofcv.factory.disparity.ConfigDisparityBM;
 import boofcv.factory.filter.binary.BOverrideFactoryBinaryContourFinder;
 import boofcv.factory.filter.binary.BOverrideFactoryThresholdBinary;
+import boofcv.override.BOverrideManager;
 import boofcv.struct.image.ImageGray;
 import cz.adamh.utils.NativeUtils;
 import org.boofcpp.contour.NativeChang2004;
@@ -117,32 +118,9 @@ public class BoofCPP {
         return variants;
     }
 
-    /// Undoes initialize(). BoofCV uses its Java implementations again
+    /// Undoes initialize() by removing every BoofCV override, including any not from BoofCPP. BoofCV uses its Java
+    /// implementations again
     public static void uninitialize() {
-        BOverrideFactoryThresholdBinary.globalFixed = null;
-        BOverrideFactoryThresholdBinary.globalOtsu = null;
-        BOverrideFactoryThresholdBinary.blockMinMax = null;
-        BOverrideFactoryThresholdBinary.blockMean = null;
-        BOverrideFactoryThresholdBinary.blockOtsu = null;
-        BOverrideFactoryThresholdBinary.localMean = null;
-
-        BOverrideBlurImageOps.mean = null;
-        BOverrideBlurImageOps.gaussian = null;
-
-        BOverrideConvolveImageNormalized.horizontal = null;
-        BOverrideConvolveImageNormalized.vertical = null;
-
-        BOverrideConvolveImage.horizontal = null;
-        BOverrideConvolveImage.vertical = null;
-        BOverrideConvolveImage.convolve = null;
-
-        BOverrideAverageDownSampleOps.square = null;
-        BOverrideAverageDownSampleOps.general = null;
-        BOverrideAverageDownSampleOps.horizontal = null;
-        BOverrideAverageDownSampleOps.vertical = null;
-
-        BOverrideFactoryBinaryContourFinder.chang2004 = null;
-
-        BOverrideStereoDisparity.opCreateBlockMatch = null;
+        BOverrideManager.clear();
     }
 }
