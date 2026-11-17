@@ -17,6 +17,8 @@ import org.ddogleg.struct.FastAccess;
 /// Native census transform, called by BoofCV through BOverrideCensusTransform. Supports GrayU8, GrayU16 and GrayF32
 /// inputs, the borders NativeImageBorder supports, and no border. Anything else, including sample_IU16, throws a
 /// RuntimeException, which causes BoofCV to fall back to its Java implementation.
+///
+/// BOOFCPP_OVERRIDE BOverrideCensusTransform.census
 public class NativeCensusTransform<T extends ImageGray<T>> implements BOverrideCensusTransform.Census<T> {
     @Override
     public void dense3x3( T input, GrayU8 output, ImageBorder<T> border ) {

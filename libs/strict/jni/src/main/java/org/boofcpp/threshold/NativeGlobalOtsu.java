@@ -6,6 +6,9 @@ import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
 import boofcv.struct.image.ImageType;
 
+/// Native global Otsu threshold, created by BoofCV's FactoryThresholdBinary through BOverrideFactoryThresholdBinary
+///
+/// BOOFCPP_OVERRIDE BOverrideFactoryThresholdBinary.globalOtsu
 public class NativeGlobalOtsu<T extends ImageGray<T>> extends NativeThresholdBase<T>
 {
     public NativeGlobalOtsu(double minValue, double maxValue, double scale, boolean down, Class<T> imageType ) {

@@ -43,6 +43,9 @@
   - Each variant's `TestHookContracts` calls every function of its hooks, and of the objects they create, with every
     gray image type. Each call must finish or throw a RuntimeException. Results aren't checked. Hooks that need
     specific argument values are listed in `customArguments` of `HookContractChecks`
+  - A class that implements a BOverride interface has, in its class Javadoc, `/// BOOFCPP_OVERRIDE <BOverride
+    class>.<field>` for each hook field it's registered with, or `/// BOOFCPP_IGNORE true` if it isn't registered.
+    Each variant's `TestHookContracts` checks them against the hooks it registers
 - Benchmarks
   - JMH benchmark names are `<op>_<native|java>_<image type>`, e.g. `global_otsu_native_U8`, unless a `@Param`
     selects the image type

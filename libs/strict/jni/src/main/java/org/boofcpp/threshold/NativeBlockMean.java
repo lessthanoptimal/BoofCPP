@@ -6,6 +6,9 @@ import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
 import boofcv.struct.image.ImageType;
 
+/// Native block mean threshold, created by BoofCV's FactoryThresholdBinary through BOverrideFactoryThresholdBinary
+///
+/// BOOFCPP_OVERRIDE BOverrideFactoryThresholdBinary.blockMean
 public class NativeBlockMean<T extends ImageGray<T>> extends NativeThresholdBase<T>
 {
 

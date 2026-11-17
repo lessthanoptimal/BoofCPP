@@ -14,11 +14,10 @@ import org.ddogleg.struct.DogArray_I32;
 
 import java.util.List;
 
-/**
- * Native java class for Chang 2004 C++ code
- *
- * @author Peter Abeles
- */
+/// Native Chang2004 contour finder, created by BoofCV's FactoryBinaryContourFinder through
+/// BOverrideFactoryBinaryContourFinder
+///
+/// BOOFCPP_OVERRIDE BOverrideFactoryBinaryContourFinder.chang2004
 public class NativeChang2004 implements BinaryLabelContourFinder {
 
     // Storage here to simplify JNI wrapper code

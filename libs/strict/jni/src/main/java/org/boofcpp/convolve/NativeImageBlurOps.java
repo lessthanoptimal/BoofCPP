@@ -21,6 +21,9 @@ import org.boofcpp.threshold.NativeThresholdBase;
 /// Native mean and Gaussian blur, called by BoofCV through BOverrideBlurImageOps. Supports GrayU8, GrayU16, GrayF32
 /// and GrayF64, the same gray images as BoofCV's BlurImageOps. Anything native doesn't support throws a
 /// RuntimeException, which causes BoofCV to fall back to its Java implementation.
+///
+/// BOOFCPP_OVERRIDE BOverrideBlurImageOps.mean
+/// BOOFCPP_OVERRIDE BOverrideBlurImageOps.gaussian
 public class NativeImageBlurOps<T extends ImageBase<T>>
     implements BOverrideBlurImageOps.Mean<T>,BOverrideBlurImageOps.Gaussian<T>
 {

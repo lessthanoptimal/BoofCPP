@@ -4,6 +4,9 @@ import boofcv.struct.ConfigLength;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
 
+/// Native block Otsu threshold, created by BoofCV's FactoryThresholdBinary through BOverrideFactoryThresholdBinary
+///
+/// BOOFCPP_OVERRIDE BOverrideFactoryThresholdBinary.blockOtsu
 public class NativeBlockOtsu<T extends ImageGray<T>> extends NativeThresholdBase<T>
 {
 
