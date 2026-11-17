@@ -46,6 +46,16 @@ public class NativeDisparityBlockMatch<T extends ImageGray<T>, DI extends ImageG
         setScoreEnabled(config.saveScore);
     }
 
+    /// Native block matching, or null if the configuration and image type can't be computed natively, which makes
+    /// BoofCV use its Java implementation. BoofCPP.initialize() registers it with
+    /// BOverrideStereoDisparity.opCreateBlockMatch
+    public static <T extends ImageGray<T>, DI extends ImageGray<DI>> StereoDisparityBlockMatch<T, DI>
+    create( ConfigDisparityBM config, Class<T> imageType, Class<DI> disparityType ) {
+        if (!isSupported(config, imageType))
+            return null;
+        return new NativeDisparityBlockMatch<>(config, imageType, disparityType);
+    }
+
     /// True if the configuration and image type can be computed natively. Every error type is supported with
     /// GrayU8 and GrayF32 images.
     public static boolean isSupported( ConfigDisparityBM config, Class<?> imageType ) {
