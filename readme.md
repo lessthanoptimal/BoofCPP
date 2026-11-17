@@ -219,6 +219,10 @@ General expectations:
 * Dense, vector heavy code should be faster in C++.
 * The fast library (see CodeStandards.md) is at least 1.3x faster than strict for the functions it has.
 
+x86-64 builds use SSE4.2 (`x86-64-v2`). On CPUs with AVX2, `cmake -DBOOFCPP_MARCH=x86-64-v3 ..` (or `native`) is
+faster with identical results, e.g. 1.75x for a horizontal convolution of radius 5. The library then only runs on such
+CPUs.
+
 It's worth mentioning that the reason Java was used as the language for
 BoofCV is because Java projects are easier to write and maintain as
 they get larger, plus the development tools are better.

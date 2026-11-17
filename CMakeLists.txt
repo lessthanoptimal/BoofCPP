@@ -18,9 +18,11 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffp-contract=off")
 
 # SSE4.2 (x86-64-v2) is supported by x86-64 CPUs since about 2009. Unlike SSE2, it can vectorize 32-bit integer
-# multiplication, which integer image convolution needs
+# multiplication, which integer image convolution needs. A newer instruction set, e.g. x86-64-v3 or native, runs
+# faster on CPUs that have it
+set(BOOFCPP_MARCH "x86-64-v2" CACHE STRING "Instruction set of x86-64 builds, passed to -march")
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=x86-64-v2")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=${BOOFCPP_MARCH}")
 endif()
 
 # A shared library must contain everything it needs, so a missing object library fails the build instead of loading
