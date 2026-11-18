@@ -1,7 +1,9 @@
 #ifndef BOOFCPP_BINARY_OPS_H
 #define BOOFCPP_BINARY_OPS_H
 
+#include <cmath>
 #include <limits>
+#include <stdexcept>
 #include <type_traits>
 #include "boofcv/image_misc_ops.h"
 #include "boofcv/base_types.h"
@@ -100,24 +102,31 @@ namespace boofcv
     {
     public:
 
-        /**
-         * <p>
-         * Computes and returns a threshold using Otsu's method from an input image.
-         * </p>
-         *
-         * @param input Input gray-scale image
-         * @param min_value The minimum value of a pixel in the image.  (inclusive)
-         * @param max_value The maximum value of a pixel in the image.  (inclusive)
-         * @param otsu2 False for standard Otsu. True for the variant described in ComputeOtsu
-         * @return Selected threshold.
-         */
+        /// Threshold from Otsu's method. Same as BoofCV's GThresholdImageOps.computeOtsu(): the histogram has
+        /// (int)(1 + max_value - min_value) bins and starts at (int)min_value for integer images, or (float)min_value
+        /// for F32.
+        ///
+        /// @param input Input gray-scale image
+        /// @param min_value The minimum value of a pixel in the image (inclusive)
+        /// @param max_value The maximum value of a pixel in the image (inclusive)
+        /// @param otsu2 False for standard Otsu. True for the variant described in ComputeOtsu
+        /// @return Selected threshold, as a histogram index
         template<class T>
-        static uint32_t computeOtsu( const Gray<T>& input , T min_value , T max_value , bool otsu2=false ) {
+        static uint32_t computeOtsu( const Gray<T>& input , double min_value , double max_value , bool otsu2=false ) {
+            // Java's int casts saturate, and an array can't have a negative size. C++'s casts would be undefined
+            const double range = std::trunc(1 + max_value - min_value);
+            if (!(range >= 1 && range <= std::numeric_limits<int32_t>::max()))
+                throw std::invalid_argument("Bad histogram range");
+            GrowArray<uint32_t> histogram((uint32_t)range);
 
-            auto range = static_cast<uint32_t>(1+max_value - min_value);
-            GrowArray<uint32_t> histogram(range);
-
-            ImageStatistics::histogram(input,min_value,histogram);
+            if constexpr (std::is_integral_v<T>) {
+                const double min_int = std::trunc(min_value);
+                if (!(min_int >= std::numeric_limits<int32_t>::min() && min_int <= std::numeric_limits<int32_t>::max()))
+                    throw std::invalid_argument("min_value doesn't fit an int");
+                ImageStatistics::histogram(input,(int32_t)min_int,histogram);
+            } else {
+                ImageStatistics::histogram(input,(T)min_value,histogram);
+            }
 
             // this should configure so that all the really fancy stuff has been turned off
             ComputeOtsu otsu(otsu2,0,true,1.0);
@@ -284,13 +293,14 @@ namespace boofcv
     class GlobalOtsuBinaryFilter : public InputToBinary<Gray<T>>
     {
     public:
-        T min_value;
-        T max_value;
+        // Bounds of the pixel values, same as BoofCV's doubles. See ThresholdOps::computeOtsu()
+        double min_value;
+        double max_value;
         bool down;
         // Scales the threshold. Same meaning as in BoofCV's GlobalBinaryFilter
         double scale;
 
-        GlobalOtsuBinaryFilter( T min_value , T max_value, bool down, double scale = 1.0 ) :
+        GlobalOtsuBinaryFilter( double min_value , double max_value, bool down, double scale = 1.0 ) :
                 min_value(min_value), max_value(max_value) , down(down), scale(scale)
         {  }
 
@@ -298,7 +308,7 @@ namespace boofcv
             // Same math as BoofCV GlobalBinaryFilter.process()
             double adjusted_scale = down ? scale : (scale <= 0.0 ? 0.0 : 1.0/scale);
             // computeOtsu() returns a histogram index. Java's GThresholdImageOps.computeOtsu() adds minValue
-            double otsu = ThresholdOps::computeOtsu(input,min_value,max_value,false) + static_cast<double>(min_value);
+            double otsu = ThresholdOps::computeOtsu(input,min_value,max_value,false) + min_value;
             double threshold = otsu*adjusted_scale;
             ThresholdOps::threshold_double(input,threshold,down,output);
         }

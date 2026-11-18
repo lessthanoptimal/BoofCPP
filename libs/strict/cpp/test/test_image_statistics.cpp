@@ -115,6 +115,27 @@ void check_histogram_unsigned_outside() {
     ASSERT_THROW(ImageStatistics::histogram(image,(T)10,large), std::out_of_range);
 }
 
+/// minValue outside the pixel type's range, as BoofCV's int allows: a negative minValue shifts every bin, one above
+/// every pixel value leaves them all without a bin
+template<class T>
+void check_histogram_unsigned_min_outside_type() {
+    Gray<T> image(5,6);
+    ImageMiscOps::fill(image,(T)2);
+    image.at(1,1) = 0;
+    GrowArray<uint32_t> histogram(8);
+    ImageStatistics::histogram(image,-3,histogram);
+    ASSERT_EQ(29u,histogram[5]);
+    ASSERT_EQ(1u,histogram[3]);
+
+    GrowArray<uint32_t> above(3);
+    ASSERT_THROW(ImageStatistics::histogram(image,(int32_t)std::numeric_limits<T>::max() + 1,above), std::out_of_range);
+}
+
+TEST_F(ImageStatisticsTest, histogram_unsigned_min_outside_type) {
+    check_histogram_unsigned_min_outside_type<U8>();
+    check_histogram_unsigned_min_outside_type<U16>();
+}
+
 TEST_F(ImageStatisticsTest, histogram_U8_outside) {
     check_histogram_unsigned_outside<U8>();
 }
