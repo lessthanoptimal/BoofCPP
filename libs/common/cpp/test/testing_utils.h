@@ -7,7 +7,9 @@
 #include "boofcv/image_misc_ops.h"
 
 #include <algorithm>
+#include <cstring>
 #include <random>
+#include <string>
 #include <type_traits>
 
 namespace boofcv {
@@ -44,6 +46,19 @@ namespace boofcv {
             for( uint32_t x = 0; x < imgA.width; x++ ) {
                 // TODO see if there's a built in function
                 ASSERT_TRUE( std::abs(imgA.at(x,y)-imgB.at(x,y)) <= tol );
+            }
+        }
+    }
+
+    /// Bits must be identical, so NaN equals NaN and signed zeros must match. 'what' is printed on failure
+    template<class E>
+    void check_identical( const Gray<E>& expected, const Gray<E>& found, const std::string& what = "" ) {
+        ASSERT_EQ(expected.width, found.width) << what;
+        ASSERT_EQ(expected.height, found.height) << what;
+        for (uint32_t y = 0; y < expected.height; y++) {
+            for (uint32_t x = 0; x < expected.width; x++) {
+                const E a = expected.at(x, y), b = found.at(x, y);
+                ASSERT_EQ(0, std::memcmp(&a, &b, sizeof(E))) << what << " at " << x << "," << y << " " << a << " " << b;
             }
         }
     }

@@ -1,7 +1,6 @@
 #include "gtest/gtest.h"
 #include "testing_utils.h"
 
-#include <cstring>
 #include <string>
 
 // Fast runs every check
@@ -60,19 +59,6 @@ namespace {
             if constexpr (std::is_floating_point<E>::value) {
                 left.data[i] += 0.1f*(F32)(i%7);
                 right.data[i] += 0.1f*(F32)(i%5);
-            }
-        }
-    }
-
-    /// Bits must be identical, so NaN equals NaN
-    template<class T>
-    void check_identical( const Gray<T>& expected, const Gray<T>& found, const std::string& what ) {
-        ASSERT_EQ(expected.width, found.width) << what;
-        ASSERT_EQ(expected.height, found.height) << what;
-        for (uint32_t y = 0; y < expected.height; y++) {
-            for (uint32_t x = 0; x < expected.width; x++) {
-                const T a = expected.at(x, y), b = found.at(x, y);
-                ASSERT_EQ(0, std::memcmp(&a, &b, sizeof(T))) << what << " at " << x << "," << y << " " << a << " " << b;
             }
         }
     }
