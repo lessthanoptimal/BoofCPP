@@ -7,6 +7,8 @@ import boofcv.struct.image.ImageBase;
 import boofcv.struct.image.*;
 import org.boofcpp.NativeBase;
 
+/// Native normalized convolution, called by BoofCV through BOverrideConvolveImageNormalized. Anything native doesn't
+/// support throws a RuntimeException, which causes BoofCV to fall back to its Java implementation.
 public class NativeImageConvolveNormalized extends NativeBase
         implements
         BOverrideConvolveImageNormalized.Horizontal,
@@ -41,11 +43,9 @@ public class NativeImageConvolveNormalized extends NativeBase
 
     @Override
     public void convolve(Kernel2D kernel, ImageBase input, ImageBase output) {
-        throw new RuntimeException("Not supported yet!");
-//        if( input.getImageType().getFamily() != ImageType.Family.GRAY )
-//            throw notSupported;
-//        setImageType(input.imageType.getImageClass());
-//        nativeconvolve(kernel, input, output);
+        checkTypes(input, output);
+        setImageType(input.imageType.getImageClass());
+        nativeconvolve(kernel, input, output);
     }
 
     public native void nativeconvolve( Kernel2D kernel, ImageBase input, ImageBase output );

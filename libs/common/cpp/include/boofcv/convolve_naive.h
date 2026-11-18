@@ -1,7 +1,9 @@
 #ifndef BOOFCPP_CONVOLVE_NAIVE_H
 #define BOOFCPP_CONVOLVE_NAIVE_H
 
+#include <algorithm>
 #include <cstdint>
+#include <stdexcept>
 
 #include "boofcv/base_types.h"
 #include "boofcv/convolve_kernels.h"
@@ -344,6 +346,43 @@ namespace boofcv {
             }
         }
 
+        /// Each pixel is the sum of the kernel weights inside the image times the pixels, divided by the sum of those
+        /// weights. Integers round the division. Same as BoofCV's ConvolveNormalizedNaive_SB.convolve()
+        template<class E>
+        static void convolve( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel,
+                              const Gray<E>& input, Gray<E>& output ) {
+            typedef typename TypeInfo<E>::signed_type signed_type;
+            const int32_t offset = kernel.offset;
+            const int32_t width = input.width;
+            const int32_t height = input.height;
+
+            for (int32_t y = 0; y < height; y++) {
+                for (int32_t x = 0; x < width; x++) {
+                    const int32_t startX = std::max(0, x - offset);
+                    const int32_t endX = std::min(width, x - offset + (int32_t)kernel.width);
+                    const int32_t startY = std::max(0, y - offset);
+                    const int32_t endY = std::min(height, y - offset + (int32_t)kernel.width);
+
+                    signed_type total = 0;
+                    signed_type weight = 0;
+                    for (int32_t i = startY; i < endY; i++) {
+                        for (int32_t j = startX; j < endX; j++) {
+                            signed_type v = kernel.at(j - x + offset, i - y + offset);
+                            total += input.unsafe_at(j, i)*v;
+                            weight += v;
+                        }
+                    }
+                    if constexpr (std::is_integral<E>::value) {
+                        // BoofCV's Java code throws an ArithmeticException
+                        if (weight == 0)
+                            throw std::domain_error("Kernel weights inside the image sum to zero");
+                        output.unsafe_at(x, y) = static_cast<E>((total + weight/2)/weight);
+                    }
+                    else
+                        output.unsafe_at(x, y) = static_cast<E>(total/weight);
+                }
+            }
+        }
     };
 }
 

@@ -55,6 +55,7 @@ public class BoofCPP {
 
         BOverrideConvolveImageNormalized.horizontal = new NativeImageConvolveNormalized();
         BOverrideConvolveImageNormalized.vertical = new NativeImageConvolveNormalized();
+        BOverrideConvolveImageNormalized.convolve = new NativeImageConvolveNormalized();
 
 //        BOverrideConvolveImageMean.horizontal = ?;
 //        BOverrideConvolveImageMean.vertical = ?;
