@@ -2,6 +2,7 @@ package org.boofcpp.accuracy;
 
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayF64;
+import boofcv.struct.image.GrayS64;
 import boofcv.struct.image.GrayU8;
 import org.boofcpp.testing.BoofCPPStandardJUnit;
 import org.junit.jupiter.api.Test;
@@ -45,6 +46,18 @@ public class TestImageDifference extends BoofCPPStandardJUnit {
         assertEquals(3, d.maxAbs);
         assertEquals(3, d.maxUlp);
         assertEquals(0.25, d.differing, 1e-12);
+    }
+
+    /// Longs which a double can't tell apart still differ
+    @Test
+    public void measure_long() {
+        GrayS64 expected = new GrayS64(2, 1);
+        GrayS64 found = new GrayS64(2, 1);
+        expected.set(0, 0, 1L << 60);
+        found.set(0, 0, (1L << 60) + 1);
+        ImageDifference d = ImageDifference.measure(expected, found);
+        assertEquals(1, d.maxUlp);
+        assertEquals(0.5, d.differing, 1e-12);
     }
 
     @Test

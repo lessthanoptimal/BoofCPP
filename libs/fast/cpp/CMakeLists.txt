@@ -19,6 +19,7 @@ install(TARGETS BoofCPPFast DESTINATION lib ARCHIVE DESTINATION lib)
 if (test)
     include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
+    list(APPEND FastTestList test_census_transform)
     list(APPEND FastTestList test_image_blur)
 
     FOREACH(FILENAME ${FastTestList})

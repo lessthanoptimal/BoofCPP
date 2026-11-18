@@ -55,3 +55,10 @@ normalized convolution, see ConvolveImage above. C++, 4032x3024, inner region (m
   recomputes width-1 rows per strip. It helps at most 1.18x.
 - Adding mirrored rows of the symmetric kernel before the multiply changes the rounding (at most 7.6e-5 on 0..255) and
   only reaches 1.3x for large radii. Folding the horizontal pass is slower than strict at radius 5.
+
+## Census transform dense3x3, F32 (2026-11-18)
+
+Not kept: comparing 8 neighbors per pass into the byte output, which makes U8 4.6x and U16 2.2x faster than strict, is
+only 1.18x faster for F32 (13.1 vs 15.6 ms, JMH, 4032x3024 test image, reflected border). Each F32 comparison gives a
+32-bit mask that is narrowed to a byte, and strict's output is already a byte written once per neighbor. Fast's
+dense3x3 uses strict's code for F32.

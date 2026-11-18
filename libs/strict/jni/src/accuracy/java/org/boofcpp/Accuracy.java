@@ -5,8 +5,10 @@ import boofcv.struct.image.GrayF64;
 import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
 import org.boofcpp.accuracy.AccuracyRecord;
+import org.boofcpp.accuracy.CensusAccuracy;
 import org.boofcpp.accuracy.MeanBlurAccuracy;
 import org.boofcpp.convolve.NativeImageBlurOps;
+import org.boofcpp.transform.NativeCensusTransform;
 
 /// Strict's accuracy against BoofCV's Java code. Every metric should be zero
 public class Accuracy {
@@ -14,6 +16,7 @@ public class Accuracy {
         BoofCPP.loadlib();
         AccuracyRecord.run("strict", BoofCPP.nativeBuildInfo(),
                 new MeanBlurAccuracy(new NativeImageBlurOps(), GrayU8.class, GrayU16.class, GrayF32.class,
-                        GrayF64.class));
+                        GrayF64.class),
+                new CensusAccuracy(new NativeCensusTransform<>(), GrayU8.class, GrayU16.class, GrayF32.class));
     }
 }

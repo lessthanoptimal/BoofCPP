@@ -3,6 +3,7 @@ package org.boofcpp.accuracy;
 import boofcv.core.image.GeneralizedImageOps;
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayF64;
+import boofcv.struct.image.GrayS64;
 import boofcv.struct.image.ImageGray;
 
 /// How far an image is from the expected one
@@ -34,6 +35,10 @@ public class ImageDifference {
                     ulp = ulpDistance(((GrayF32)expected).get(x, y), ((GrayF32)found).get(x, y));
                 } else if (expected instanceof GrayF64) {
                     ulp = ulpDistance(((GrayF64)expected).get(x, y), ((GrayF64)found).get(x, y));
+                } else if (expected instanceof GrayS64) {
+                    // A double can't hold every long, so differences are found by comparing the longs
+                    long a = ((GrayS64)expected).get(x, y), b = ((GrayS64)found).get(x, y);
+                    ulp = a == b ? 0 : Math.max(1, Math.abs(a - b));
                 } else {
                     ulp = (long)Math.abs(f - e);
                 }
