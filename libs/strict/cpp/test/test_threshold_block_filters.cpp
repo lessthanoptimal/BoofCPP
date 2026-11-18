@@ -3,6 +3,8 @@
 #include "boofcv/threshold_block_filters.h"
 #include "boofcv/image_misc_ops.h"
 #include "testing_utils.h"
+#include "variant_strict.h"
+#include "shared/threshold_checks.h"
 
 using namespace std;
 using namespace boofcv;
@@ -44,154 +46,19 @@ TEST_F(ThresholdBlockCommonTest, selectBlockSize) {
     ASSERT_EQ(32,alg.blockHeight);
 }
 
-template<class T, class S>
-class ThresholdBlockChecks
-{
-public:
-    ThresholdBlockCommon<T,S>* alg;
-    std::mt19937 gen;
-
-    ThresholdBlockChecks() : gen(0xBEEF) {
-        alg = nullptr;
-    }
-
-    virtual ~ThresholdBlockChecks()
-    {
-        if( alg != nullptr )
-            delete alg;
-    }
-
-    virtual void create_algorithm(uint32_t requestedBlockWidth, double scale , bool down ) = 0;
-
-    void toggle_down() {
-        uint32_t width = 100, height = 120;
-
-        typedef typename T::pixel_type E;
-        T input(width,height);
-        ImageMiscOps::fill_uniform(input,(E)0,(E)255,gen);
-
-        Gray<U8> down(width,height);
-        Gray<U8> up(width,height);
-
-        // turn off texture so that the output's can be the inverse of each other
-        create_algorithm(6,1.0,true);
-        alg->process(input,down);
-        create_algorithm(6,1.0,false);
-        alg->process(input,up);
-
-        for (uint32_t y = 0; y < down.height; y++) {
-            for (uint32_t x = 0; x < down.width; x++) {
-                ASSERT_TRUE(down.at(x,y) == !up.at(x,y));
-            }
-        }
-    }
-
-    void widthLargerThanImage() {
-        T input(10,12);
-        Gray<U8> output(input.width,input.height);
-
-        create_algorithm(20,1.0,true);
-        try {
-            alg->process(input, output);
-            ASSERT_TRUE(false);
-        } catch( ... ) {
-
-        }
-    }
-
-    void subimage() {
-        typedef typename T::pixel_type E;
-
-        T input(100,120);
-        ImageMiscOps::fill_uniform(input,(E)0,(E)255,gen);
-
-        Gray<U8> expected(input.width,input.height);
-
-        T sub_input = create_subimage(input);
-        Gray<U8> sub_output = create_subimage(expected);
-
-        create_algorithm(14,1.0,true);
-
-        alg->process(input,expected);
-        alg->process(sub_input,sub_output);
-
-        check_equals(expected,sub_output);
-
-        // do this so that it frees the memory and valgrind doesn't complain
-        sub_input.subimage = false;
-        sub_output.subimage = false;
-    }
-};
-
-template<class E>
-class ThresholdBlockMeanChecks : public ThresholdBlockChecks<Gray<E>,Interleaved<E>>
-{
-public:
-    bool thresholdFromLocalBlocks=true;
-
-    void create_algorithm(uint32_t requestedBlockWidth, double scale , bool down ) override {
-        if( this->alg != nullptr )
-            delete  this->alg;
-        ConfigLength c = ConfigLength::fixed(requestedBlockWidth);
-        this->alg = new ThresholdBlockMean<E>(c,thresholdFromLocalBlocks,scale,down);
-    }
-};
-
 class ThresholdBlockMeanTest : public boofcv::BoofCPPTest {};
 
-TEST_F(ThresholdBlockMeanTest, standard_tests_U8) {
-    ThresholdBlockMeanChecks<U8> standard_tests;
-
-    standard_tests.toggle_down();
-    standard_tests.widthLargerThanImage();
-    standard_tests.subimage();
-}
-
-template<class E>
-class ThresholdBlockOtsuChecks : public ThresholdBlockChecks<Gray<E>,Interleaved<S32>>
-{
-public:
-    bool thresholdFromLocalBlocks=true;
-
-    void create_algorithm(uint32_t requestedBlockWidth, double scale , bool down ) override {
-        if( this->alg != nullptr )
-            delete  this->alg;
-        ConfigLength c = ConfigLength::fixed(requestedBlockWidth);
-        this->alg = new ThresholdBlockOtsu<E>(false,c,0.0,scale,down,thresholdFromLocalBlocks);
-    }
-};
+TEST_F(ThresholdBlockMeanTest, standard_tests_U8) { threshold_checks::block_all(threshold_checks::block_mean<U8>()); }
+TEST_F(ThresholdBlockMeanTest, standard_tests_F32) { threshold_checks::block_all(threshold_checks::block_mean<F32>()); }
 
 class ThresholdBlockOtsuTest : public boofcv::BoofCPPTest {};
 
-TEST_F(ThresholdBlockOtsuTest, standard_tests_U8) {
-    ThresholdBlockOtsuChecks<U8> standard_tests;
+TEST_F(ThresholdBlockOtsuTest, standard_tests_U8) { threshold_checks::block_all(threshold_checks::block_otsu<U8>()); }
+TEST_F(ThresholdBlockOtsuTest, standard_tests_F32) { threshold_checks::block_all(threshold_checks::block_otsu<F32>()); }
 
-    standard_tests.toggle_down();
-    standard_tests.widthLargerThanImage();
-    standard_tests.subimage();
-}
+class ThresholdBlockMinMaxTest : public boofcv::BoofCPPTest {};
 
-template<class E>
-class ThresholdBlockMinMaxChecks : public ThresholdBlockChecks<Gray<E>,Interleaved<E>>
-{
-public:
-    float minimumSpread = 1;
-    bool thresholdFromLocalBlocks=true;
-
-    void create_algorithm(uint32_t requestedBlockWidth, double scale , bool down ) override {
-        if( this->alg != nullptr )
-            delete  this->alg;
-        ConfigLength c = ConfigLength::fixed(requestedBlockWidth);
-        this->alg = new ThresholdBlockMinMax<E>(minimumSpread,c,thresholdFromLocalBlocks,(float)scale,down);
-    }
-};
-
-class ThresholdBlockMinMaxChecksTest : public boofcv::BoofCPPTest {};
-
-TEST_F(ThresholdBlockMinMaxChecksTest, standard_tests_U8) {
-    ThresholdBlockMinMaxChecks<U8> standard_tests;
-
-    standard_tests.toggle_down();
-    standard_tests.widthLargerThanImage();
-    standard_tests.subimage();
+TEST_F(ThresholdBlockMinMaxTest, standard_tests_U8) { threshold_checks::block_all(threshold_checks::block_min_max<U8>()); }
+TEST_F(ThresholdBlockMinMaxTest, standard_tests_F32) {
+    threshold_checks::block_all(threshold_checks::block_min_max<F32>());
 }
