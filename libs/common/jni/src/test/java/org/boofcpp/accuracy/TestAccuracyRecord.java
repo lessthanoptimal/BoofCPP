@@ -57,6 +57,25 @@ public class TestAccuracyRecord extends BoofCPPStandardJUnit {
         assertTrue(grew.get(1).startsWith("mean GrayF32 b max_abs"));
     }
 
+    /// A metric an older record doesn't have is read as NaN, and doesn't count as grown
+    @Test
+    public void missingMetric( @TempDir File dir ) throws Exception {
+        AccuracyRecord before = new AccuracyRecord();
+        before.add("mean", "GrayF32", "a", difference(1e-5, 0.5));
+        File file = new File(dir, "record.json");
+        String json = before.toJson().replaceAll(", \"mean_error\": [^,}]+", "");
+        Files.write(file.toPath(), json.getBytes(StandardCharsets.UTF_8));
+        AccuracyRecord read = AccuracyRecord.read(file);
+        double[] values = read.results.get("mean|GrayF32|a");
+        assertTrue(Double.isNaN(values[values.length - 1]));
+
+        AccuracyRecord now = new AccuracyRecord();
+        ImageDifference d = difference(1e-5, 0.5);
+        d.meanError = 1;
+        now.add("mean", "GrayF32", "a", d);
+        assertTrue(now.grewSince(read).isEmpty());
+    }
+
     private static ImageDifference difference( double maxAbs, double differing ) {
         ImageDifference d = new ImageDifference();
         d.maxAbs = maxAbs;

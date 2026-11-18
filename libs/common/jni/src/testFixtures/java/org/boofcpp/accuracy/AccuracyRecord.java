@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -26,7 +27,7 @@ public class AccuracyRecord {
     public static final double GROWTH = 2.0;
 
     /// Metrics in the order they're saved
-    static final String[] METRICS = {"max_abs", "max_rel", "rms", "max_ulp", "differing"};
+    static final String[] METRICS = {"max_abs", "max_rel", "rms", "max_ulp", "differing", "mean_error"};
 
     public final Map<String, String> info = new LinkedHashMap<>();
     /// Metrics of each result, keyed by "op|image|case"
@@ -71,7 +72,8 @@ public class AccuracyRecord {
     public void add( String op, String image, String name, ImageDifference d ) {
         if ((op + image + name).contains("|"))
             throw new IllegalArgumentException("Names can't contain '|'");
-        results.put(op + "|" + image + "|" + name, new double[]{d.maxAbs, d.maxRel, d.rms, d.maxUlp, d.differing});
+        results.put(op + "|" + image + "|" + name,
+                new double[]{d.maxAbs, d.maxRel, d.rms, d.maxUlp, d.differing, d.meanError});
     }
 
     /// Metrics which grew more than GROWTH times, or from zero, since 'previous'
@@ -123,7 +125,9 @@ public class AccuracyRecord {
                         "\"case\": \"((?:[^\"\\\\]|\\\\.)*)\"((?:, \"\\w+\": [^,}]+)*)\\}").matcher(json);
         Pattern metric = Pattern.compile("\"(\\w+)\": ([^,}]+)");
         while (result.find()) {
+            // NaN for a metric the record doesn't have, which never counts as grown
             double[] values = new double[METRICS.length];
+            Arrays.fill(values, Double.NaN);
             Matcher m = metric.matcher(result.group(4));
             while (m.find()) {
                 for (int i = 0; i < METRICS.length; i++) {

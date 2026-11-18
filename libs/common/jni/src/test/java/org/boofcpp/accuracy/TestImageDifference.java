@@ -2,6 +2,7 @@ package org.boofcpp.accuracy;
 
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayF64;
+import boofcv.struct.image.GrayS32;
 import boofcv.struct.image.GrayS64;
 import boofcv.struct.image.GrayU8;
 import org.boofcpp.testing.BoofCPPStandardJUnit;
@@ -46,6 +47,32 @@ public class TestImageDifference extends BoofCPPStandardJUnit {
         assertEquals(3, d.maxAbs);
         assertEquals(3, d.maxUlp);
         assertEquals(0.25, d.differing, 1e-12);
+        assertEquals(0.75, d.meanError, 1e-12);
+    }
+
+    /// Errors are the number of differing bits, whatever their place
+    @Test
+    public void measureBits() {
+        GrayS32 expected = new GrayS32(4, 1);
+        GrayS32 found = new GrayS32(4, 1);
+        found.set(0, 0, 1 << 23);
+        found.set(1, 0, 0b101);
+        ImageDifference d = ImageDifference.measureBits(expected, found);
+        assertEquals(2, d.maxAbs);
+        assertEquals(2, d.maxUlp);
+        assertEquals(0, d.maxRel);
+        assertEquals(0.5, d.differing, 1e-12);
+        assertEquals(0.75, d.meanError, 1e-12);
+        assertEquals(Math.sqrt(5/4.0), d.rms, 1e-12);
+
+        GrayU8 a = new GrayU8(1, 1), b = new GrayU8(1, 1);
+        b.set(0, 0, 0xFF);
+        assertEquals(8, ImageDifference.measureBits(a, b).meanError, 1e-12);
+        GrayS64 c = new GrayS64(1, 1), e = new GrayS64(1, 1);
+        e.set(0, 0, -1L);
+        assertEquals(64, ImageDifference.measureBits(c, e).meanError, 1e-12);
+        assertThrows(IllegalArgumentException.class,
+                () -> ImageDifference.measureBits(new GrayF32(1, 1), new GrayF32(1, 1)));
     }
 
     /// Longs which a double can't tell apart still differ

@@ -8,6 +8,7 @@ import boofcv.core.image.GeneralizedImageOps;
 import boofcv.core.image.border.FactoryImageBorder;
 import boofcv.io.image.ConvertBufferedImage;
 import boofcv.struct.border.BorderType;
+import boofcv.struct.border.ImageBorder;
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayF64;
 import boofcv.struct.image.GrayU8;
@@ -66,8 +67,8 @@ public class MeanBlurAccuracy implements AccuracyCase {
         Class type = input.getClass();
         ImageGray expected = (ImageGray)input.createSameShape();
         ImageGray found = (ImageGray)input.createSameShape();
-        withoutHook(() -> GBlurImageOps.meanB(input, expected, radiusX, radiusY, FactoryImageBorder.single(border, type),
-                null, null));
+        ImageBorder javaBorder = FactoryImageBorder.single(border, type);
+        withoutHook(() -> GBlurImageOps.meanB(input, expected, radiusX, radiusY, javaBorder, null, null));
         hook.processMeanBorder(input, found, radiusX, radiusY, FactoryImageBorder.single(border, type), null);
         record.add("mean_border", type.getSimpleName(), name, ImageDifference.measure(expected, found));
     }

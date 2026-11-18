@@ -3,29 +3,34 @@ package org.boofcpp.accuracy;
 import boofcv.core.image.GeneralizedImageOps;
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayF64;
+import boofcv.struct.image.GrayS32;
 import boofcv.struct.image.GrayS64;
+import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
 
-/// How far an image is from the expected one
+/// How far an image is from the expected one, from the error of each pixel: |found - expected| for [#measure], or
+/// the number of differing bits for [#measureBits]
 public class ImageDifference {
-    /// Largest |found - expected|
+    /// Largest error
     public double maxAbs;
-    /// Largest |found - expected|/max(1, |expected|)
+    /// Largest |found - expected|/max(1, |expected|). Zero for [#measureBits]
     public double maxRel;
-    /// Root mean square of found - expected
+    /// Root mean square of the errors
     public double rms;
-    /// Largest distance in representable values. For integer images it's the largest absolute difference
+    /// Largest distance in representable values. For integer images it's the largest error
     public long maxUlp;
     /// Fraction of pixels which aren't identical
     public double differing;
+    /// Mean of the errors
+    public double meanError;
 
+    private long count, differ;
+    private double sum, sumSq;
+
+    /// Errors are |found - expected|
     public static ImageDifference measure( ImageGray<?> expected, ImageGray<?> found ) {
-        if (expected.width != found.width || expected.height != found.height)
-            throw new IllegalArgumentException("Different shapes");
-
+        checkShape(expected, found);
         ImageDifference d = new ImageDifference();
-        long count = 0;
-        double sumSq = 0;
         for (int y = 0; y < expected.height; y++) {
             for (int x = 0; x < expected.width; x++) {
                 double e = GeneralizedImageOps.get(expected, x, y);
@@ -43,18 +48,56 @@ public class ImageDifference {
                     ulp = (long)Math.abs(f - e);
                 }
                 double error = Math.abs(f - e);
-                d.maxAbs = Math.max(d.maxAbs, error);
+                d.add(error, ulp);
                 d.maxRel = Math.max(d.maxRel, error/Math.max(1.0, Math.abs(e)));
-                d.maxUlp = Math.max(d.maxUlp, ulp);
-                sumSq += error*error;
-                if (ulp != 0)
-                    count++;
             }
         }
-        long total = (long)expected.width*expected.height;
-        d.rms = total == 0 ? 0 : Math.sqrt(sumSq/total);
-        d.differing = total == 0 ? 0 : count/(double)total;
-        return d;
+        return d.finish();
+    }
+
+    /// Errors are the number of bits which differ, for images whose pixels are bit masks, e.g. census transforms.
+    /// GrayU8, GrayS32 and GrayS64
+    public static ImageDifference measureBits( ImageGray<?> expected, ImageGray<?> found ) {
+        checkShape(expected, found);
+        ImageDifference d = new ImageDifference();
+        for (int y = 0; y < expected.height; y++) {
+            for (int x = 0; x < expected.width; x++) {
+                int bits;
+                if (expected instanceof GrayU8) {
+                    bits = Integer.bitCount(((GrayU8)expected).get(x, y) ^ ((GrayU8)found).get(x, y));
+                } else if (expected instanceof GrayS32) {
+                    bits = Integer.bitCount(((GrayS32)expected).get(x, y) ^ ((GrayS32)found).get(x, y));
+                } else if (expected instanceof GrayS64) {
+                    bits = Long.bitCount(((GrayS64)expected).get(x, y) ^ ((GrayS64)found).get(x, y));
+                } else {
+                    throw new IllegalArgumentException("Not a bit image: " + expected.getClass().getSimpleName());
+                }
+                d.add(bits, bits);
+            }
+        }
+        return d.finish();
+    }
+
+    private static void checkShape( ImageGray<?> expected, ImageGray<?> found ) {
+        if (expected.width != found.width || expected.height != found.height)
+            throw new IllegalArgumentException("Different shapes");
+    }
+
+    private void add( double error, long ulp ) {
+        maxAbs = Math.max(maxAbs, error);
+        maxUlp = Math.max(maxUlp, ulp);
+        sum += error;
+        sumSq += error*error;
+        count++;
+        if (ulp != 0)
+            differ++;
+    }
+
+    private ImageDifference finish() {
+        rms = count == 0 ? 0 : Math.sqrt(sumSq/count);
+        meanError = count == 0 ? 0 : sum/count;
+        differing = count == 0 ? 0 : differ/(double)count;
+        return this;
     }
 
     /// Number of representable floats between a and b
