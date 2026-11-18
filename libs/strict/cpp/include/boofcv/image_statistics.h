@@ -63,12 +63,14 @@ namespace boofcv {
             return static_cast<T>(a / (input.width * input.height));
         }
 
-        /// Histogram of pixel values. Bin i counts pixels equal to minValue + i. Throws std::out_of_range if a pixel
-        /// doesn't have a bin, same as BoofCV. To avoid a branch per pixel, bins are clamped to one bin past the
-        /// histogram, which is checked at the end. For unsigned integers
+        /// Histogram of pixel values. Bin i counts pixels equal to minValue + i, where minValue can be outside the
+        /// pixel type's range, same as BoofCV's int. Throws std::out_of_range if a pixel doesn't have a bin, same as
+        /// BoofCV. To avoid a branch per pixel, bins are clamped to one bin past the histogram, which is checked at
+        /// the end. For unsigned integers
         template<class T, std::enable_if_t<std::is_integral_v<T> && std::is_unsigned_v<T>, int> = 0>
-        static void histogram( const Gray<T>& input , T minValue , GrowArray<uint32_t>& histogram ) {
-            // Wide enough for any pixel value. Pixels below minValue wrap around to values past the histogram
+        static void histogram( const Gray<T>& input , int32_t minValue , GrowArray<uint32_t>& histogram ) {
+            // Unsigned 32-bit arithmetic gives value - minValue for every bin, and pixels below minValue wrap around
+            // to values past the histogram
             using W = std::common_type_t<uint32_t, T>;
             const uint32_t size = histogram.size;
             std::vector<uint32_t> guarded(size + 1, 0);

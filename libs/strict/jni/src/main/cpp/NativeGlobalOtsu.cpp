@@ -14,9 +14,9 @@ JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeGlobalOtsu_nativeinit(
     jboolean isInteger = env->GetBooleanField(obj, fid);
     jlong ptr;
     if( isInteger ) {
-        ptr = (jlong)new GlobalOtsuBinaryFilter<U8>((U8)minValue,(U8)maxValue, (bool) down, (double)scale);
+        ptr = (jlong)new GlobalOtsuBinaryFilter<U8>(minValue, maxValue, (bool) down, (double)scale);
     } else {
-        ptr = (jlong)new GlobalOtsuBinaryFilter<F32>((F32)minValue,(F32)maxValue, (bool) down, (double)scale);
+        ptr = (jlong)new GlobalOtsuBinaryFilter<F32>(minValue, maxValue, (bool) down, (double)scale);
     }
     fid = env->GetFieldID(objClass, "nativePtr", "J");
     env->SetLongField(obj, fid, ptr);

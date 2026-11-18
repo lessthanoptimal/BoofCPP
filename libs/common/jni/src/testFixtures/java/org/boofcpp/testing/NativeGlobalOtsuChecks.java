@@ -48,6 +48,31 @@ public abstract class NativeGlobalOtsuChecks extends ThresholdChecks {
         }
     }
 
+    /// Bounds outside the pixel type's range and fractional bounds. BoofCV truncates them for the histogram and adds
+    /// minValue back to the threshold
+    @Test
+    public void boundsBeyondPixels() {
+        for (Class type : imageTypes) {
+            ImageGray input = GeneralizedImageOps.createSingleBand(type, 60, 50);
+            GImageMiscOps.fillUniform(input, rand, 20, 200);
+            for (double[] range : new double[][]{{0, 300}, {-10, 255}, {0.5, 255.7}, {-3.25, 270.5}, {19.9, 201.2}}) {
+                for (boolean down : new boolean[]{true, false}) {
+                    compare(input, () -> hook.handle(range[0], range[1], 1.0, down, type),
+                            () -> FactoryThresholdBinary.globalOtsu(range[0], range[1], 1.0, down, type));
+                }
+            }
+            // (int)(1 + 200.2 - 20.9) = 180 bins from 20, so a pixel of 200 has no bin
+            if (type == GrayU8.class) {
+                ((GrayU8)input).set(0, 0, 200);
+                GrayU8 output = new GrayU8(input.width, input.height);
+                assertThrows(RuntimeException.class, () -> new GlobalBinaryFilter.Otsu(20.9, 200.2, 1.0, true,
+                        ImageType.single(type)).process(input, output));
+                assertThrows(RuntimeException.class,
+                        () -> hook.handle(20.9, 200.2, 1.0, true, type).process(input, output));
+            }
+        }
+    }
+
     /// Pixels outside [minValue, maxValue] are handled as in BoofCV. F32 values less than 1 outside and NaN are
     /// counted, others throw
     @Test
