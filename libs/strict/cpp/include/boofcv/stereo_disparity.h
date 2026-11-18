@@ -1,6 +1,8 @@
 #ifndef BOOFCPP_STEREO_DISPARITY_H
 #define BOOFCPP_STEREO_DISPARITY_H
 
+#include <cstdint>
+#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <type_traits>
@@ -93,12 +95,10 @@ namespace boofcv {
     template<class E, class D>
     class StereoDisparityBlockMatchRowFormat : public StereoDisparityBlockMatch<E, D> {
     public:
-        using Alg = DisparityBlockMatchRowFormat<E, BlockScoreType<E>>;
-
-        StereoDisparityBlockMatchRowFormat( std::unique_ptr<Alg> alg, std::shared_ptr<DisparityOutput<D>> select,
-                                            bool select_saves_score ) :
+        StereoDisparityBlockMatchRowFormat( std::unique_ptr<DisparityBlockMatch<E>> alg,
+                                            std::shared_ptr<DisparityOutput<D>> select, bool select_saves_score ) :
                 StereoDisparityBlockMatch<E, D>(std::move(select), select_saves_score, alg->get_disparity_min(),
-                                                alg->get_disparity_range(), alg->radius_y),
+                                                alg->get_disparity_range(), alg->get_radius_y()),
                 alg(std::move(alg)) {}
 
     protected:
@@ -107,7 +107,7 @@ namespace boofcv {
         }
 
     private:
-        std::unique_ptr<Alg> alg;
+        std::unique_ptr<DisparityBlockMatch<E>> alg;
     };
 
     /// Block matching on the census transform of the input images. Same as BoofCV's WrapDisparityBlockMatchCensus
@@ -117,11 +117,11 @@ namespace boofcv {
     class StereoDisparityBlockMatchCensus : public StereoDisparityBlockMatch<E, D> {
     public:
         StereoDisparityBlockMatchCensus( std::unique_ptr<FilterCensusTransform<E, C>> census,
-                                         std::unique_ptr<DisparityBlockMatchRowFormat<C, int32_t>> alg,
+                                         std::unique_ptr<DisparityBlockMatch<C>> alg,
                                          std::shared_ptr<DisparityOutput<D>> select,
                                          bool select_saves_score ) :
                 StereoDisparityBlockMatch<E, D>(std::move(select), select_saves_score, alg->get_disparity_min(),
-                                                alg->get_disparity_range(), alg->radius_y),
+                                                alg->get_disparity_range(), alg->get_radius_y()),
                 census(std::move(census)), alg(std::move(alg)) {}
 
         /// Census transform of the left image from the last call to process()
@@ -139,7 +139,7 @@ namespace boofcv {
 
     private:
         std::unique_ptr<FilterCensusTransform<E, C>> census;
-        std::unique_ptr<DisparityBlockMatchRowFormat<C, int32_t>> alg;
+        std::unique_ptr<DisparityBlockMatch<C>> alg;
         Gray<C> census_left{1, 1};
         Gray<C> census_right{1, 1};
     };
@@ -152,11 +152,11 @@ namespace boofcv {
         /// @param normalize If true then the left image is normalized to zero mean and a maximum absolute value of
         /// one, and the right image with the same parameters. BoofCV's Type.CORRELATION. Otherwise the images are
         /// only converted, BoofCV's Type.NONE.
-        StereoDisparityBlockMatchPreFilter( std::unique_ptr<DisparityBlockMatchRowFormat<F32, F32>> alg,
+        StereoDisparityBlockMatchPreFilter( std::unique_ptr<DisparityBlockMatch<F32>> alg,
                                             std::shared_ptr<DisparityOutput<D>> select,
                                             bool select_saves_score, bool normalize ) :
                 StereoDisparityBlockMatch<E, D>(std::move(select), select_saves_score, alg->get_disparity_min(),
-                                                alg->get_disparity_range(), alg->radius_y),
+                                                alg->get_disparity_range(), alg->get_radius_y()),
                 alg(std::move(alg)), normalize(normalize) {}
 
         /// Left image after conversion from the last call to process()
@@ -182,7 +182,7 @@ namespace boofcv {
         }
 
     private:
-        std::unique_ptr<DisparityBlockMatchRowFormat<F32, F32>> alg;
+        std::unique_ptr<DisparityBlockMatch<F32>> alg;
         bool normalize;
         NormalizeParameters parameters;
         Gray<F32> adjusted_left{1, 1};
@@ -235,8 +235,27 @@ namespace boofcv {
         }
     };
 
-    /// Creates stereo disparity algorithms. Same as BoofCV's FactoryStereoDisparity
-    class FactoryStereoDisparity {
+    /// The parts FactoryBlockMatch builds block matching from that a variant can replace. Strict's are the same as
+    /// BoofCV's
+    struct BlockMatchParts {
+        /// Selects the disparity from error scores
+        template<class S, class D>
+        using SelectError = SelectErrorWithChecks<S, D>;
+
+        /// Selects the disparity from correlation scores
+        template<class D>
+        using SelectCorrelation = SelectCorrelationWithChecks_F32<D>;
+
+        /// Integer score type which replaces int32_t when the largest region score and the disparity range are
+        /// below its maximum. int32_t if there's none
+        using SmallScore = int32_t;
+    };
+
+    /// Creates stereo disparity algorithms from 'Parts'. Same as BoofCV's FactoryStereoDisparity
+    ///
+    /// @tparam Parts Variant's parts, see BlockMatchParts
+    template<class Parts>
+    class FactoryBlockMatch {
     public:
         /// Block matching. Throws std::invalid_argument if the configuration isn't supported.
         ///
@@ -259,11 +278,18 @@ namespace boofcv {
             std::unique_ptr<StereoDisparityBlockMatch<E, D>> ret;
             switch (config.error_type) {
                 case DisparityError::SAD:
-                    ret = create_row_format<E, D>(config, std::make_shared<BlockRowScoreSad<E>>());
+                    if constexpr (std::is_same<E, U8>::value) {
+                        if (small_scores(config, 255)) {
+                            using S = typename Parts::SmallScore;
+                            ret = create_row_format<E, D, S>(config, std::make_shared<BlockRowScoreSad<E, S>>());
+                            break;
+                        }
+                    }
+                    ret = create_row_format<E, D, BlockScoreType<E>>(config, std::make_shared<BlockRowScoreSad<E>>());
                     break;
 
                 case DisparityError::SSD:
-                    ret = create_row_format<E, D>(config, std::make_shared<BlockRowScoreSsd<E>>());
+                    ret = create_row_format<E, D, BlockScoreType<E>>(config, std::make_shared<BlockRowScoreSsd<E>>());
                     break;
 
                 case DisparityError::ZSSD:
@@ -296,6 +322,17 @@ namespace boofcv {
             return ret;
         }
 
+        /// True if Parts::SmallScore can replace int32_t: the largest region score, the region's area times
+        /// 'max_per_pixel', and the disparity range are below its maximum
+        static bool small_scores( const ConfigDisparityBM& config, int32_t max_per_pixel ) {
+            using S = typename Parts::SmallScore;
+            if (std::is_same<S, int32_t>::value)
+                return false;
+            const int64_t area = (int64_t)(config.region_radius_x*2 + 1)*(config.region_radius_y*2 + 1);
+            const int64_t limit = std::numeric_limits<S>::max();
+            return area*max_per_pixel < limit && config.disparity_range < limit;
+        }
+
     private:
         /// A selector, both as what the block matcher passes scores to and as what the wrapper sets the output of
         template<class S, class D>
@@ -317,7 +354,7 @@ namespace boofcv {
             Selector<S, D> ret;
             if (config.error_type == DisparityError::NCC) {
                 if constexpr (std::is_same<S, F32>::value) {
-                    auto select = std::make_shared<SelectCorrelationWithChecks_F32<D>>(
+                    auto select = std::make_shared<typename Parts::template SelectCorrelation<D>>(
                             config.validate_r_to_l, config.texture);
                     ret.scores = select;
                     ret.output = select;
@@ -326,7 +363,7 @@ namespace boofcv {
                     throw std::invalid_argument("Can't do correlation scores for integer image types");
                 }
             } else {
-                auto select = std::make_shared<SelectErrorWithChecks<S, D>>(
+                auto select = std::make_shared<typename Parts::template SelectError<S, D>>(
                         max_error, config.validate_r_to_l, config.texture, squared);
                 ret.scores = select;
                 ret.output = select;
@@ -335,11 +372,11 @@ namespace boofcv {
             return ret;
         }
 
-        template<class E>
-        static std::unique_ptr<DisparityBlockMatchRowFormat<E, BlockScoreType<E>>> create_block_matching(
-                const ConfigDisparityBM& config, std::shared_ptr<BlockRowScore<E, BlockScoreType<E>>> row_score,
-                std::shared_ptr<DisparitySelect<BlockScoreType<E>>> select ) {
-            auto alg = std::make_unique<DisparityBlockMatchRowFormat<E, BlockScoreType<E>>>(
+        template<class E, class S>
+        static std::unique_ptr<DisparityBlockMatchRowFormat<E, S>> create_block_matching(
+                const ConfigDisparityBM& config, std::shared_ptr<BlockRowScore<E, S>> row_score,
+                std::shared_ptr<DisparitySelect<S>> select ) {
+            auto alg = std::make_unique<DisparityBlockMatchRowFormat<E, S>>(
                     config.region_radius_x, config.region_radius_y, std::move(row_score), std::move(select));
             alg->configure(config.disparity_min, config.disparity_range);
             alg->set_catastrophic_reset(config.catastrophic_reset);
@@ -347,11 +384,11 @@ namespace boofcv {
             return alg;
         }
 
-        template<class E, class D>
+        template<class E, class D, class S>
         static std::unique_ptr<StereoDisparityBlockMatch<E, D>> create_row_format(
-                const ConfigDisparityBM& config, std::shared_ptr<BlockRowScore<E, BlockScoreType<E>>> row_score ) {
-            auto select = create_select<BlockScoreType<E>, D>(config);
-            auto alg = create_block_matching<E>(config, std::move(row_score), select.scores);
+                const ConfigDisparityBM& config, std::shared_ptr<BlockRowScore<E, S>> row_score ) {
+            auto select = create_select<S, D>(config);
+            auto alg = create_block_matching<E, S>(config, std::move(row_score), select.scores);
             return std::make_unique<StereoDisparityBlockMatchRowFormat<E, D>>(
                     std::move(alg), select.output, select.saves_score);
         }
@@ -360,7 +397,7 @@ namespace boofcv {
         static std::unique_ptr<StereoDisparityBlockMatch<E, D>> create_pre_filter(
                 const ConfigDisparityBM& config, std::shared_ptr<BlockRowScore<F32, F32>> row_score, bool normalize ) {
             auto select = create_select<F32, D>(config);
-            auto alg = create_block_matching<F32>(config, std::move(row_score), select.scores);
+            auto alg = create_block_matching<F32, F32>(config, std::move(row_score), select.scores);
             return std::make_unique<StereoDisparityBlockMatchPreFilter<E, D>>(
                     std::move(alg), select.output, select.saves_score, normalize);
         }
@@ -368,14 +405,26 @@ namespace boofcv {
         template<class E, class C, class D>
         static std::unique_ptr<StereoDisparityBlockMatch<E, D>> create_census( const ConfigDisparityBM& config ) {
             // Census always has an integer score, even with a floating point input image
-            auto select = create_select<int32_t, D>(config);
             const int32_t bits = census_bits(config.config_census.variant);
+            if (small_scores(config, bits))
+                return create_census<E, C, D, typename Parts::SmallScore>(config, bits);
+            return create_census<E, C, D, int32_t>(config, bits);
+        }
+
+        template<class E, class C, class D, class S>
+        static std::unique_ptr<StereoDisparityBlockMatch<E, D>> create_census( const ConfigDisparityBM& config,
+                                                                               int32_t bits ) {
+            auto select = create_select<S, D>(config);
             auto census = FactoryCensusTransform::variant<E, C>(config.config_census.variant, config.border);
-            auto alg = create_block_matching<C>(config, std::make_shared<BlockRowScoreCensus<C>>(bits), select.scores);
+            auto alg = create_block_matching<C, S>(config, std::make_shared<BlockRowScoreCensus<C, S>>(bits),
+                                                   select.scores);
             return std::make_unique<StereoDisparityBlockMatchCensus<E, C, D>>(
                     std::move(census), std::move(alg), select.output, select.saves_score);
         }
     };
+
+    /// Strict's block matching
+    using FactoryStereoDisparity = FactoryBlockMatch<BlockMatchParts>;
 }
 
 #endif
