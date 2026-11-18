@@ -62,3 +62,21 @@ Not kept: comparing 8 neighbors per pass into the byte output, which makes U8 4.
 only 1.18x faster for F32 (13.1 vs 15.6 ms, JMH, 4032x3024 test image, reflected border). Each F32 comparison gives a
 32-bit mask that is narrowed to a byte, and strict's output is already a byte written once per neighbor. Fast's
 dense3x3 uses strict's code for F32.
+
+## Stereo block matching (2026-11-18)
+
+Not kept, from C++ prototypes on the benchmark's stereo pair (672x504, range 100, 7x7 region, every check on, ms):
+
+| Approach | SAD U8 | census 5x5 | SAD F32 | Why not |
+|----------|--------|------------|---------|---------|
+| strict | 77 | 72 | 83 | |
+| kept: fast's selector, 16-bit integer scores | 37 | 46 | 58 | |
+| row scores as a box sum of shifted errors | 36 | 45 | 65 | F32 score error 1.45e-5 x max(1,\|s\|), outside tolerance. Integers within 3% of the running sum |
+| vertical running sum fused into the row scores | 36 | 45 | | no change |
+| every disparity of a pixel in contiguous 16-bit lanes, vertical sums first, a ring of per pixel errors | 32 | 45 | | only SAD gains, about 10%, and only for 16-bit scores, with more new code |
+| the same with SSE4.1 intrinsics, x86-64-v3 build | 23 | | | no intrinsics in fast. The portable version is also 23 ms built for x86-64-v3 |
+
+- The selector's loops go over every column for one disparity, contiguous in the score layout. GCC vectorizes the
+  argmin of float scores only when the index is blended with an explicit mask, not with `?:`.
+- 16-bit scores are exact when the region's largest score and the range are below 65535, since the running sums are
+  then exact modulo 2^16. Otherwise int32_t, where the selector alone is 1.43x for SAD U8.

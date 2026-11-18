@@ -2,8 +2,10 @@ package org.boofcpp.fast;
 
 import boofcv.alg.filter.blur.BOverrideBlurImageOps;
 import boofcv.alg.transform.census.BOverrideCensusTransform;
+import boofcv.factory.disparity.BOverrideStereoDisparity;
 import org.boofcpp.NativeVariant;
 import org.boofcpp.fast.convolve.NativeImageBlurOps;
+import org.boofcpp.fast.disparity.NativeDisparityBlockMatch;
 import org.boofcpp.fast.transform.NativeCensusTransform;
 
 /// Registers fast's hooks. Each one replaces the registered hook only for the images fast supports
@@ -20,5 +22,6 @@ public class FastVariant implements NativeVariant {
     @Override public void initialize() {
         BOverrideBlurImageOps.mean = new NativeImageBlurOps(BOverrideBlurImageOps.mean);
         BOverrideCensusTransform.census = new NativeCensusTransform(BOverrideCensusTransform.census);
+        BOverrideStereoDisparity.opCreateBlockMatch = NativeDisparityBlockMatch::create;
     }
 }
