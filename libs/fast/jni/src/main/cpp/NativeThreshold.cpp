@@ -90,4 +90,25 @@ JNIEXPORT void JNICALL Java_org_boofcpp_fast_threshold_NativeBlockMean_nativepro
         JNIEnv* env, jobject obj, jobject jinput, jobject joutput ) {
     threshold_process<fast::ThresholdBlockMean>(env, obj, jinput, joutput);
 }
+
+// Block Otsu
+JNIEXPORT void JNICALL Java_org_boofcpp_fast_threshold_NativeBlockOtsu_nativeinit(
+        JNIEnv* env, jobject obj, jboolean otsu2, jobject jregionWidth, jdouble tuning, jdouble scale, jboolean down,
+        jboolean thresholdFromLocalBlocks ) {
+    create(env, obj, [&]( auto pixel ) {
+        return new fast::ThresholdBlockOtsu<decltype(pixel)>((bool)otsu2,
+                                                            config_from_java<ConfigLength>(env, jregionWidth),
+                                                            (double)tuning, (double)scale, (bool)down,
+                                                            (bool)thresholdFromLocalBlocks);
+    });
+}
+
+JNIEXPORT void JNICALL Java_org_boofcpp_fast_threshold_NativeBlockOtsu_nativedestroy( JNIEnv* env, jobject obj ) {
+    destroy<fast::ThresholdBlockOtsu>(env, obj);
+}
+
+JNIEXPORT void JNICALL Java_org_boofcpp_fast_threshold_NativeBlockOtsu_nativeprocess(
+        JNIEnv* env, jobject obj, jobject jinput, jobject joutput ) {
+    threshold_process<fast::ThresholdBlockOtsu>(env, obj, jinput, joutput);
+}
 }

@@ -90,3 +90,5 @@ Not kept, C++ on the 4032x3024 test image:
   (2.7 ms) stays, about 1.15x in total. Fast uses strict's code for F32.
 - Local mean, F32: fast's one-pass mean adds floats in a different order, and a different mean can flip a pixel of the
   binary image, so it would need strict's order of operations. Not attempted. Fast uses strict's code for F32.
+- Block Otsu: histograms filled block by block, as strict does, with several copies are no faster than row by row
+  (U8 6.4 vs 6.6 ms).
