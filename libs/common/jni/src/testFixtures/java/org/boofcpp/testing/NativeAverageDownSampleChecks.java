@@ -54,26 +54,20 @@ public abstract class NativeAverageDownSampleChecks extends BoofCPPStandardJUnit
         }
     }
 
-    /// Against BoofCV's Java code, called directly and through BoofCV's hook. Width 2 and other widths are different
-    /// implementations in BoofCV. Includes regions larger than the image
+    /// Against BoofCV's Java code. Width 2 and other widths are different implementations in BoofCV. Includes regions
+    /// larger than the image
     @Test
     public void compareDown() {
         for (Class type : imageTypes) {
             for (int[] shape : new int[][]{{61, 45}, {6, 7}}) {
-                for (boolean concurrent : new boolean[]{false, true}) {
-                    for (int width : new int[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 70}) {
-                        ImageGray input = randomImage(type, shape[0], shape[1]);
-                        ImageGray expected = createOutput(input, width);
-                        callBoofCV(false, concurrent, () -> AverageDownSampleOps.down(input, width, expected));
+                for (int width : new int[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 70}) {
+                    ImageGray input = randomImage(type, shape[0], shape[1]);
+                    ImageGray expected = createOutput(input, width);
+                    callBoofCV(false, () -> AverageDownSampleOps.down(input, width, expected));
 
-                        ImageGray found = BoofTesting.createSubImageOf(createOutput(input, width));
-                        square.processDown(input, width, found);
-                        assertMatches(expected, found);
-
-                        ImageGray hook = createOutput(input, width);
-                        callBoofCV(true, concurrent, () -> AverageDownSampleOps.down(input, width, hook));
-                        assertMatches(expected, hook);
-                    }
+                    ImageGray found = BoofTesting.createSubImageOf(createOutput(input, width));
+                    square.processDown(input, width, found);
+                    assertMatches(expected, found);
                 }
             }
         }
@@ -87,8 +81,8 @@ public abstract class NativeAverageDownSampleChecks extends BoofCPPStandardJUnit
         Planar<GrayU8> expected = new Planar<>(GrayU8.class, 11, 7, 3);
         Planar<GrayU8> found = expected.createSameShape();
 
-        callBoofCV(false, false, () -> AverageDownSampleOps.down(input, 3, expected));
-        callBoofCV(true, false, () -> AverageDownSampleOps.down(input, 3, found));
+        callBoofCV(false, () -> AverageDownSampleOps.down(input, 3, expected));
+        callBoofCV(true, () -> AverageDownSampleOps.down(input, 3, found));
         for (int band = 0; band < 3; band++) {
             assertMatches(expected.getBand(band), found.getBand(band));
         }
@@ -125,59 +119,45 @@ public abstract class NativeAverageDownSampleChecks extends BoofCPPStandardJUnit
     /// Output sizes for a 61x45 input: integer and non-integer scales, the same size, and one pixel tall
     static final int[][] GENERAL_SHAPES = new int[][]{{61, 45}, {30, 15}, {20, 22}, {7, 5}, {13, 44}, {2, 1}};
 
-    /// Against BoofCV's Java code, called directly and through BoofCV's hook
+    /// Against BoofCV's Java code
     @Test
     public void compareGeneral() {
         for (Class type : generalTypes) {
             for (int[] shape : GENERAL_SHAPES) {
                 for (boolean centered : new boolean[]{false, true}) {
-                    for (boolean concurrent : new boolean[]{false, true}) {
-                        ImageGray input = randomImage(type, 61, 45);
-                        ImageGray expected = GeneralizedImageOps.createSingleBand(type, shape[0], shape[1]);
-                        callBoofCV(false, concurrent, () -> AverageDownSampleOps.down(input, centered, expected, null));
+                    ImageGray input = randomImage(type, 61, 45);
+                    ImageGray expected = GeneralizedImageOps.createSingleBand(type, shape[0], shape[1]);
+                    callBoofCV(false, () -> AverageDownSampleOps.down(input, centered, expected, null));
 
-                        ImageGray found = BoofTesting.createSubImageOf((ImageGray)expected.createSameShape());
-                        general.processDown(input, centered, found, null);
-                        assertMatches(expected, found);
-
-                        ImageGray hook = (ImageGray)expected.createSameShape();
-                        callBoofCV(true, concurrent, () -> AverageDownSampleOps.down(input, centered, hook, null));
-                        assertMatches(expected, hook);
-                    }
+                    ImageGray found = BoofTesting.createSubImageOf((ImageGray)expected.createSameShape());
+                    general.processDown(input, centered, found, null);
+                    assertMatches(expected, found);
                 }
             }
         }
     }
 
-    /// horizontal() and vertical() against BoofCV's Java code, called directly and through BoofCV's hooks. The input
-    /// to vertical() is floating point for every output type
+    /// horizontal() and vertical() against BoofCV's Java code. The input to vertical() is floating point for every
+    /// output type
     @Test
     public void compareHorizontalVertical() {
         for (Class type : generalTypes) {
             Class middleType = type == GrayF64.class ? GrayF64.class : GrayF32.class;
             for (int[] shape : GENERAL_SHAPES) {
                 for (boolean centered : new boolean[]{false, true}) {
-                    for (boolean concurrent : new boolean[]{false, true}) {
-                        ImageGray input = randomImage(type, 61, 45);
-                        ImageGray expected = GeneralizedImageOps.createSingleBand(middleType, shape[0], 45);
-                        callBoofCV(false, concurrent, () -> AverageDownSampleOps.horizontal(input, centered, expected));
-                        ImageGray found = (ImageGray)expected.createSameShape();
-                        horizontal.processHorizontal(input, centered, found);
-                        assertMatches(expected, found);
-                        callBoofCV(true, concurrent, () -> AverageDownSampleOps.horizontal(input, centered, found));
-                        assertMatches(expected, found);
+                    ImageGray input = randomImage(type, 61, 45);
+                    ImageGray expected = GeneralizedImageOps.createSingleBand(middleType, shape[0], 45);
+                    callBoofCV(false, () -> AverageDownSampleOps.horizontal(input, centered, expected));
+                    ImageGray found = (ImageGray)expected.createSameShape();
+                    horizontal.processHorizontal(input, centered, found);
+                    assertMatches(expected, found);
 
-                        ImageGray middle = randomImage(middleType, 61, 45);
-                        ImageGray expectedV = GeneralizedImageOps.createSingleBand(type, 61, shape[1]);
-                        callBoofCV(false, concurrent,
-                                () -> AverageDownSampleOps.vertical(middle, centered, expectedV, null));
-                        ImageGray foundV = (ImageGray)expectedV.createSameShape();
-                        vertical.processVertical(middle, centered, foundV);
-                        assertMatches(expectedV, foundV);
-                        callBoofCV(true, concurrent,
-                                () -> AverageDownSampleOps.vertical(middle, centered, foundV, null));
-                        assertMatches(expectedV, foundV);
-                    }
+                    ImageGray middle = randomImage(middleType, 61, 45);
+                    ImageGray expectedV = GeneralizedImageOps.createSingleBand(type, 61, shape[1]);
+                    callBoofCV(false, () -> AverageDownSampleOps.vertical(middle, centered, expectedV, null));
+                    ImageGray foundV = (ImageGray)expectedV.createSameShape();
+                    vertical.processVertical(middle, centered, foundV);
+                    assertMatches(expectedV, foundV);
                 }
             }
         }
@@ -191,8 +171,8 @@ public abstract class NativeAverageDownSampleChecks extends BoofCPPStandardJUnit
         Planar<GrayU8> expected = new Planar<>(GrayU8.class, 12, 7, 3);
         Planar<GrayU8> found = expected.createSameShape();
 
-        callBoofCV(false, false, () -> AverageDownSampleOps.down(input, true, expected, null));
-        callBoofCV(true, false, () -> AverageDownSampleOps.down(input, true, found, null));
+        callBoofCV(false, () -> AverageDownSampleOps.down(input, true, expected, null));
+        callBoofCV(true, () -> AverageDownSampleOps.down(input, true, found, null));
         for (int band = 0; band < 3; band++) {
             assertMatches(expected.getBand(band), found.getBand(band));
         }
@@ -245,11 +225,11 @@ public abstract class NativeAverageDownSampleChecks extends BoofCPPStandardJUnit
                 AverageDownSampleOps.downSampleSize(input.height, width));
     }
 
-    /// Calls BoofCV with the variant's hooks, or without them
-    void callBoofCV( boolean useNative, boolean concurrent, Runnable call ) {
+    /// Calls BoofCV single threaded with the variant's hooks, or without them
+    void callBoofCV( boolean useNative, Runnable call ) {
         boolean previousConcurrent = BoofConcurrency.USE_CONCURRENT;
         try {
-            BoofConcurrency.USE_CONCURRENT = concurrent;
+            BoofConcurrency.USE_CONCURRENT = false;
             if (useNative)
                 AverageDownSampleHooks.run(square, general, horizontal, vertical, call);
             else

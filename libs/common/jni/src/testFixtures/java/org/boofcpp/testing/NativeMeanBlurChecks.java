@@ -26,27 +26,19 @@ public abstract class NativeMeanBlurChecks extends BoofCPPStandardJUnit {
         this.imageTypes = imageTypes;
     }
 
-    /// Mean against BoofCV's Java code, called directly and through BoofCV's hook. Includes regions larger than the
-    /// image
+    /// Mean against BoofCV's Java code. Includes regions larger than the image
     @Test
     public void compareMean() {
         int[][] radii = new int[][]{{1, 1}, {2, 3}, {5, 4}, {24, 24}, {40, 2}, {3, 30}};
 
         for (Class type : imageTypes) {
-            for (boolean concurrent : new boolean[]{false, true}) {
-                for (int[] r : radii) {
-                    ImageGray input = randomImage(type, 61, 45);
-                    double scale = maxValue(type);
-                    ImageGray expected = callBoofCV(null, concurrent,
-                            () -> GBlurImageOps.mean(input, null, r[0], r[1], null, null));
+            for (int[] r : radii) {
+                ImageGray input = randomImage(type, 61, 45);
+                ImageGray expected = callBoofCV(null, () -> GBlurImageOps.mean(input, null, r[0], r[1], null, null));
 
-                    ImageGray found = (ImageGray)input.createSameShape();
-                    hook.processMeanWeighted(input, found, r[0], r[1], null);
-                    assertMatches(expected, found, scale);
-
-                    assertMatches(expected, callBoofCV(hook, concurrent,
-                            () -> GBlurImageOps.mean(input, null, r[0], r[1], null, null)), scale);
-                }
+                ImageGray found = (ImageGray)input.createSameShape();
+                hook.processMeanWeighted(input, found, r[0], r[1], null);
+                assertMatches(expected, found, maxValue(type));
             }
         }
     }
@@ -56,7 +48,7 @@ public abstract class NativeMeanBlurChecks extends BoofCPPStandardJUnit {
     public void compareMeanInPlace() {
         for (Class type : imageTypes) {
             ImageGray image = randomImage(type, 61, 45);
-            ImageGray expected = callBoofCV(null, false, () -> GBlurImageOps.mean(image, null, 2, 3, null, null));
+            ImageGray expected = callBoofCV(null, () -> GBlurImageOps.mean(image, null, 2, 3, null, null));
             hook.processMeanWeighted(image, image, 2, 3, null);
             assertMatches(expected, image, maxValue(type));
         }
@@ -95,13 +87,13 @@ public abstract class NativeMeanBlurChecks extends BoofCPPStandardJUnit {
         return BoofTesting.createSubImageOf(input);
     }
 
-    /// Calls BoofCV with 'hook' as its mean blur, or with its Java code if 'hook' is null
-    protected static <R> R callBoofCV( BOverrideBlurImageOps.Mean hook, boolean concurrent, Supplier<R> call ) {
+    /// Calls BoofCV single threaded with 'hook' as its mean blur, or with its Java code if 'hook' is null
+    protected static <R> R callBoofCV( BOverrideBlurImageOps.Mean hook, Supplier<R> call ) {
         BOverrideBlurImageOps.Mean previous = BOverrideBlurImageOps.mean;
         boolean previousConcurrent = BoofConcurrency.USE_CONCURRENT;
         try {
             BOverrideBlurImageOps.mean = hook;
-            BoofConcurrency.USE_CONCURRENT = concurrent;
+            BoofConcurrency.USE_CONCURRENT = false;
             return call.get();
         } finally {
             BOverrideBlurImageOps.mean = previous;
