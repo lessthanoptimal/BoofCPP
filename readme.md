@@ -84,23 +84,33 @@ use your own BoofCV, run `./gradlew publishToMavenLocal` in the BoofCV repositor
 
 # Building
 
-If you followed the dependency installation instructions above it should build without any issues.
-Build in release mode. Without `-DCMAKE_BUILD_TYPE=Release` it isn't optimized and is many times slower.
+First build the native libraries:
 
+Linux (cmake/make):
 ```bash
+sudo apt-get install libpng-dev libjpeg-dev
 mkdir build;cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
 make -j8
 ctest
 ```
 
-Inside the repository the Java libraries load the native libraries from `build/boofcpp-jni` and
-`build/boofcpp-fast-jni`, so build them first. To run the unit tests which compare them against BoofCV:
+Windows (cmake/ninja):
+```bash
+# export PATH="/c/msys64/ucrt64/bin:$PATH"  <-- if using git-bash
+mkdir build;cd build
+cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ..
+ninja
+ctest
+```
+
+Verify JNI hooks all work properly and that `strict` and `fast` behave as expected:
+
 ```bash
 ./gradlew test
 ```
 
-To install boofcpp-common, boofcpp-jni, boofcpp-fast and, if there's an Android SDK, boofcpp-android:
+Publish into your local Maven repo so that it can be used in external projects:
 ```bash
 ./gradlew publishToMavenLocal
 ```
