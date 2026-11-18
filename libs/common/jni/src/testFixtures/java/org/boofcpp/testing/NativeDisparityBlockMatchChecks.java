@@ -25,8 +25,9 @@ import java.util.function.Consumer;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-/// Checks of a variant's stereo block matching against BoofCV's Java implementation, shared by every variant. Results
-/// must be identical. A variant's test class extends this and passes its hook and the input image types it supports.
+/// Checks of a variant's stereo block matching against BoofCV's Java implementation, shared by every variant. Integer
+/// scores must give identical results. A variant's test class extends this and passes its hook and the input image
+/// types it supports.
 /// The inputs are GrayU8 and GrayF32; comparisons with a type the variant doesn't support are skipped
 @SuppressWarnings({"rawtypes", "unchecked"})
 public abstract class NativeDisparityBlockMatchChecks extends BoofCPPStandardJUnit {
@@ -117,7 +118,28 @@ public abstract class NativeDisparityBlockMatchChecks extends BoofCPPStandardJUn
         return config;
     }
 
-    /// Java and native with the same configuration must produce identical disparity and score
+    /// Fraction of the pixels which must agree on being valid when the scores are floating point
+    static final double MIN_VALID_AGREEMENT = 1.0;
+    /// Fraction of the pixels which must have the same disparity when the scores are floating point and not written
+    static final double MIN_DISPARITY_AGREEMENT = 0.98;
+
+    /// True if BoofCV writes the score image. It doesn't if it isn't saved, or if every check is off and the disparity
+    /// isn't subpixel, then BoofCV selects with SelectErrorBasicWta or SelectCorrelationWta
+    static boolean scoresWritten( ConfigDisparityBM config ) {
+        boolean noMaxError = config.errorType.isCorrelation() || config.maxPerPixelError < 0;
+        boolean basic = !config.subpixel && noMaxError && config.validateRtoL < 0 && config.texture <= 0;
+        return config.saveScore && !basic;
+    }
+
+    /// True if the scores are floating point: SAD and SSD of GrayF32 images, ZSSD and NCC. Census scores are integers
+    static boolean floatScores( ConfigDisparityBM config, Class<?> imageType ) {
+        DisparityError error = config.errorType;
+        return error == DisparityError.ZSSD || error == DisparityError.NCC ||
+                (imageType == GrayF32.class && error != DisparityError.CENSUS);
+    }
+
+    /// Java and native with the same configuration must produce the same disparity and score. With a tolerance and
+    /// floating point scores, see [BoofCPPTesting#assertDisparityScoresMatch]
     ///
     /// @return number of pixels with a valid disparity
     <T extends ImageGray<T>, DI extends ImageGray<DI>>
@@ -132,11 +154,17 @@ public abstract class NativeDisparityBlockMatchChecks extends BoofCPPStandardJUn
         java.process(left, right);
         found.process(left, right);
 
-        assertMatches(java.getDisparity(), found.getDisparity());
-        if (config.saveScore) {
-            assertMatches(java.getDisparityScore(), found.getDisparityScore());
-        } else {
+        if (!config.saveScore)
             assertNull(found.getDisparityScore());
+        if (tolerance != Tolerance.IDENTICAL && floatScores(config, imageType)) {
+            GrayF32 scoreJava = scoresWritten(config) ? java.getDisparityScore() : null;
+            BoofCPPTesting.assertDisparityScoresMatch(java.getDisparity(), scoreJava,
+                    found.getDisparity(), found.getDisparityScore(), java.getInvalidValue(), tolerance,
+                    MIN_VALID_AGREEMENT, MIN_DISPARITY_AGREEMENT);
+        } else {
+            assertMatches(java.getDisparity(), found.getDisparity());
+            if (config.saveScore)
+                assertMatches(java.getDisparityScore(), found.getDisparityScore());
         }
         assertEquals(java.getDisparityMin(), found.getDisparityMin());
         assertEquals(java.getDisparityRange(), found.getDisparityRange());

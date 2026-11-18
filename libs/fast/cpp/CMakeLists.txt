@@ -20,7 +20,9 @@ if (test)
     include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
     list(APPEND FastTestList test_census_transform)
+    list(APPEND FastTestList test_disparity_block_match)
     list(APPEND FastTestList test_image_blur)
+    list(APPEND FastTestList test_stereo_disparity)
 
     FOREACH(FILENAME ${FastTestList})
         add_executable(fast_${FILENAME} test/${FILENAME}.cpp)
