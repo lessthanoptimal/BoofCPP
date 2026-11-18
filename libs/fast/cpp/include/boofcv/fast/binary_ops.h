@@ -11,7 +11,6 @@ namespace boofcv::fast {
     using boofcv::ComputeOtsu;
     using boofcv::GlobalFixedBinaryFilter;
     using boofcv::InputToBinary;
-    using boofcv::LocalMeanBinaryFilter;
 
     class ThresholdOps : public boofcv::ThresholdOps {
     public:
@@ -23,6 +22,10 @@ namespace boofcv::fast {
             else
                 return boofcv::ThresholdOps::computeOtsu(input, min_value, max_value, otsu2);
         }
+
+        /// Same as strict's ThresholdOps::localMean() for U8, in one pass over the image and without its storage
+        static void localMean( const Gray<U8>& input, Gray<U8>& output, const ConfigLength& width, float scale,
+                               bool down );
 
     private:
         static uint32_t computeOtsu_U8( const Gray<U8>& input, double min_value, double max_value, bool otsu2 );
@@ -47,6 +50,19 @@ namespace boofcv::fast {
         }
     };
 
+    /// Same results as strict's LocalMeanBinaryFilter. Faster for U8, see ThresholdOps::localMean()
+    template<class T>
+    class LocalMeanBinaryFilter : public boofcv::LocalMeanBinaryFilter<T> {
+    public:
+        using boofcv::LocalMeanBinaryFilter<T>::LocalMeanBinaryFilter;
+
+        void process( const Gray<T>& input, Gray<U8>& output ) override {
+            if constexpr (std::is_same_v<T, U8>)
+                ThresholdOps::localMean(input, output, this->regionWidth, this->scale, this->down);
+            else
+                boofcv::LocalMeanBinaryFilter<T>::process(input, output);
+        }
+    };
 }
 
 #endif

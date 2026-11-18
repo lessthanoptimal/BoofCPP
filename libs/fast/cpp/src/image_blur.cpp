@@ -1,4 +1,5 @@
 #include "boofcv/fast/image_blur.h"
+#include "mean_window.h"
 
 #include <algorithm>
 #include <stdexcept>
@@ -6,13 +7,6 @@
 
 namespace boofcv::fast {
     namespace {
-        /// Number of pixels inside the image in the window [i - radius, i + radius]
-        inline uint32_t window_count( uint32_t i, uint32_t radius, uint32_t length ) {
-            uint32_t lower = i > radius ? i - radius : 0;
-            uint32_t upper = std::min(i + radius, length - 1);
-            return upper - lower + 1;
-        }
-
         /// Horizontal mean of R rows of column sums at once, so that their running sums are independent of each other.
         /// Each row of 'sums' is padded with radius + 1 zeros in front and radius zeros after
         template<int R, class E>
