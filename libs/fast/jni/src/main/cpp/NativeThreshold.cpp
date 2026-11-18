@@ -111,4 +111,25 @@ JNIEXPORT void JNICALL Java_org_boofcpp_fast_threshold_NativeBlockOtsu_nativepro
         JNIEnv* env, jobject obj, jobject jinput, jobject joutput ) {
     threshold_process<fast::ThresholdBlockOtsu>(env, obj, jinput, joutput);
 }
+
+// Block min-max
+JNIEXPORT void JNICALL Java_org_boofcpp_fast_threshold_NativeBlockMinMax_nativeinit(
+        JNIEnv* env, jobject obj, jobject jregionWidth, jdouble scale, jboolean down, jdouble minimumSpread,
+        jboolean thresholdFromLocalBlocks ) {
+    create(env, obj, [&]( auto pixel ) {
+        return new fast::ThresholdBlockMinMax<decltype(pixel)>((float)minimumSpread,
+                                                              config_from_java<ConfigLength>(env, jregionWidth),
+                                                              (bool)thresholdFromLocalBlocks, (float)scale,
+                                                              (bool)down);
+    });
+}
+
+JNIEXPORT void JNICALL Java_org_boofcpp_fast_threshold_NativeBlockMinMax_nativedestroy( JNIEnv* env, jobject obj ) {
+    destroy<fast::ThresholdBlockMinMax>(env, obj);
+}
+
+JNIEXPORT void JNICALL Java_org_boofcpp_fast_threshold_NativeBlockMinMax_nativeprocess(
+        JNIEnv* env, jobject obj, jobject jinput, jobject joutput ) {
+    threshold_process<fast::ThresholdBlockMinMax>(env, obj, jinput, joutput);
+}
 }

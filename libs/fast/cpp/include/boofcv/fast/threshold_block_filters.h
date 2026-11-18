@@ -3,17 +3,15 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <limits>
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
 
 #include "boofcv/fast/binary_ops.h"
 #include "boofcv/sanity_checks.h"
-#include "boofcv/threshold_block_filters.h"
 
 namespace boofcv::fast {
-    using boofcv::ThresholdBlockMinMax;
-
     /// Block threshold filters with the same results as strict's. Statistics are computed one row of blocks at a time,
     /// then that row of blocks is thresholded while its pixels are still in cache, one image row at a time with a
     /// threshold per column. With the local 3x3 region a row of blocks is thresholded once the next one has its
@@ -322,6 +320,124 @@ namespace boofcv::fast {
         }
     };
 
+    /// Same results as strict's ThresholdBlockMinMax. The minimum and maximum of each column over a row of blocks
+    /// vectorize, then give each block's. Like strict, NaN is ignored unless it's a block's first pixel
+    template<class E>
+    class ThresholdBlockMinMax : public ThresholdBlockCommon<E> {
+    public:
+        using sum_type = typename TypeInfo<E>::sum_type;
+
+        float minimumSpread;
+        float scale;
+        bool down;
+
+        ThresholdBlockMinMax( float minimumSpread, const ConfigLength& requestedBlockWidth,
+                              bool thresholdFromLocalBlocks, float scale, bool down )
+                : ThresholdBlockCommon<E>(requestedBlockWidth, thresholdFromLocalBlocks),
+                  minimumSpread(minimumSpread), scale(scale), down(down) {}
+
+    protected:
+        std::vector<E> column_min, column_max;  // per column over the rows of a row of blocks
+        std::vector<E> mins, maxs;              // per block
+        std::vector<E> column;                  // threshold per column
+        std::vector<U8> textureless;            // 1 for the columns of a textureless block
+
+        static constexpr E highest() {
+            return std::numeric_limits<E>::has_infinity ? std::numeric_limits<E>::infinity()
+                                                        : std::numeric_limits<E>::max();
+        }
+
+        static constexpr E lowest() {
+            return std::numeric_limits<E>::has_infinity ? -std::numeric_limits<E>::infinity()
+                                                        : std::numeric_limits<E>::lowest();
+        }
+
+        void begin( uint32_t width ) override {
+            column_min.resize(width);
+            column_max.resize(width);
+            mins.resize(this->blocksX*this->blocksY);
+            maxs.resize(this->blocksX*this->blocksY);
+            column.resize(width);
+            textureless.resize(width);
+        }
+
+        void statistics( const Gray<E>& input, uint32_t by ) override {
+            const uint32_t width = input.width;
+            const uint32_t y0 = this->block_y0(by), y1 = this->block_y1(by, input.height);
+            E* cmin = column_min.data();
+            E* cmax = column_max.data();
+            std::fill(cmin, cmin + width, highest());
+            std::fill(cmax, cmax + width, lowest());
+            for (uint32_t y = y0; y < y1; y++) {
+                const E* row = &input.data[input.offset + y*input.stride];
+                for (uint32_t x = 0; x < width; x++) {
+                    cmin[x] = row[x] < cmin[x] ? row[x] : cmin[x];
+                    cmax[x] = row[x] > cmax[x] ? row[x] : cmax[x];
+                }
+            }
+            for (uint32_t bx = 0; bx < this->blocksX; bx++) {
+                const uint32_t x0 = this->block_x0(bx), x1 = this->block_x1(bx, width);
+                E min = highest(), max = lowest();
+                for (uint32_t x = x0; x < x1; x++) {
+                    min = cmin[x] < min ? cmin[x] : min;
+                    max = cmax[x] > max ? cmax[x] : max;
+                }
+                // strict starts from the first pixel, so a NaN there is never replaced
+                const E first = input.data[input.offset + y0*input.stride + x0];
+                if (first != first)
+                    min = max = first;
+                mins[by*this->blocksX + bx] = min;
+                maxs[by*this->blocksX + bx] = max;
+            }
+        }
+
+        void threshold_rows( const Gray<E>& input, Gray<U8>& output, uint32_t by ) override {
+            const uint32_t width = input.width;
+            const auto textureThreshold = static_cast<sum_type>(minimumSpread);
+            E* threshold = column.data();
+            U8* flat = textureless.data();
+            for (uint32_t bx = 0; bx < this->blocksX; bx++) {
+                uint32_t bx0, by0, bx1, by1;
+                this->region(bx, by, bx0, by0, bx1, by1);
+                // Same as strict
+                E min = std::numeric_limits<E>::max();
+                E max = std::numeric_limits<E>::min();
+                for (uint32_t y = by0; y <= by1; y++) {
+                    for (uint32_t x = bx0; x <= bx1; x++) {
+                        E localMin = mins[y*this->blocksX + x];
+                        E localMax = maxs[y*this->blocksX + x];
+                        if (localMin < min)
+                            min = localMin;
+                        if (localMax > max)
+                            max = localMax;
+                    }
+                }
+                const bool is_flat = max - min <= textureThreshold;
+                const auto average = static_cast<sum_type>(scale*((max + min)/2));
+                E t;
+                if constexpr (std::is_integral_v<E>) {
+                    // The comparison is the same for any average above the largest pixel value
+                    t = (E)std::min<sum_type>(average, std::numeric_limits<E>::max());
+                } else {
+                    t = average;
+                }
+                const uint32_t x0 = this->block_x0(bx), x1 = this->block_x1(bx, width);
+                std::fill(threshold + x0, threshold + x1, t);
+                std::fill(flat + x0, flat + x1, (U8)is_flat);
+            }
+            for (uint32_t y = this->block_y0(by); y < this->block_y1(by, input.height); y++) {
+                const E* in = &input.data[input.offset + y*input.stride];
+                U8* out = &output.data[output.offset + y*output.stride];
+                if (down) {
+                    for (uint32_t x = 0; x < width; x++)
+                        out[x] = flat[x] | static_cast<U8>(in[x] <= threshold[x]);
+                } else {
+                    for (uint32_t x = 0; x < width; x++)
+                        out[x] = flat[x] | static_cast<U8>(!(in[x] <= threshold[x]));
+                }
+            }
+        }
+    };
 }
 
 #endif
