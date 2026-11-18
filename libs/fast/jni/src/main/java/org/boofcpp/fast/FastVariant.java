@@ -7,6 +7,7 @@ import boofcv.factory.filter.binary.BOverrideFactoryThresholdBinary;
 import org.boofcpp.NativeVariant;
 import org.boofcpp.fast.convolve.NativeImageBlurOps;
 import org.boofcpp.fast.disparity.NativeDisparityBlockMatch;
+import org.boofcpp.fast.threshold.NativeBlockMean;
 import org.boofcpp.fast.threshold.NativeGlobalOtsu;
 import org.boofcpp.fast.threshold.NativeLocalMean;
 import org.boofcpp.fast.transform.NativeCensusTransform;
@@ -28,5 +29,6 @@ public class FastVariant implements NativeVariant {
         BOverrideStereoDisparity.opCreateBlockMatch = NativeDisparityBlockMatch::create;
         BOverrideFactoryThresholdBinary.globalOtsu = NativeGlobalOtsu::new;
         BOverrideFactoryThresholdBinary.localMean = NativeLocalMean::new;
+        BOverrideFactoryThresholdBinary.blockMean = NativeBlockMean::new;
     }
 }
