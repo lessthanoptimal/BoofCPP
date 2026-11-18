@@ -5,7 +5,7 @@
 #include "ThresholdJNI.h"
 
 // Fast's threshold filters for the Java classes in org.boofcpp.fast.threshold. Each class extends strict's and replaces
-// its native methods. Strict's ThresholdJNI.h wraps the images
+// its native methods
 
 using namespace boofcv;
 
