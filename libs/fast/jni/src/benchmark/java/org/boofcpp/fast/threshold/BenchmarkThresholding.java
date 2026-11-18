@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 @Fork(value = 1)
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class BenchmarkThresholding {
-    @Param({"global_otsu"})
+    @Param({"global_otsu", "local_mean"})
     public String op;
 
     @Param({"U8", "F32"})

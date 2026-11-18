@@ -8,6 +8,7 @@ import org.boofcpp.NativeVariant;
 import org.boofcpp.fast.convolve.NativeImageBlurOps;
 import org.boofcpp.fast.disparity.NativeDisparityBlockMatch;
 import org.boofcpp.fast.threshold.NativeGlobalOtsu;
+import org.boofcpp.fast.threshold.NativeLocalMean;
 import org.boofcpp.fast.transform.NativeCensusTransform;
 
 /// Registers fast's hooks. Each one replaces the registered hook only for the images fast supports
@@ -26,5 +27,6 @@ public class FastVariant implements NativeVariant {
         BOverrideCensusTransform.census = new NativeCensusTransform(BOverrideCensusTransform.census);
         BOverrideStereoDisparity.opCreateBlockMatch = NativeDisparityBlockMatch::create;
         BOverrideFactoryThresholdBinary.globalOtsu = NativeGlobalOtsu::new;
+        BOverrideFactoryThresholdBinary.localMean = NativeLocalMean::new;
     }
 }

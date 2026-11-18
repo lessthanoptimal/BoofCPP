@@ -103,3 +103,44 @@ TEST_F(GlobalOtsuBinaryFilterTest, same_as_strict) {
         }
     }
 }
+
+/// Same as strict on random, flat and smooth images, where many pixels equal their mean, with regions from 2 pixels to
+/// wider than the image
+TEST_F(LocalMeanBinaryFilterTest, same_as_strict) {
+    std::mt19937 gen(0xBEEF);
+    for (auto shape : {std::pair<uint32_t, uint32_t>{2, 2}, {5, 3}, {37, 29}, {64, 64}, {401, 297}}) {
+        for (int content = 0; content < 3; content++) {
+            Gray<U8> input = random_image(shape.first, shape.second, 0, 255, gen);
+            if (content == 1) {
+                ImageMiscOps::fill(input, (U8)128);
+            } else if (content == 2) {
+                for (uint32_t y = 0; y < input.height; y++)
+                    for (uint32_t x = 0; x < input.width; x++)
+                        input.at(x, y) = (U8)((x*3 + y*2)%256);
+            }
+            Gray<F32> inputF;
+            convert(input, inputF);
+            for (double region : {2.0, 3.0, 4.0, 7.0, 41.0, 1000.0}) {
+                for (bool down : {true, false}) {
+                    for (float scale : {0.95f, 1.0f, 1.05f}) {
+                        boofcv::LocalMeanBinaryFilter<U8> strict(ConfigLength::fixed(region), scale, down);
+                        boofcv::fast::LocalMeanBinaryFilter<U8> fast(ConfigLength::fixed(region), scale, down);
+                        check_same<U8>(strict, fast, input);
+                    }
+                }
+            }
+            boofcv::LocalMeanBinaryFilter<F32> strictF(ConfigLength::fixed(7), 0.95f, true);
+            boofcv::fast::LocalMeanBinaryFilter<F32> fastF(ConfigLength::fixed(7), 0.95f, true);
+            check_same<F32>(strictF, fastF, inputF);
+        }
+    }
+}
+
+/// A region relative to the image size, as BoofCV's default configurations have
+TEST_F(LocalMeanBinaryFilterTest, relative_region) {
+    std::mt19937 gen(0xBEEF);
+    Gray<U8> input = random_image(160, 47, 0, 255, gen);
+    boofcv::LocalMeanBinaryFilter<U8> strict(ConfigLength::relative(0.2, 3), 0.95f, true);
+    boofcv::fast::LocalMeanBinaryFilter<U8> fast(ConfigLength::relative(0.2, 3), 0.95f, true);
+    check_same<U8>(strict, fast, input);
+}
