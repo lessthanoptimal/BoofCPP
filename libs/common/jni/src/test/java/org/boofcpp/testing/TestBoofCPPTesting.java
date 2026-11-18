@@ -63,4 +63,56 @@ public class TestBoofCPPTesting extends BoofCPPStandardJUnit {
         assertThrows(AssertionFailedError.class, () -> test.assertMatches(f32(100.0f), f32(100.001f)));
         test.assertMatches(f32(100.0f), f32(100.001f), 100.0);
     }
+
+    /// Floating point disparity: scores where both are valid, or the disparities without scores, and agreement
+    /// on which pixels are valid
+    @Test
+    public void assertDisparityScoresMatch() {
+        // 3 pixels, invalid value 5. Pixel 1 picks another disparity with the same score, pixel 2 is invalid in both
+        GrayU8 disparity = u8row(1, 2, 5);
+        GrayF32 score = f32row(1000f, 0.5f, 7f);
+        BoofCPPTesting.assertDisparityScoresMatch(disparity, score, u8row(1, 3, 5),
+                f32row(1000f + 0.9e-2f, 0.5f + 0.9e-5f, 99f), 5, Tolerance.FLOAT, 1.0, 1.0);
+        // Scores are relative to their magnitude, but at least 1
+        assertThrows(AssertionFailedError.class, () -> BoofCPPTesting.assertDisparityScoresMatch(disparity, score,
+                disparity, f32row(1000f + 1.1e-2f, 0.5f, 7f), 5, Tolerance.FLOAT, 1.0, 1.0));
+        assertThrows(AssertionFailedError.class, () -> BoofCPPTesting.assertDisparityScoresMatch(disparity, score,
+                disparity, f32row(1000f, 0.5f + 1.1e-5f, 7f), 5, Tolerance.FLOAT, 1.0, 1.0));
+        // Without scores, the disparities. Here one of three is different
+        BoofCPPTesting.assertDisparityScoresMatch(disparity, null, u8row(1, 4, 6), null, 5, Tolerance.FLOAT, 1.0, 0.66);
+        assertThrows(AssertionFailedError.class, () -> BoofCPPTesting.assertDisparityScoresMatch(disparity, null,
+                u8row(1, 4, 6), null, 5, Tolerance.FLOAT, 1.0, 0.67));
+        // Subpixel disparities are rounded
+        BoofCPPTesting.assertDisparityScoresMatch(f32row(1.2f, 2.4f, 5f), null, f32row(0.8f, 1.6f, 5f), null, 5,
+                Tolerance.FLOAT, 1.0, 1.0);
+        assertThrows(AssertionFailedError.class, () -> BoofCPPTesting.assertDisparityScoresMatch(f32row(1.2f, 2.4f,
+                5f), null, f32row(1.2f, 2.6f, 5f), null, 5, Tolerance.FLOAT, 1.0, 1.0));
+        // With scores, a different disparity is fine
+        BoofCPPTesting.assertDisparityScoresMatch(disparity, score, u8row(0, 4, 6), score, 5, Tolerance.FLOAT,
+                1.0, 1.0);
+        // One of three pixels doesn't agree on being valid
+        GrayU8 oneInvalid = u8row(1, 5, 5);
+        assertThrows(AssertionFailedError.class, () -> BoofCPPTesting.assertDisparityScoresMatch(disparity, score,
+                oneInvalid, score, 5, Tolerance.FLOAT, 1.0, 1.0));
+        BoofCPPTesting.assertDisparityScoresMatch(disparity, score, oneInvalid, score, 5, Tolerance.FLOAT, 0.66, 1.0);
+        assertThrows(AssertionFailedError.class, () -> BoofCPPTesting.assertDisparityScoresMatch(disparity, score,
+                oneInvalid, score, 5, Tolerance.FLOAT, 0.67, 1.0));
+        // Shapes must match
+        assertThrows(AssertionFailedError.class, () -> BoofCPPTesting.assertDisparityScoresMatch(disparity, score,
+                new GrayU8(2, 1), score, 5, Tolerance.FLOAT, 1.0, 1.0));
+    }
+
+    private static GrayU8 u8row( int... values ) {
+        GrayU8 image = new GrayU8(values.length, 1);
+        for (int i = 0; i < values.length; i++)
+            image.set(i, 0, values[i]);
+        return image;
+    }
+
+    private static GrayF32 f32row( float... values ) {
+        GrayF32 image = new GrayF32(values.length, 1);
+        for (int i = 0; i < values.length; i++)
+            image.set(i, 0, values[i]);
+        return image;
+    }
 }

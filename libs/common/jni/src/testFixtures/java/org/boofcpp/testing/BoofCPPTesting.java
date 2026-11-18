@@ -49,6 +49,52 @@ public class BoofCPPTesting {
         }
     }
 
+    /// Disparity selected from floating point scores, e.g. of GrayF32 images or NCC. A near tie can select another
+    /// disparity, or change whether a pixel is valid. At least 'minValid' of the pixels must agree on whether they are
+    /// valid. With scores, where both are valid, the score of the selected disparity must satisfy
+    /// |found - expected| <= tol*max(1, |expected|), since a score is a sum over the region. Without scores, at least
+    /// 'minDisparity' of the pixels must have the same disparity, rounded to an integer, or both be invalid
+    ///
+    /// @param invalid Disparity values at least this are invalid
+    /// @param scoreExpected Scores, or null if there are none
+    public static void assertDisparityScoresMatch( ImageGray<?> disparityExpected, GrayF32 scoreExpected,
+                                                   ImageGray<?> disparityFound, GrayF32 scoreFound, int invalid,
+                                                   Tolerance tolerance, double minValid, double minDisparity ) {
+        assertEquals(disparityExpected.width, disparityFound.width);
+        assertEquals(disparityExpected.height, disparityFound.height);
+        int disagreeValid = 0;
+        int disagreeDisparity = 0;
+        for (int y = 0; y < disparityExpected.height; y++) {
+            for (int x = 0; x < disparityExpected.width; x++) {
+                double dE = GeneralizedImageOps.get(disparityExpected, x, y);
+                double dF = GeneralizedImageOps.get(disparityFound, x, y);
+                boolean validExpected = dE < invalid;
+                if (validExpected != dF < invalid) {
+                    disagreeValid++;
+                    disagreeDisparity++;
+                    continue;
+                }
+                if (!validExpected)
+                    continue;
+                if (scoreExpected == null) {
+                    if (Math.round(dE) != Math.round(dF))
+                        disagreeDisparity++;
+                    continue;
+                }
+                double e = scoreExpected.get(x, y);
+                double f = scoreFound.get(x, y);
+                double tol = tolerance.f32*Math.max(1.0, Math.abs(e));
+                if (!(Math.abs(f - e) <= tol))
+                    fail("Score not within " + tol + " at (" + x + "," + y + ") " + e + " " + f);
+            }
+        }
+        int pixels = disparityExpected.width*disparityExpected.height;
+        if (pixels - disagreeValid < minValid*pixels)
+            fail(disagreeValid + " of " + pixels + " pixels don't agree on being valid");
+        if (scoreExpected == null && pixels - disagreeDisparity < minDisparity*pixels)
+            fail(disagreeDisparity + " of " + pixels + " pixels have a different disparity");
+    }
+
     /// Pixel values must be identical. Floats are compared by their bits, so NaN must match NaN
     public static void assertIdentical( ImageGray<?> expected, ImageGray<?> found ) {
         assertEquals(expected.width, found.width);
