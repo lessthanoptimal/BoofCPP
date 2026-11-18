@@ -2,115 +2,13 @@
 #include "boofcv/census_transform.h"
 #include "boofcv/image_misc_ops.h"
 #include "testing_utils.h"
+#include "variant_strict.h"
+#include "shared/census_checks.h"
 
 #include <random>
 
 using namespace std;
 using namespace boofcv;
-
-namespace {
-    /// Brute force census of one pixel. Neighbors in row-major order, skipping the center
-    int64_t naive_census( const ImageBorder<U8>& border, int32_t cx, int32_t cy, int32_t radius ) {
-        const int32_t center = border.get(cx, cy);
-        int64_t census = 0;
-        int32_t bit = 0;
-        for (int32_t y = -radius; y <= radius; y++) {
-            for (int32_t x = -radius; x <= radius; x++) {
-                if (x == 0 && y == 0)
-                    continue;
-                if (border.get(cx + x, cy + y) > center)
-                    census |= (int64_t)1 << bit;
-                bit++;
-            }
-        }
-        return census;
-    }
-
-    template<class C>
-    void transform( const Gray<U8>& input, Gray<C>& output, ImageBorder<U8>* border ) {
-        if constexpr (std::is_same<C, U8>::value)
-            CensusTransform::dense3x3(input, output, border);
-        else
-            CensusTransform::dense5x5(input, output, border);
-    }
-
-    /// Compares every pixel against the brute force census, for every border type and a sub-image
-    template<class C>
-    void compare_to_naive( uint32_t width, uint32_t height, int32_t radius ) {
-        Gray<U8> input(width, height);
-        std::mt19937 gen(0xBEEF + width*31 + height);
-        // small range so there are many equal pixels, which must not set a bit
-        ImageMiscOps::fill_uniform(input, (U8)0, (U8)4, gen);
-
-        for (BorderType type : {REFLECT, EXTENDED, WRAP, ZERO}) {
-            for (bool sub : {false, true}) {
-                Gray<U8> in = sub ? create_subimage(input) : input.makeSubimage(0, 0, width, height);
-                auto border = FactoryImageBorder::create_SB<U8>(type);
-                Gray<C> output(1, 1);
-                transform(in, output, border.get());
-
-                auto expected_border = FactoryImageBorder::create_SB<U8>(type);
-                expected_border->setImage(input);
-                ASSERT_EQ(width, output.width);
-                ASSERT_EQ(height, output.height);
-                for (int32_t y = 0; y < (int32_t)height; y++) {
-                    for (int32_t x = 0; x < (int32_t)width; x++) {
-                        ASSERT_EQ(naive_census(*expected_border, x, y, radius), (int64_t)output.at(x, y))
-                                << width << "x" << height << " border=" << type << " sub=" << sub
-                                << " at " << x << "," << y;
-                    }
-                }
-                if (sub)
-                    in.subimage = false;
-            }
-        }
-    }
-}
-
-namespace {
-    /// Brute force census of one pixel from sample points. Bit i is samples[i]
-    int64_t naive_sample( const ImageBorder<U8>& border, int32_t cx, int32_t cy,
-                          const std::vector<Point2D<int32_t>>& samples ) {
-        const int32_t center = border.get(cx, cy);
-        uint64_t census = 0;
-        for (size_t i = 0; i < samples.size(); i++) {
-            if (border.get(cx + samples[i].x, cy + samples[i].y) > center)
-                census |= (uint64_t)1 << i;
-        }
-        return (int64_t)census;
-    }
-
-    /// Compares every pixel of sample_S64 against the brute force census, for every border type and a sub-image
-    void sample_compare_to_naive( const std::vector<Point2D<int32_t>>& samples, uint32_t width, uint32_t height ) {
-        Gray<U8> input(width, height);
-        std::mt19937 gen(0xBEEF + width*31 + height);
-        // small range so there are many equal pixels, which must not set a bit
-        ImageMiscOps::fill_uniform(input, (U8)0, (U8)4, gen);
-
-        for (BorderType type : {REFLECT, EXTENDED, WRAP, ZERO}) {
-            for (bool sub : {false, true}) {
-                Gray<U8> in = sub ? create_subimage(input) : input.makeSubimage(0, 0, width, height);
-                auto border = FactoryImageBorder::create_SB<U8>(type);
-                Gray<S64> output(1, 1);
-                CensusTransform::sample_S64(in, samples, output, border.get());
-
-                auto expected_border = FactoryImageBorder::create_SB<U8>(type);
-                expected_border->setImage(input);
-                ASSERT_EQ(width, output.width);
-                ASSERT_EQ(height, output.height);
-                for (int32_t y = 0; y < (int32_t)height; y++) {
-                    for (int32_t x = 0; x < (int32_t)width; x++) {
-                        ASSERT_EQ(naive_sample(*expected_border, x, y, samples), output.at(x, y))
-                                << width << "x" << height << " border=" << type << " sub=" << sub
-                                << " at " << x << "," << y;
-                    }
-                }
-                if (sub)
-                    in.subimage = false;
-            }
-        }
-    }
-}
 
 class CensusTransformTest : public boofcv::BoofCPPTest {};
 
@@ -177,85 +75,10 @@ TEST_F(CensusTransformTest, create_circle_samples) {
     }
 }
 
-TEST_F(CensusTransformTest, sample_S64_compare_to_naive) {
-    const std::vector<std::vector<Point2D<int32_t>>> all_samples = {
-            CensusTransform::create_block_samples(3, 3), CensusTransform::create_block_samples(4, 3),
-            CensusTransform::create_block_samples(6, 2), CensusTransform::create_circle_samples()};
-    for (const auto& samples : all_samples) {
-        // the smallest sizes have no inner image
-        for (auto shape : {std::pair{40u, 30u}, {41u, 9u}, {13u, 20u}, {12u, 12u}, {1u, 1u}, {3u, 15u}, {15u, 2u}})
-            sample_compare_to_naive(samples, shape.first, shape.second);
-    }
-}
-
-/// Without a border, only pixels farther than the largest x or y of a sample from every edge are written. With a
-/// 13x5 block that's 6 from the top and bottom too, same as BoofCV
-TEST_F(CensusTransformTest, sample_S64_no_border) {
-    auto samples = CensusTransform::create_block_samples(6, 2);
-    Gray<U8> input(20, 16);
-    std::mt19937 gen(0xBEEF);
-    ImageMiscOps::fill_uniform(input, (U8)0, (U8)255, gen);
-    Gray<S64> output(20, 16);
-    ImageMiscOps::fill(output, (S64)-1);
-    CensusTransform::sample_S64(input, samples, output, (ImageBorder<U8>*)nullptr);
-
-    auto border = FactoryImageBorder::create_SB<U8>(REFLECT);
-    border->setImage(input);
-    for (int32_t y = 0; y < 16; y++) {
-        for (int32_t x = 0; x < 20; x++) {
-            bool inner = x >= 6 && y >= 6 && x < 14 && y < 10;
-            int64_t expected = inner ? naive_sample(*border, x, y, samples) : -1;
-            ASSERT_EQ(expected, output.at(x, y)) << x << " " << y;
-        }
-    }
-}
-
-TEST_F(CensusTransformTest, sample_S64_too_many_samples) {
-    Gray<U8> input(10, 10);
-    Gray<S64> output(10, 10);
-    auto samples = CensusTransform::create_block_samples(4, 4);
-    EXPECT_THROW(CensusTransform::sample_S64(input, samples, output, (ImageBorder<U8>*)nullptr), invalid_argument);
-    EXPECT_THROW(FilterCensusTransformSampleS64<U8>(samples, nullptr), invalid_argument);
-}
-
-TEST_F(CensusTransformTest, dense3x3_compare_to_naive) {
-    // the smallest sizes have no inner image
-    for (auto shape : {std::pair{30u, 25u}, {31u, 4u}, {3u, 20u}, {2u, 2u}, {2u, 7u}})
-        compare_to_naive<U8>(shape.first, shape.second, 1);
-}
-
-TEST_F(CensusTransformTest, dense5x5_compare_to_naive) {
-    for (auto shape : {std::pair{30u, 25u}, {31u, 6u}, {5u, 20u}, {3u, 3u}, {4u, 9u}})
-        compare_to_naive<S32>(shape.first, shape.second, 2);
-}
-
-/// Without a border, only the inner image is written
-TEST_F(CensusTransformTest, no_border) {
-    Gray<U8> input(12, 10);
-    std::mt19937 gen(0xBEEF);
-    ImageMiscOps::fill_uniform(input, (U8)0, (U8)255, gen);
-    Gray<S32> output(12, 10);
-    ImageMiscOps::fill(output, -1);
-    CensusTransform::dense5x5(input, output, (ImageBorder<U8>*)nullptr);
-
-    auto border = FactoryImageBorder::create_SB<U8>(REFLECT);
-    border->setImage(input);
-    for (int32_t y = 0; y < 10; y++) {
-        for (int32_t x = 0; x < 12; x++) {
-            bool inner = x >= 2 && y >= 2 && x < 10 && y < 8;
-            int64_t expected = inner ? naive_census(*border, x, y, 2) : -1;
-            ASSERT_EQ(expected, (int64_t)output.at(x, y)) << x << " " << y;
-        }
-    }
-}
-
-/// Images smaller than the census region. Every pixel is in the border
-TEST_F(CensusTransformTest, smaller_than_region) {
-    for (auto shape : {std::pair{1u, 1u}, {1u, 5u}, {5u, 1u}})
-        compare_to_naive<U8>(shape.first, shape.second, 1);
-    for (auto shape : {std::pair{1u, 1u}, {2u, 5u}, {5u, 2u}, {1u, 7u}})
-        compare_to_naive<S32>(shape.first, shape.second, 2);
-}
+TEST_F(CensusTransformTest, U8) { census_checks::check_all<U8>(); }
+TEST_F(CensusTransformTest, U16) { census_checks::check_all<U16>(); }
+TEST_F(CensusTransformTest, F32) { census_checks::check_all<F32>(); }
+TEST_F(CensusTransformTest, too_many_samples) { census_checks::check_too_many_samples<U8>(); }
 
 class FilterCensusTransformTest : public boofcv::BoofCPPTest {};
 
@@ -280,4 +103,20 @@ TEST_F(FilterCensusTransformTest, same_as_census_transform) {
     CensusTransform::sample_S64(input, samples, expected64, border.get());
     FilterCensusTransformSampleS64<U8>(samples, FactoryImageBorder::create_SB<U8>(WRAP)).process(input, found64);
     check_equals(expected64, found64, (S64)0);
+}
+
+TEST_F(FilterCensusTransformTest, sample_too_many_samples) {
+    EXPECT_THROW(FilterCensusTransformSampleS64<U8>(CensusTransform::create_block_samples(4, 4), nullptr),
+                 invalid_argument);
+}
+
+/// The circle of the shared checks is BoofCV's
+TEST_F(CensusTransformTest, shared_circle_is_boofcv) {
+    auto expected = CensusTransform::create_circle_samples();
+    auto found = census_checks::circle();
+    ASSERT_EQ(expected.size(), found.size());
+    for (size_t i = 0; i < expected.size(); i++) {
+        EXPECT_EQ(expected[i].x, found[i].x);
+        EXPECT_EQ(expected[i].y, found[i].y);
+    }
 }
