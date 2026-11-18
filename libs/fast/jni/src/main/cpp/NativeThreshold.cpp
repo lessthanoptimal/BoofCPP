@@ -71,4 +71,23 @@ JNIEXPORT void JNICALL Java_org_boofcpp_fast_threshold_NativeLocalMean_nativepro
         JNIEnv* env, jobject obj, jobject jinput, jobject joutput ) {
     threshold_process<fast::LocalMeanBinaryFilter>(env, obj, jinput, joutput);
 }
+
+// Block mean
+JNIEXPORT void JNICALL Java_org_boofcpp_fast_threshold_NativeBlockMean_nativeinit(
+        JNIEnv* env, jobject obj, jobject jregionWidth, jdouble scale, jboolean down,
+        jboolean thresholdFromLocalBlocks ) {
+    create(env, obj, [&]( auto pixel ) {
+        return new fast::ThresholdBlockMean<decltype(pixel)>(config_from_java<ConfigLength>(env, jregionWidth),
+                                                            (bool)thresholdFromLocalBlocks, (double)scale, (bool)down);
+    });
+}
+
+JNIEXPORT void JNICALL Java_org_boofcpp_fast_threshold_NativeBlockMean_nativedestroy( JNIEnv* env, jobject obj ) {
+    destroy<fast::ThresholdBlockMean>(env, obj);
+}
+
+JNIEXPORT void JNICALL Java_org_boofcpp_fast_threshold_NativeBlockMean_nativeprocess(
+        JNIEnv* env, jobject obj, jobject jinput, jobject joutput ) {
+    threshold_process<fast::ThresholdBlockMean>(env, obj, jinput, joutput);
+}
 }

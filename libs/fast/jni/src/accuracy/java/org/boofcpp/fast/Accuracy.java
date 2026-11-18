@@ -11,6 +11,7 @@ import org.boofcpp.accuracy.MeanBlurAccuracy;
 import org.boofcpp.accuracy.ThresholdAccuracy;
 import org.boofcpp.fast.convolve.NativeImageBlurOps;
 import org.boofcpp.fast.disparity.NativeDisparityBlockMatch;
+import org.boofcpp.fast.threshold.NativeBlockMean;
 import org.boofcpp.fast.threshold.NativeGlobalOtsu;
 import org.boofcpp.fast.threshold.NativeLocalMean;
 import org.boofcpp.fast.transform.NativeCensusTransform;
@@ -24,7 +25,7 @@ public class Accuracy {
                 new MeanBlurAccuracy(new NativeImageBlurOps<>(null), GrayF32.class, GrayF64.class),
                 new CensusAccuracy(new NativeCensusTransform<>(null), GrayU8.class, GrayU16.class, GrayF32.class),
                 new DisparityAccuracy(NativeDisparityBlockMatch::create, GrayU8.class, GrayF32.class),
-                new ThresholdAccuracy(NativeGlobalOtsu::new, NativeLocalMean::new, null,
+                new ThresholdAccuracy(NativeGlobalOtsu::new, NativeLocalMean::new, NativeBlockMean::new,
                         null, null, GrayU8.class, GrayF32.class));
     }
 }
