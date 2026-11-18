@@ -80,3 +80,11 @@ Not kept, from C++ prototypes on the benchmark's stereo pair (672x504, range 100
   argmin of float scores only when the index is blended with an explicit mask, not with `?:`.
 - 16-bit scores are exact when the region's largest score and the range are below 65535, since the running sums are
   then exact modulo 2^16. Otherwise int32_t, where the selector alone is 1.43x for SAD U8.
+
+## Thresholds (2026-11-18)
+
+Not kept, C++ on the 4032x3024 test image:
+
+- Global fixed threshold: not attempted. Strict's loop vectorizes and runs at memory speed (0.68 ms U8, 2.8 ms F32).
+- Global Otsu, F32: four histogram copies make the histogram 1.5x faster (10.9 to 7.3 ms), but thresholding the image
+  (2.7 ms) stays, about 1.15x in total. Fast uses strict's code for F32.
