@@ -314,6 +314,66 @@ namespace boofcv {
                 }
             }
         }
+
+        /// The image border of a 2D kernel's normalized convolution: each pixel is the sum of the kernel weights inside
+        /// the image times the pixels, divided by the sum of those weights. Integers round the division. Same as BoofCV's
+        /// ConvolveNormalized_JustBorder_SB.convolve(), including the order of the sums
+        template<class E>
+        static void convolve( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel,
+                              const Gray<E>& input, Gray<E>& output ) {
+            const int32_t offsetL = kernel.offset;
+            const int32_t offsetR = (int32_t)kernel.width - offsetL - 1;
+            const int32_t width = input.width;
+            const int32_t height = input.height;
+
+            // left and right borders
+            for (int32_t y = 0; y < height; y++) {
+                const int32_t minI = y >= offsetL ? -offsetL : -y;
+                const int32_t maxI = y < height - offsetR ? offsetR : height - y - 1;
+                for (int32_t x = 0; x < offsetL; x++)
+                    border_pixel(kernel, input, output, x, y, minI, maxI, -x, offsetR);
+                for (int32_t x = width - offsetR; x < width; x++)
+                    border_pixel(kernel, input, output, x, y, minI, maxI, -offsetL, width - x - 1);
+            }
+            // top and bottom borders, without the corners
+            for (int32_t y = 0; y < offsetL; y++) {
+                for (int32_t x = offsetL; x < width - offsetR; x++)
+                    border_pixel(kernel, input, output, x, y, -y, offsetR, -offsetL, offsetR);
+            }
+            for (int32_t y = height - offsetR; y < height; y++) {
+                for (int32_t x = offsetL; x < width - offsetR; x++)
+                    border_pixel(kernel, input, output, x, y, -offsetL, height - y - 1, -offsetL, offsetR);
+            }
+        }
+
+    private:
+        /// One pixel of convolve(), summing kernel rows minI to maxI and columns minJ to maxJ relative to its center
+        template<class E>
+        static void border_pixel( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel,
+                                  const Gray<E>& input, Gray<E>& output, int32_t x, int32_t y,
+                                  int32_t minI, int32_t maxI, int32_t minJ, int32_t maxJ ) {
+            typedef typename TypeInfo<E>::signed_type signed_type;
+            const int32_t offsetL = kernel.offset;
+            signed_type total = 0;
+            signed_type weight = 0;
+            for (int32_t i = minI; i <= maxI; i++) {
+                const E* src = input.data + input.offset + (y + i)*input.stride + x;
+                const signed_type* ker = kernel.data.data + (i + offsetL)*kernel.width + offsetL;
+                for (int32_t j = minJ; j <= maxJ; j++) {
+                    signed_type w = ker[j];
+                    weight += w;
+                    total += src[j]*w;
+                }
+            }
+            if constexpr (std::is_integral<E>::value) {
+                // BoofCV's Java code throws an ArithmeticException
+                if (weight == 0)
+                    throw std::domain_error("Kernel weights inside the image sum to zero");
+                output.unsafe_at(x, y) = static_cast<E>((total + weight/2)/weight);
+            } else {
+                output.unsafe_at(x, y) = static_cast<E>(total/weight);
+            }
+        }
     };
 
 
@@ -1028,6 +1088,41 @@ namespace boofcv {
 
             horizontal(kernel,input,workspace);
             vertical(kernel,workspace,output);
+        }
+
+        /// Normalized 2D convolution: each pixel is the kernel weighted sum of the pixels inside the image, divided by
+        /// the sum of those weights. Same as BoofCV's ConvolveImageNormalized.convolve(): kernels as wide as the image
+        /// use the naive code. Otherwise integers divide the inner image by the kernel's sum, and floats rescale the
+        /// kernel to sum to one unless its sum is within 1e-4 of one
+        template<class E>
+        static void convolve( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel,
+                              const Gray<E>& input, Gray<E>& output ) {
+            typedef typename TypeInfo<E>::signed_type signed_type;
+            boofcv::checkSameShape(input, output);
+
+            if (kernel.width >= input.width || kernel.width >= input.height) {
+                ConvolveNormalizedNaive::convolve(kernel, input, output);
+            } else if constexpr (std::is_integral<E>::value) {
+                const signed_type sum = kernel.sum();
+                if (sum == 0)
+                    throw std::domain_error("Kernel weights sum to zero");
+                ConvolveImage_Inner::convolve(kernel, input, output, sum);
+                ConvolveNormalized_JustBorder::convolve(kernel, input, output);
+            } else {
+                signed_type sum = 0;
+                for (uint32_t i = 0; i < kernel.data.size; i++)
+                    sum += kernel.data[i];
+                if (std::abs(sum - (signed_type)1) > (signed_type)1e-4f) {
+                    Kernel2D<signed_type> normalized(kernel.width, kernel.offset);
+                    for (uint32_t i = 0; i < kernel.data.size; i++)
+                        normalized.data[i] = kernel.data[i]/sum;
+                    ConvolveImage_Inner::convolve(normalized, input, output);
+                    ConvolveNormalized_JustBorder::convolve(normalized, input, output);
+                } else {
+                    ConvolveImage_Inner::convolve(kernel, input, output);
+                    ConvolveNormalized_JustBorder::convolve(kernel, input, output);
+                }
+            }
         }
     };
 }
