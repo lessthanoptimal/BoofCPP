@@ -12,7 +12,6 @@
 #include "boofcv/threshold_block_filters.h"
 
 namespace boofcv::fast {
-    using boofcv::ThresholdBlockOtsu;
     using boofcv::ThresholdBlockMinMax;
 
     /// Block threshold filters with the same results as strict's. Statistics are computed one row of blocks at a time,
@@ -203,6 +202,121 @@ namespace boofcv::fast {
                 } else {
                     for (uint32_t x = 0; x < width; x++)
                         out[x] = static_cast<U8>(!(in[x] <= threshold[x]));
+                }
+            }
+        }
+    };
+
+    /// Same results as strict's ThresholdBlockOtsu. Histograms are filled one image row at a time into several copies,
+    /// so that repeated values don't wait on each other, and Otsu's method only visits the histogram's non-empty bins.
+    /// Only the rows of blocks the local region needs are kept
+    template<class E>
+    class ThresholdBlockOtsu : public ThresholdBlockCommon<E> {
+    public:
+        ComputeOtsuNonEmpty otsu;
+
+        ThresholdBlockOtsu( bool otsu2, ConfigLength requestedBlockWidth, double tuning, double scale, bool down,
+                            bool thresholdFromLocalBlocks )
+                : ThresholdBlockCommon<E>(requestedBlockWidth, thresholdFromLocalBlocks),
+                  otsu(otsu2, tuning, down, scale) {}
+
+    protected:
+        /// Copies of each histogram while it's being filled
+        static constexpr uint32_t COPIES = std::is_same_v<E, U8> ? 2 : 4;
+        /// Rows of blocks kept: the one being filled and the two before it
+        static constexpr uint32_t ROWS = 3;
+
+        std::vector<uint32_t> histograms;  // 256 bins per block for ROWS rows of blocks
+        std::vector<uint32_t> copies;      // 256*COPIES bins per block for one row of blocks
+        std::vector<U8> bytes;             // a row of pixels converted to U8, as strict does
+        std::vector<int16_t> column;       // threshold per column
+        uint32_t histogram[256], bins[256], counts[256];
+
+        void begin( uint32_t width ) override {
+            histograms.resize(ROWS*this->blocksX*256);
+            copies.assign(this->blocksX*256*COPIES, 0);
+            if constexpr (!std::is_same_v<E, U8>)
+                bytes.resize(width);
+            column.resize(width);
+        }
+
+        uint32_t* block_histogram( uint32_t bx, uint32_t by ) {
+            return &histograms[((by%ROWS)*this->blocksX + bx)*256];
+        }
+
+        void statistics( const Gray<E>& input, uint32_t by ) override {
+            const uint32_t blocks = this->blocksX, width = input.width;
+            for (uint32_t y = this->block_y0(by); y < this->block_y1(by, input.height); y++) {
+                const U8* row;
+                if constexpr (std::is_same_v<E, U8>) {
+                    row = &input.data[input.offset + y*input.stride];
+                } else {
+                    const E* in = &input.data[input.offset + y*input.stride];
+                    U8* b = bytes.data();
+                    for (uint32_t x = 0; x < width; x++)
+                        b[x] = U8(in[x]);
+                    row = b;
+                }
+                for (uint32_t bx = 0; bx < blocks; bx++) {
+                    uint32_t* h = &copies[bx*256*COPIES];
+                    const uint32_t x1 = this->block_x1(bx, width);
+                    uint32_t x = this->block_x0(bx);
+                    for (; x + COPIES <= x1; x += COPIES)
+                        for (uint32_t k = 0; k < COPIES; k++)
+                            h[256*k + row[x + k]]++;
+                    for (; x < x1; x++)
+                        h[row[x]]++;
+                }
+            }
+            for (uint32_t bx = 0; bx < blocks; bx++) {
+                uint32_t* h = &copies[bx*256*COPIES];
+                uint32_t* merged = block_histogram(bx, by);
+                for (uint32_t i = 0; i < 256; i++) {
+                    uint32_t total = 0;
+                    for (uint32_t k = 0; k < COPIES; k++) {
+                        total += h[256*k + i];
+                        h[256*k + i] = 0;
+                    }
+                    merged[i] = total;
+                }
+            }
+        }
+
+        void threshold_rows( const Gray<E>& input, Gray<U8>& output, uint32_t by ) override {
+            const uint32_t width = input.width;
+            int16_t* threshold = column.data();
+            for (uint32_t bx = 0; bx < this->blocksX; bx++) {
+                uint32_t bx0, by0, bx1, by1;
+                this->region(bx, by, bx0, by0, bx1, by1);
+                std::fill(histogram, histogram + 256, 0);
+                for (uint32_t y = by0; y <= by1; y++) {
+                    for (uint32_t x = bx0; x <= bx1; x++) {
+                        const uint32_t* h = block_histogram(x, y);
+                        for (uint32_t i = 0; i < 256; i++)
+                            histogram[i] += h[i];
+                    }
+                }
+                uint32_t n = 0, total = 0;
+                for (uint32_t i = 0; i < 256; i++) {
+                    bins[n] = i;
+                    counts[n] = histogram[i];
+                    total += histogram[i];
+                    n += histogram[i] != 0;
+                }
+                otsu.compute(bins, counts, n, 256, total);
+                // The threshold is a whole number, so comparing a pixel with it as an integer is the same
+                const auto t = (int16_t)std::min(256.0, std::max(-1.0, otsu.threshold));
+                std::fill(threshold + this->block_x0(bx), threshold + this->block_x1(bx, width), t);
+            }
+            for (uint32_t y = this->block_y0(by); y < this->block_y1(by, input.height); y++) {
+                const E* in = &input.data[input.offset + y*input.stride];
+                U8* out = &output.data[output.offset + y*output.stride];
+                if (otsu.down) {
+                    for (uint32_t x = 0; x < width; x++)
+                        out[x] = static_cast<U8>((int16_t)(U8)in[x] <= threshold[x]);
+                } else {
+                    for (uint32_t x = 0; x < width; x++)
+                        out[x] = static_cast<U8>((int16_t)(U8)in[x] > threshold[x]);
                 }
             }
         }

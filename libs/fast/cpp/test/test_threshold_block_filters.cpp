@@ -106,6 +106,22 @@ namespace {
         });
     }
 
+    template<class E>
+    void block_otsu_same_as_strict() {
+        // F32 pixels must fit in U8, which strict casts them to
+        for_each_input<E>(true, [&]( const Gray<E>& input, const ConfigLength& width ) {
+            for (bool local : {true, false})
+                for (bool down : {true, false})
+                    for (bool otsu2 : {true, false})
+                        for (auto tuning_scale : {std::pair<double, double>{0.0, 0.95}, {0.3, 1.3}}) {
+                            const double tuning = tuning_scale.first, scale = tuning_scale.second;
+                            boofcv::ThresholdBlockOtsu<E> strict(otsu2, width, tuning, scale, down, local);
+                            boofcv::fast::ThresholdBlockOtsu<E> fast(otsu2, width, tuning, scale, down, local);
+                            check_same<E>(strict, fast, input);
+                        }
+        });
+    }
+
     /// NaN pixels, including the first pixel of some blocks, which strict never replaces
     template<class Strict, class Fast>
     void nan_same_as_strict( Strict& strict, Fast& fast ) {
@@ -120,6 +136,8 @@ namespace {
 
 TEST_F(ThresholdBlockMeanTest, same_as_strict_U8) { block_mean_same_as_strict<U8>(); }
 TEST_F(ThresholdBlockMeanTest, same_as_strict_F32) { block_mean_same_as_strict<F32>(); }
+TEST_F(ThresholdBlockOtsuTest, same_as_strict_U8) { block_otsu_same_as_strict<U8>(); }
+TEST_F(ThresholdBlockOtsuTest, same_as_strict_F32) { block_otsu_same_as_strict<F32>(); }
 
 TEST_F(ThresholdBlockMeanTest, nan_same_as_strict) {
     for (bool local : {true, false}) {
@@ -135,4 +153,37 @@ TEST_F(ThresholdBlockMeanTest, zero_block_width) {
     Gray<U8> output(10, 12);
     boofcv::fast::ThresholdBlockMean<U8> alg(ConfigLength::fixed(0), true, 1.0, true);
     EXPECT_THROW(alg.process(input, output), std::invalid_argument);
+}
+
+/// Strict's and fast's Otsu agree on random histograms, sparse and dense
+TEST_F(ThresholdBlockOtsuTest, ComputeOtsuNonEmpty_same_as_strict) {
+    std::mt19937 gen(0xBEEF);
+    for (uint32_t length : {1u, 2u, 10u, 256u, 1000u}) {
+        for (double fill : {0.02, 0.3, 1.0}) {
+            for (int trial = 0; trial < 20; trial++) {
+                GrowArray<uint32_t> histogram(length);
+                std::vector<uint32_t> bins, counts;
+                uint32_t total = 0;
+                for (uint32_t i = 0; i < length; i++) {
+                    histogram[i] = std::uniform_real_distribution<double>(0, 1)(gen) < fill ? gen()%1000 : 0;
+                    total += histogram[i];
+                    if (histogram[i] != 0) {
+                        bins.push_back(i);
+                        counts.push_back(histogram[i]);
+                    }
+                }
+                for (bool otsu2 : {true, false})
+                    for (double tuning : {0.0, 0.5, 2.0})
+                        for (bool down : {true, false})
+                            for (double scale : {0.95, 1.0, 1.5}) {
+                                ComputeOtsu strict(otsu2, tuning, down, scale);
+                                boofcv::fast::ComputeOtsuNonEmpty fast(otsu2, tuning, down, scale);
+                                strict.compute(histogram, total);
+                                fast.compute(bins.data(), counts.data(), (uint32_t)bins.size(), length, total);
+                                ASSERT_EQ(strict.threshold, fast.threshold);
+                                ASSERT_EQ(strict.variance, fast.variance);
+                            }
+            }
+        }
+    }
 }
