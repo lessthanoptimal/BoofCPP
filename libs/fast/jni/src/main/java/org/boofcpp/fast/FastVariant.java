@@ -1,8 +1,10 @@
 package org.boofcpp.fast;
 
 import boofcv.alg.filter.blur.BOverrideBlurImageOps;
+import boofcv.alg.transform.census.BOverrideCensusTransform;
 import org.boofcpp.NativeVariant;
 import org.boofcpp.fast.convolve.NativeImageBlurOps;
+import org.boofcpp.fast.transform.NativeCensusTransform;
 
 /// Registers fast's hooks. Each one replaces the registered hook only for the images fast supports
 public class FastVariant implements NativeVariant {
@@ -17,5 +19,6 @@ public class FastVariant implements NativeVariant {
     @SuppressWarnings({"rawtypes", "unchecked"})
     @Override public void initialize() {
         BOverrideBlurImageOps.mean = new NativeImageBlurOps(BOverrideBlurImageOps.mean);
+        BOverrideCensusTransform.census = new NativeCensusTransform(BOverrideCensusTransform.census);
     }
 }
