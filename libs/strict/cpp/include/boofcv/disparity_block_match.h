@@ -175,8 +175,11 @@ namespace boofcv {
     };
 
     /// Sum of absolute differences. Same as BoofCV's BlockRowScoreSad
-    template<class E>
-    class BlockRowScoreSad : public BlockRowScoreError<E, BlockScoreType<E>, ErrorSad<E>> {
+    ///
+    /// @tparam S Score type. A smaller integer than BoofCV's gives the same scores if the largest one fits, since
+    /// the running sums are then exact modulo its size
+    template<class E, class S = BlockScoreType<E>>
+    class BlockRowScoreSad : public BlockRowScoreError<E, S, ErrorSad<E>> {
     public:
         int32_t max_per_pixel_error() const override {
             return std::is_same<E, U8>::value ? 255 : -1;
@@ -312,8 +315,9 @@ namespace boofcv {
     /// Hamming distance between census transformed images. Same as BoofCV's BlockRowScoreCensus.
     ///
     /// @tparam E Census image type. U8, S32 or S64
-    template<class E>
-    class BlockRowScoreCensus : public BlockRowScoreError<E, int32_t, ErrorCensus<E>> {
+    /// @tparam S Score type, see BlockRowScoreSad
+    template<class E, class S = int32_t>
+    class BlockRowScoreCensus : public BlockRowScoreError<E, S, ErrorCensus<E>> {
     public:
         static_assert(std::is_same<E, U8>::value || std::is_same<E, S32>::value || std::is_same<E, S64>::value,
                       "Census image must be U8, S32 or S64");
@@ -691,6 +695,24 @@ namespace boofcv {
         }
     };
 
+    /// Block matching of two images, which writes the disparity through its selector. Lets a caller hold block
+    /// matching of any score type
+    ///
+    /// @tparam E Image pixel type
+    template<class E>
+    class DisparityBlockMatch {
+    public:
+        virtual ~DisparityBlockMatch() = default;
+
+        virtual void process( const Gray<E>& left, const Gray<E>& right ) = 0;
+
+        virtual int32_t get_disparity_min() const = 0;
+
+        virtual uint32_t get_disparity_range() const = 0;
+
+        virtual uint32_t get_radius_y() const = 0;
+    };
+
     /// Block matching which computes the score one row at a time and reuses the previous row's scores with a
     /// running sum. Same as BoofCV's DisparityScoreBM_S32 and DisparityScoreBM_F32. With floating point scores the
     /// running sum is recomputed from scratch every 'catastrophic_reset' rows, at the same rows as BoofCV, so that
@@ -699,7 +721,7 @@ namespace boofcv {
     /// @tparam E Image pixel type
     /// @tparam S Score type
     template<class E, class S>
-    class DisparityBlockMatchRowFormat {
+    class DisparityBlockMatchRowFormat : public DisparityBlockMatch<E> {
     public:
         const uint32_t radius_x, radius_y;
         const uint32_t region_width, region_height;
@@ -720,9 +742,11 @@ namespace boofcv {
             this->disparity_range = disparity_range;
         }
 
-        int32_t get_disparity_min() const { return disparity_min; }
+        int32_t get_disparity_min() const override { return disparity_min; }
 
-        uint32_t get_disparity_range() const { return disparity_range; }
+        uint32_t get_disparity_range() const override { return disparity_range; }
+
+        uint32_t get_radius_y() const override { return radius_y; }
 
         /// Rows between recomputing the floating point running sum from scratch. Same as BoofCV's
         /// DisparityBlockMatch.catastrophicReset. Not used with integer scores, where it doesn't change the result
@@ -739,7 +763,7 @@ namespace boofcv {
         }
 
         /// Computes the score for every pixel and passes them to the selector, one row at a time.
-        void process( const Gray<E>& left, const Gray<E>& right ) {
+        void process( const Gray<E>& left, const Gray<E>& right ) override {
             checkSameShape(left, right);
 
             border_left->setImage(left);

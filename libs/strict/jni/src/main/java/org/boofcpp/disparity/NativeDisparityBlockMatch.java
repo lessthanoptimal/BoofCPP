@@ -111,9 +111,10 @@ public class NativeDisparityBlockMatch<T extends ImageGray<T>, DI extends ImageG
         super.finalize();
     }
 
-    native void nativeinit( ConfigDisparityBM config, boolean imageF32 );
+    // Protected so a variant's subclass replaces them with its native code
+    protected native void nativeinit( ConfigDisparityBM config, boolean imageF32 );
 
-    native void nativedestroy();
+    protected native void nativedestroy();
 
-    native void nativeprocess( T left, T right, DI disparity, GrayF32 score );
+    protected native void nativeprocess( T left, T right, DI disparity, GrayF32 score );
 }
