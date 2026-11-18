@@ -8,8 +8,7 @@ weakened to make code pass. Read `CodeStandards.md` in the repository root first
 
 1. Start from the strict function, its tests and its benchmarks. The fast version has the same name and signature in
    namespace `boofcv::fast`, under `libs/fast/cpp/include/boofcv/fast/`
-2. Implement it. Anything goes within floating point tolerance. Intrinsics need a portable C++ fallback, and both are
-   tested
+2. Implement it. Anything goes within floating point tolerance
 3. Test it with the shared tests, using the fast tolerance. If the op's tests aren't shared yet, move them into shared
    tests first, see [Testing Fast](../../CodeStandards.md#testing-fast). Add inputs which are hard for floating point
    if the tests don't have them yet
@@ -27,8 +26,8 @@ weakened to make code pass. Read `CodeStandards.md` in the repository root first
 
 ## Prefer simple code
 
-Keep complexity only when it measurably adds speed. When an op combines techniques (e.g. intrinsics and a new memory
-access order), benchmark each one alone. Drop any whose contribution is within noise.
+Keep complexity only when it measurably adds speed. When an op combines techniques (e.g. a new memory access order
+and branch removal), benchmark each one alone. Drop any whose contribution is within noise.
 
 ## Stop and ask the maintainer
 
