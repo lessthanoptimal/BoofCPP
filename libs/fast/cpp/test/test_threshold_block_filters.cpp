@@ -122,6 +122,20 @@ namespace {
         });
     }
 
+    template<class E>
+    void block_min_max_same_as_strict() {
+        for_each_input<E>(false, [&]( const Gray<E>& input, const ConfigLength& width ) {
+            for (bool local : {true, false})
+                for (bool down : {true, false})
+                    for (float spread : {0.0f, 1.0f, 10.0f})
+                        for (float scale : {0.95f, 1.0f, 1.3f}) {
+                            boofcv::ThresholdBlockMinMax<E> strict(spread, width, local, scale, down);
+                            boofcv::fast::ThresholdBlockMinMax<E> fast(spread, width, local, scale, down);
+                            check_same<E>(strict, fast, input);
+                        }
+        });
+    }
+
     /// NaN pixels, including the first pixel of some blocks, which strict never replaces
     template<class Strict, class Fast>
     void nan_same_as_strict( Strict& strict, Fast& fast ) {
@@ -138,12 +152,24 @@ TEST_F(ThresholdBlockMeanTest, same_as_strict_U8) { block_mean_same_as_strict<U8
 TEST_F(ThresholdBlockMeanTest, same_as_strict_F32) { block_mean_same_as_strict<F32>(); }
 TEST_F(ThresholdBlockOtsuTest, same_as_strict_U8) { block_otsu_same_as_strict<U8>(); }
 TEST_F(ThresholdBlockOtsuTest, same_as_strict_F32) { block_otsu_same_as_strict<F32>(); }
+TEST_F(ThresholdBlockMinMaxTest, same_as_strict_U8) { block_min_max_same_as_strict<U8>(); }
+TEST_F(ThresholdBlockMinMaxTest, same_as_strict_F32) { block_min_max_same_as_strict<F32>(); }
 
 TEST_F(ThresholdBlockMeanTest, nan_same_as_strict) {
     for (bool local : {true, false}) {
         boofcv::ThresholdBlockMean<F32> strict(ConfigLength::fixed(10), local, 1.0, true);
         boofcv::fast::ThresholdBlockMean<F32> fast(ConfigLength::fixed(10), local, 1.0, true);
         nan_same_as_strict(strict, fast);
+    }
+}
+
+TEST_F(ThresholdBlockMinMaxTest, nan_same_as_strict) {
+    for (bool local : {true, false}) {
+        for (bool down : {true, false}) {
+            boofcv::ThresholdBlockMinMax<F32> strict(1.0f, ConfigLength::fixed(7), local, 1.0f, down);
+            boofcv::fast::ThresholdBlockMinMax<F32> fast(1.0f, ConfigLength::fixed(7), local, 1.0f, down);
+            nan_same_as_strict(strict, fast);
+        }
     }
 }
 
