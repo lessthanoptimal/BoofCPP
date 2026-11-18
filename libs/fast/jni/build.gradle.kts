@@ -10,11 +10,11 @@ nativeLibrary {
 
 dependencies {
     api(project(":boofcpp-common"))
+    // Fast's native code uses strict's for what it doesn't speed up, and BoofCPP.initialize() registers fast
+    api(project(":boofcpp-jni"))
     api(libs.boofcv.ip)
 
     testImplementation(testFixtures(project(":boofcpp-common")))
-    // The benchmarks compare against strict
-    "benchmarkImplementation"(project(":boofcpp-jni"))
 }
 
 tasks.named<JavaExec>("accuracyRun") { mainClass = "org.boofcpp.fast.Accuracy" }

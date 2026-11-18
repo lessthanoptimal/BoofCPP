@@ -76,8 +76,8 @@ results/    Accuracy records, see Accuracy
   - `jni/` is the Java module with its JNI code: `src/main/java`, `src/main/cpp`, `src/test` and `src/benchmark`
   - JNI functions only tests use are in `src/test/cpp` and built into a test-only library, e.g. common's
     `JNIBoofCPPCommonTest`, never into a library that's shipped
-- `common` never depends on a variant, and the variants don't depend on each other, except that fast's benchmarks
-  compare with strict
+- Fast uses strict's code for what it doesn't speed up, so fast depends on strict. Strict never depends on fast, and
+  `common` never depends on a variant
 - Variants have the same class and function names in their own namespace, so code and tests can switch between them
 - Includes always start with `boofcv/`. Strict is `#include "boofcv/convolve.h"`, fast is
   `#include "boofcv/fast/convolve.h"`
