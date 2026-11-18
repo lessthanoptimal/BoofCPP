@@ -172,7 +172,8 @@ When built as an application the compiler can unroll loops and other optimizatio
 # Accuracy
 
 The accuracy tool measures how far each library's results are from BoofCV's Java code: the largest absolute and
-relative error, RMS error, the largest distance in ULPs, and the fraction of pixels which differ. It saves a record in
+relative error, RMS error, the largest distance in ULPs, the fraction of pixels which differ, and the mean error. For
+census transforms the error is the number of differing bits. It saves a record in
 `results/accuracy/<library>/<platform>.json` and reports metrics which grew more than 2x since the saved record.
 ```bash
 ./gradlew :boofcpp-jni:accuracyRun
