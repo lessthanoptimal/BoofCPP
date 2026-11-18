@@ -28,6 +28,26 @@ public class TestImageDifference extends BoofCPPStandardJUnit {
         assertEquals(0.5, d.differing, 1e-12);
     }
 
+    /// Only the pixels in the mask count, also for the means
+    @Test
+    public void measureWhere() {
+        GrayF32 expected = new GrayF32(3, 1);
+        expected.data = new float[]{1, 2, 3};
+        GrayF32 found = expected.clone();
+        found.set(0, 0, 9);
+        found.set(2, 0, 3.5f);
+        GrayU8 mask = new GrayU8(3, 1);
+        mask.set(1, 0, 1);
+        mask.set(2, 0, 1);
+
+        ImageDifference d = ImageDifference.measureWhere(expected, found, mask);
+        assertEquals(0.5, d.maxAbs, 1e-12);
+        assertEquals(0.25, d.meanError, 1e-12);
+        assertEquals(0.5, d.differing, 1e-12);
+        assertThrows(IllegalArgumentException.class,
+                () -> ImageDifference.measureWhere(expected, found, new GrayU8(2, 1)));
+    }
+
     /// Relative error is absolute below 1
     @Test
     public void measure_relativeBelowOne() {

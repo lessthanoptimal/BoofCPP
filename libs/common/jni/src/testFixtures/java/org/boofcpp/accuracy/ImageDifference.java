@@ -29,10 +29,21 @@ public class ImageDifference {
 
     /// Errors are |found - expected|
     public static ImageDifference measure( ImageGray<?> expected, ImageGray<?> found ) {
+        return measureWhere(expected, found, null);
+    }
+
+    /// Same as [#measure] for only the pixels where 'mask' isn't zero
+    ///
+    /// @param mask Pixels to measure, or null for every pixel
+    public static ImageDifference measureWhere( ImageGray<?> expected, ImageGray<?> found, GrayU8 mask ) {
         checkShape(expected, found);
+        if (mask != null)
+            checkShape(expected, mask);
         ImageDifference d = new ImageDifference();
         for (int y = 0; y < expected.height; y++) {
             for (int x = 0; x < expected.width; x++) {
+                if (mask != null && mask.get(x, y) == 0)
+                    continue;
                 double e = GeneralizedImageOps.get(expected, x, y);
                 double f = GeneralizedImageOps.get(found, x, y);
                 long ulp;
