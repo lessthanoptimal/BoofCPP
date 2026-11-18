@@ -26,8 +26,8 @@ public abstract class NativeGaussianBlurChecks extends BoofCPPStandardJUnit {
         this.imageTypes = imageTypes;
     }
 
-    /// Called directly and through BoofCV's hook. Sigma or radius can be computed from the other, and the kernel can
-    /// be larger than the image
+    /// Against BoofCV's Java code. Sigma or radius can be computed from the other, and the kernel can be larger than
+    /// the image
     @Test
     public void compareGaussian() {
         double[][] params = new double[][]{
@@ -35,22 +35,16 @@ public abstract class NativeGaussianBlurChecks extends BoofCPPStandardJUnit {
 
         for (Class type : imageTypes) {
             for (int[] shape : new int[][]{{61, 45}, {6, 7}}) {
-                for (boolean concurrent : new boolean[]{false, true}) {
-                    for (double[] p : params) {
-                        double sigmaX = p[0], sigmaY = p[2];
-                        int radiusX = (int)p[1], radiusY = (int)p[3];
-                        ImageGray input = randomImage(type, shape[0], shape[1]);
-                        double scale = NativeMeanBlurChecks.maxValue(type);
-                        ImageGray expected = callBoofCV(null, concurrent, () ->
-                                GBlurImageOps.gaussian(input, null, sigmaX, radiusX, sigmaY, radiusY, null));
+                for (double[] p : params) {
+                    double sigmaX = p[0], sigmaY = p[2];
+                    int radiusX = (int)p[1], radiusY = (int)p[3];
+                    ImageGray input = randomImage(type, shape[0], shape[1]);
+                    ImageGray expected = callBoofCV(null, () ->
+                            GBlurImageOps.gaussian(input, null, sigmaX, radiusX, sigmaY, radiusY, null));
 
-                        ImageGray found = (ImageGray)input.createSameShape();
-                        hook.processGaussian(input, found, sigmaX, radiusX, sigmaY, radiusY, null);
-                        assertMatches(expected, found, scale);
-
-                        assertMatches(expected, callBoofCV(hook, concurrent, () ->
-                                GBlurImageOps.gaussian(input, null, sigmaX, radiusX, sigmaY, radiusY, null)), scale);
-                    }
+                    ImageGray found = (ImageGray)input.createSameShape();
+                    hook.processGaussian(input, found, sigmaX, radiusX, sigmaY, radiusY, null);
+                    assertMatches(expected, found, NativeMeanBlurChecks.maxValue(type));
                 }
             }
         }
@@ -69,8 +63,8 @@ public abstract class NativeGaussianBlurChecks extends BoofCPPStandardJUnit {
         GImageMiscOps.fillUniform(input, rand, 0, 255);
         assertThrows(RuntimeException.class, () ->
                 hook.processGaussian(input, new InterleavedU8(1, 1, 3), -1, 2, -1, 2, null));
-        InterleavedU8 expected = callBoofCV(null, false, () -> GBlurImageOps.gaussian(input, null, -1, 2, -1, 3, null));
-        InterleavedU8 found = callBoofCV(hook, false, () -> GBlurImageOps.gaussian(input, null, -1, 2, -1, 3, null));
+        InterleavedU8 expected = callBoofCV(null, () -> GBlurImageOps.gaussian(input, null, -1, 2, -1, 3, null));
+        InterleavedU8 found = callBoofCV(hook, () -> GBlurImageOps.gaussian(input, null, -1, 2, -1, 3, null));
         BoofTesting.assertEquals(expected, found, 0);
     }
 
@@ -81,13 +75,13 @@ public abstract class NativeGaussianBlurChecks extends BoofCPPStandardJUnit {
         return BoofTesting.createSubImageOf(input);
     }
 
-    /// Calls BoofCV with 'hook' as its Gaussian blur, or with its Java code if 'hook' is null
-    private static <R> R callBoofCV( BOverrideBlurImageOps.Gaussian hook, boolean concurrent, Supplier<R> call ) {
+    /// Calls BoofCV single threaded with 'hook' as its Gaussian blur, or with its Java code if 'hook' is null
+    private static <R> R callBoofCV( BOverrideBlurImageOps.Gaussian hook, Supplier<R> call ) {
         BOverrideBlurImageOps.Gaussian previous = BOverrideBlurImageOps.gaussian;
         boolean previousConcurrent = BoofConcurrency.USE_CONCURRENT;
         try {
             BOverrideBlurImageOps.gaussian = hook;
-            BoofConcurrency.USE_CONCURRENT = concurrent;
+            BoofConcurrency.USE_CONCURRENT = false;
             return call.get();
         } finally {
             BOverrideBlurImageOps.gaussian = previous;

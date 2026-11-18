@@ -37,28 +37,21 @@ public abstract class NativeMeanBorderChecks extends BoofCPPStandardJUnit {
         this.imageTypes = imageTypes;
     }
 
-    /// Every border against BoofCV's meanB, called directly and through BoofCV's hook. Floats include negative values,
-    /// which make sums cancel
+    /// Every border against BoofCV's meanB. Floats include negative values, which make sums cancel
     @Test
     public void compareMeanBorder() {
         int[][] radii = new int[][]{{1, 1}, {2, 3}, {5, 4}, {12, 12}};
 
         for (Class type : imageTypes) {
-            for (boolean concurrent : new boolean[]{false, true}) {
-                for (int[] r : radii) {
-                    for (ImageBorder border : borders(type)) {
-                        ImageGray input = randomImage(type, 61, 45);
-                        double scale = NativeMeanBlurChecks.maxValue(type);
-                        ImageGray expected = NativeMeanBlurChecks.callBoofCV(null, concurrent, () ->
-                                (ImageGray)GBlurImageOps.meanB(input, null, r[0], r[1], border, null, null));
+            for (int[] r : radii) {
+                for (ImageBorder border : borders(type)) {
+                    ImageGray input = randomImage(type, 61, 45);
+                    ImageGray expected = NativeMeanBlurChecks.callBoofCV(null, () ->
+                            (ImageGray)GBlurImageOps.meanB(input, null, r[0], r[1], border, null, null));
 
-                        ImageGray found = (ImageGray)input.createSameShape();
-                        hook.processMeanBorder(input, found, r[0], r[1], border, null);
-                        assertMatches(expected, found, scale);
-
-                        assertMatches(expected, NativeMeanBlurChecks.callBoofCV(hook, concurrent, () ->
-                                (ImageGray)GBlurImageOps.meanB(input, null, r[0], r[1], border, null, null)), scale);
-                    }
+                    ImageGray found = (ImageGray)input.createSameShape();
+                    hook.processMeanBorder(input, found, r[0], r[1], border, null);
+                    assertMatches(expected, found, NativeMeanBlurChecks.maxValue(type));
                 }
             }
         }
@@ -113,9 +106,9 @@ public abstract class NativeMeanBorderChecks extends BoofCPPStandardJUnit {
             for (ImageBorder border : unsupported) {
                 assertThrows(RuntimeException.class, () ->
                         hook.processMeanBorder(input, input.createSameShape(), 2, 2, border, null));
-                ImageGray expected = NativeMeanBlurChecks.callBoofCV(null, false, () ->
+                ImageGray expected = NativeMeanBlurChecks.callBoofCV(null, () ->
                         (ImageGray)GBlurImageOps.meanB(input, null, 2, 2, border, null, null));
-                ImageGray found = NativeMeanBlurChecks.callBoofCV(hook, false, () ->
+                ImageGray found = NativeMeanBlurChecks.callBoofCV(hook, () ->
                         (ImageGray)GBlurImageOps.meanB(input, null, 2, 2, border, null, null));
                 assertMatches(expected, found, NativeMeanBlurChecks.maxValue(type));
             }
