@@ -1,6 +1,8 @@
 #include "gtest/gtest.h"
 #include "testing_utils.h"
 #include "boofcv/binary_ops.h"
+#include "variant_strict.h"
+#include "shared/threshold_checks.h"
 
 using namespace std;
 using namespace boofcv;
@@ -156,81 +158,24 @@ TEST_F(ThresholdOpsTest, threshold_outside_range) {
     for( uint32_t i = 0; i < out.total_pixels(); i++ ) EXPECT_EQ(1,out.data[i]);
 }
 
-/**
- * Scale should adjust the Otsu threshold the same way as BoofCV's GlobalBinaryFilter
- */
 class GlobalOtsuBinaryFilterTest : public boofcv::BoofCPPTest {};
 
-TEST_F(GlobalOtsuBinaryFilterTest, scale) {
-    Gray<U8> img(20,10);
-    for( uint32_t i = 0; i < img.total_pixels(); i++ ) img.data[i] = static_cast<U8>((i*37)%256);
-    Gray<U8> found(20,10);
-    Gray<U8> expected(20,10);
+TEST_F(GlobalOtsuBinaryFilterTest, scale) { threshold_checks::global_otsu_scale(); }
+TEST_F(GlobalOtsuBinaryFilterTest, min_value_offset) { threshold_checks::global_otsu_min_value_offset(); }
 
-    double otsu = ThresholdOps::computeOtsu(img,(U8)0,(U8)255,false); // min=0 so no offset
-
-    for( double scale : {1.0, 0.0, 0.5, 1.2, 3.0} ) {
-        for( bool down : {true, false} ) {
-            GlobalOtsuBinaryFilter<U8> alg(0,255,down,scale);
-            alg.process(img,found);
-
-            double s = down ? scale : (scale <= 0.0 ? 0.0 : 1.0/scale);
-            auto threshold = static_cast<int32_t>(otsu*s);
-            for( uint32_t i = 0; i < img.total_pixels(); i++ ) {
-                int v = img.data[i];
-                expected.data[i] = static_cast<U8>(down ? v <= threshold : v > threshold);
-            }
-            for( uint32_t i = 0; i < img.total_pixels(); i++ )
-                ASSERT_EQ(expected.data[i],found.data[i]) << "scale=" << scale << " down=" << down;
-        }
-    }
-}
-
-/**
- * Thresholds are doubles like in Java. Out of range values must not wrap and fractions truncate like (int)
- */
 class GlobalFixedBinaryFilterTest : public boofcv::BoofCPPTest {};
 
-TEST_F(GlobalFixedBinaryFilterTest, double_threshold) {
-    Gray<U8> img(7,5);
-    for( uint32_t i = 0; i < img.total_pixels(); i++ ) img.data[i] = static_cast<U8>((i*41)%256);
-    Gray<U8> found(7,5);
+TEST_F(GlobalFixedBinaryFilterTest, double_threshold) { threshold_checks::global_fixed_double_threshold(); }
 
-    for( double t : {-1.0, 0.0, 125.0, 125.5, 255.0, 300.0} ) {
-        for( bool down : {true, false} ) {
-            GlobalFixedBinaryFilter<U8> alg(t,down);
-            alg.process(img,found);
-            auto ti = static_cast<int>(t);
-            for( uint32_t i = 0; i < img.total_pixels(); i++ ) {
-                int v = img.data[i];
-                ASSERT_EQ(down ? v <= ti : v > ti, found.data[i]) << "t=" << t << " down=" << down;
-            }
-        }
-    }
-}
+class LocalMeanBinaryFilterTest : public boofcv::BoofCPPTest {};
 
-/**
- * Otsu threshold is a histogram index offset by min_value, same as Java
- */
-TEST_F(GlobalOtsuBinaryFilterTest, min_value_offset) {
-    Gray<U8> img(20,10);
-    for( uint32_t i = 0; i < img.total_pixels(); i++ ) img.data[i] = static_cast<U8>(20 + (i*37)%181);
-    Gray<U8> found(20,10);
-
-    int threshold = static_cast<int>(ThresholdOps::computeOtsu(img,(U8)20,(U8)200,false)) + 20;
-    GlobalOtsuBinaryFilter<U8> alg(20,200,true);
-    alg.process(img,found);
-    for( uint32_t i = 0; i < img.total_pixels(); i++ )
-        ASSERT_EQ(img.data[i] <= threshold, found.data[i]);
-}
+TEST_F(LocalMeanBinaryFilterTest, naive) { threshold_checks::local_mean_naive(); }
+TEST_F(LocalMeanBinaryFilterTest, zero_radius_U8) { threshold_checks::local_mean_zero_radius<U8>(); }
+TEST_F(LocalMeanBinaryFilterTest, zero_radius_F32) { threshold_checks::local_mean_zero_radius<F32>(); }
 
 TEST_F(ThresholdOpsTest, computeOtsu) {
     // This is intentionally omitted and is handled by comparing it to Java
     // a port of the java unit test would be complex
-}
-
-TEST_F(ThresholdOpsTest, localMean) {
-    // TODO Finish this function and write a test
 }
 
 class ComputeOtsuTest : public boofcv::BoofCPPTest {};
