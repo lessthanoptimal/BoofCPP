@@ -91,7 +91,7 @@ results/    Accuracy records, see Accuracy
 - Optimized for patterns which work on x64 and ARM64. Other architectures must build and be correct, but aren't tuned
 - Anything goes as long as floating point results stay within tolerance of BoofCV
 - Integer results are identical to strict
-- Intrinsics are allowed, but only with a portable C++ fallback
+- No intrinsics. Code targeting a specific instruction set belongs in its own variant
 - Must be at least 1.3x faster than strict's native code, measured with JMH. Otherwise use strict's
 - Deterministic: the same input, CPU and build always give the same output, single or multi-threaded
 
