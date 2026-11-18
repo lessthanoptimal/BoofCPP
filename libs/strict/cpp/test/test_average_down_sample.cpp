@@ -3,8 +3,12 @@
 #include "boofcv/image_misc_ops.h"
 #include "testing_utils.h"
 
+#include <algorithm>
 #include <cmath>
+#include <limits>
 #include <random>
+#include <string>
+#include <vector>
 
 using namespace std;
 using namespace boofcv;
@@ -247,3 +251,180 @@ TEST_F(AverageDownSampleOpsTest, general_bad_shapes) {
     EXPECT_THROW(AverageDownSampleOps::vertical(middle, false, thin), std::invalid_argument);
     AverageDownSampleOps::vertical(middle, true, output);
 }
+
+/// BoofCV's ImplAverageDownSampleN and ImplAverageDownSample2, written plainly: each region's pixels are added row by
+/// row in the image's type, then RegionMean. Floats depend on this order
+template<class E>
+void boofcv_down( const Gray<E>& input, uint32_t width, Gray<E>& output ) {
+    output.reshape(AverageDownSampleOps::down_sample_size(input.width, width),
+                   AverageDownSampleOps::down_sample_size(input.height, width));
+    for (uint32_t y = 0; y < output.height; y++) {
+        for (uint32_t x = 0; x < output.width; x++) {
+            const uint32_t y1 = std::min(input.height, (y + 1)*width), x1 = std::min(input.width, (x + 1)*width);
+            typename TypeInfo<E>::sum_type total = 0;
+            for (uint32_t yy = y*width; yy < y1; yy++)
+                for (uint32_t xx = x*width; xx < x1; xx++)
+                    total += input.at(xx, yy);
+            output.at(x, y) = RegionMean<E>((y1 - y*width)*(x1 - x*width))(total);
+        }
+    }
+}
+
+/// BoofCV's naivePixelHorizontal() and naivePixelVertical(): output pixel 'index' of a region which might extend
+/// outside the input. 'pixel(i)' is the i-th input pixel along the row or column
+template<class F, class Pixel>
+F boofcv_border_mean( Pixel pixel, uint32_t length, float offset, float scale, uint32_t index ) {
+    float x0 = index*scale + offset;
+    const float x1 = x0 + scale;
+    int32_t i0 = (int32_t)std::floor((double)x0);
+    const int32_t i1 = (int32_t)std::min((double)length, std::ceil((double)x1));
+    if (i0 < 0) {
+        i0 = 0;
+        x0 = 0.0f;
+    }
+    float area = 0.0f;
+    F sum = 0;
+    for (int32_t i = i0; i < i1; i++) {
+        const float intersection = std::min(i + 1.0f, x1) - x0;
+        area += intersection;
+        sum += intersection*pixel(i);
+        x0 = i + 1.0f;
+    }
+    return sum/area;
+}
+
+/// BoofCV's AverageDownSampleOps.horizontal() and vertical() one output pixel at a time. 'along' is the input's length
+/// along the axis, 'count' the output's, and 'pixel(i)' the i-th input pixel. 'vertical' selects vertical()'s weight
+/// for the last pixel
+template<class F, class Pixel>
+F boofcv_general_pixel( Pixel pixel, uint32_t along, uint32_t count, bool centered, bool vertical, uint32_t index ) {
+    const float scale = along/(float)count;
+    const float offset = centered ? -(scale - 1.0f)/2.0f : 0.0f;
+    const uint32_t border1 = count*scale - offset > along ? count - 1 : count;
+    if ((centered && index == 0) || index >= border1)
+        return boofcv_border_mean<F>(pixel, along, offset, scale, index);
+
+    const float x0 = index*scale + offset;
+    const float x1 = (index + 1)*scale + offset;
+    const int32_t i0 = (int32_t)x0;
+    const int32_t i1 = (int32_t)x1;
+    F sum = (vertical ? 1 - (x0 - i0) : i0 + 1 - x0)*pixel(i0);
+    for (int32_t i = i0 + 1; i < i1; i++)
+        sum += pixel(i);
+    if (i1 < x1)
+        sum += (vertical ? std::fmod(x1, 1.0f) : x1 - i1)*pixel(i1);
+    return sum/scale;
+}
+
+/// Random pixels. Floats also get values which are hard for floating point: large magnitudes next to small ones,
+/// which cancel, tiny magnitudes and signed zeros. Integers use the type's whole range, so S32 sums wrap
+template<class E>
+Gray<E> create_hard_image( uint32_t width, uint32_t height, std::mt19937& gen ) {
+    Gray<E> image(width, height);
+    std::uniform_real_distribution<double> uniform(0, 1);
+    const double lo = std::is_floating_point_v<E> ? -100.0 : (double)std::numeric_limits<E>::lowest();
+    const double hi = std::is_floating_point_v<E> ? 100.0 : (double)std::numeric_limits<E>::max();
+    for (uint32_t y = 0; y < height; y++) {
+        for (uint32_t x = 0; x < width; x++) {
+            double v = lo + (hi - lo)*uniform(gen);
+            if constexpr (std::is_floating_point_v<E>) {
+                switch ((x/3 + y/2)%6) {
+                    case 0: v = (x%2 == 0 ? 1e7 : -1e7) + v; break;
+                    case 1: v *= 1e-30; break;
+                    case 2: v = (x + y)%2 == 0 ? 0.0 : -0.0; break;
+                    default: break;
+                }
+            }
+            image.at(x, y) = std::is_integral_v<E> ? (E)std::llround(std::clamp(v, lo, hi)) : (E)v;
+        }
+    }
+    return image;
+}
+
+/// Sizes which aren't a multiple of the vector width or the region width, smaller and larger than the regions
+const std::vector<std::pair<uint32_t, uint32_t>> HARD_SHAPES = {{1, 1}, {7, 3}, {16, 16}, {37, 29}, {101, 70},
+                                                                {160, 47}};
+
+/// Bit identical to BoofCV's order of operations for every region width, for the whole image and a sub-image
+template<class E>
+void down_same_as_boofcv() {
+    std::mt19937 gen(0xBEEF);
+    for (auto shape : HARD_SHAPES) {
+        Gray<E> input = create_hard_image<E>(shape.first, shape.second, gen);
+        Gray<E> sub_input = create_subimage(input);
+        for (uint32_t width : {1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 70}) {
+            Gray<E> expected(1, 1), found(1, 1);
+            boofcv_down(input, width, expected);
+            AverageDownSampleOps::down(input, width, found);
+            check_identical(expected, found, "width " + std::to_string(width));
+
+            Gray<E> sub_found = create_subimage(expected);
+            AverageDownSampleOps::down(sub_input, width, sub_found);
+            check_identical(expected, sub_found, "sub-image width " + std::to_string(width));
+            sub_found.subimage = false;
+        }
+        sub_input.subimage = false;
+    }
+}
+
+TEST_F(AverageDownSampleOpsTest, down_same_as_boofcv_U8) { down_same_as_boofcv<U8>(); }
+TEST_F(AverageDownSampleOpsTest, down_same_as_boofcv_S8) { down_same_as_boofcv<S8>(); }
+TEST_F(AverageDownSampleOpsTest, down_same_as_boofcv_U16) { down_same_as_boofcv<U16>(); }
+TEST_F(AverageDownSampleOpsTest, down_same_as_boofcv_S16) { down_same_as_boofcv<S16>(); }
+TEST_F(AverageDownSampleOpsTest, down_same_as_boofcv_S32) { down_same_as_boofcv<S32>(); }
+TEST_F(AverageDownSampleOpsTest, down_same_as_boofcv_F32) { down_same_as_boofcv<F32>(); }
+TEST_F(AverageDownSampleOpsTest, down_same_as_boofcv_F64) { down_same_as_boofcv<F64>(); }
+
+/// Output sizes with integer and non-integer scales, the input's size and one pixel
+std::vector<uint32_t> general_lengths( uint32_t length ) {
+    return {length, std::max(1u, length/2), length/3 + 1, std::max(1u, length*2/5), 2, 1};
+}
+
+/// The horizontal and vertical passes and the general down sample are bit identical to BoofCV's order of operations
+template<class E>
+void general_same_as_boofcv() {
+    typedef AverageDownSampleOps::middle_type<E> F;
+    std::mt19937 gen(0xBEEF);
+    for (auto shape : HARD_SHAPES) {
+        Gray<E> input = create_hard_image<E>(shape.first, shape.second, gen);
+        Gray<E> sub_input = create_subimage(input);
+        for (uint32_t width : general_lengths(input.width)) {
+            for (uint32_t height : general_lengths(input.height)) {
+                for (bool centered : {false, true}) {
+                    // The output can't be larger than the input. BoofCV writes past the end of a row for a centered
+                    // output one pixel wide
+                    if (width > input.width || height > input.height || (centered && width == 1 && input.width > 1))
+                        continue;
+                    Gray<F> expected_middle(width, input.height);
+                    for (uint32_t y = 0; y < input.height; y++) {
+                        for (uint32_t x = 0; x < width; x++) {
+                            auto pixel = [&]( int32_t i ) { return input.at(i, y); };
+                            expected_middle.at(x, y) = boofcv_general_pixel<F>(pixel, input.width, width, centered,
+                                                                               false, x);
+                        }
+                    }
+                    Gray<E> expected(width, height);
+                    for (uint32_t y = 0; y < height; y++) {
+                        for (uint32_t x = 0; x < width; x++) {
+                            auto pixel = [&]( int32_t i ) { return expected_middle.at(x, i); };
+                            F mean = boofcv_general_pixel<F>(pixel, input.height, height, centered, true, y);
+                            expected.at(x, y) = std::is_same_v<E, F> ? (E)mean : (E)(int32_t)(mean + 0.5f);
+                        }
+                    }
+
+                    Gray<E> found(width, height);
+                    Gray<F> found_middle(1, 1);
+                    AverageDownSampleOps::down(sub_input, centered, found, found_middle);
+                    check_identical(expected_middle, found_middle, "middle");
+                    check_identical(expected, found, "output");
+                }
+            }
+        }
+        sub_input.subimage = false;
+    }
+}
+
+TEST_F(AverageDownSampleOpsTest, general_same_as_boofcv_U8) { general_same_as_boofcv<U8>(); }
+TEST_F(AverageDownSampleOpsTest, general_same_as_boofcv_U16) { general_same_as_boofcv<U16>(); }
+TEST_F(AverageDownSampleOpsTest, general_same_as_boofcv_F32) { general_same_as_boofcv<F32>(); }
+TEST_F(AverageDownSampleOpsTest, general_same_as_boofcv_F64) { general_same_as_boofcv<F64>(); }

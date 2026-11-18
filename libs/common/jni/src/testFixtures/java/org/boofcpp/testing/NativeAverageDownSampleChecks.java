@@ -61,7 +61,7 @@ public abstract class NativeAverageDownSampleChecks extends BoofCPPStandardJUnit
         for (Class type : imageTypes) {
             for (int[] shape : new int[][]{{61, 45}, {6, 7}}) {
                 for (boolean concurrent : new boolean[]{false, true}) {
-                    for (int width : new int[]{1, 2, 3, 4, 5, 8, 70}) {
+                    for (int width : new int[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 70}) {
                         ImageGray input = randomImage(type, shape[0], shape[1]);
                         ImageGray expected = createOutput(input, width);
                         callBoofCV(false, concurrent, () -> AverageDownSampleOps.down(input, width, expected));
@@ -247,23 +247,14 @@ public abstract class NativeAverageDownSampleChecks extends BoofCPPStandardJUnit
 
     /// Calls BoofCV with the variant's hooks, or without them
     void callBoofCV( boolean useNative, boolean concurrent, Runnable call ) {
-        BOverrideAverageDownSampleOps.Square previousSquare = BOverrideAverageDownSampleOps.square;
-        BOverrideAverageDownSampleOps.General previousGeneral = BOverrideAverageDownSampleOps.general;
-        BOverrideAverageDownSampleOps.Horizontal previousHorizontal = BOverrideAverageDownSampleOps.horizontal;
-        BOverrideAverageDownSampleOps.Vertical previousVertical = BOverrideAverageDownSampleOps.vertical;
         boolean previousConcurrent = BoofConcurrency.USE_CONCURRENT;
         try {
-            BOverrideAverageDownSampleOps.square = useNative ? square : null;
-            BOverrideAverageDownSampleOps.general = useNative ? general : null;
-            BOverrideAverageDownSampleOps.horizontal = useNative ? horizontal : null;
-            BOverrideAverageDownSampleOps.vertical = useNative ? vertical : null;
             BoofConcurrency.USE_CONCURRENT = concurrent;
-            call.run();
+            if (useNative)
+                AverageDownSampleHooks.run(square, general, horizontal, vertical, call);
+            else
+                AverageDownSampleHooks.withoutHooks(call);
         } finally {
-            BOverrideAverageDownSampleOps.square = previousSquare;
-            BOverrideAverageDownSampleOps.general = previousGeneral;
-            BOverrideAverageDownSampleOps.horizontal = previousHorizontal;
-            BOverrideAverageDownSampleOps.vertical = previousVertical;
             BoofConcurrency.USE_CONCURRENT = previousConcurrent;
         }
     }

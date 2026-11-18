@@ -92,3 +92,16 @@ Not kept, C++ on the 4032x3024 test image:
   binary image, so it would need strict's order of operations. Not attempted. Fast uses strict's code for F32.
 - Block Otsu: histograms filled block by block, as strict does, with several copies are no faster than row by row
   (U8 6.4 vs 6.6 ms).
+
+## Average down-sample (2026-11-18)
+
+The faster code gives results identical to strict, so it went into strict. Not kept, C++ on a 1000x1000 random image:
+
+- Square regions, floats, a width only known at run time: summing every region of a row at once, in BoofCV's order,
+  is slower than one region at a time (width 12: 0.37 to 0.61 ms, F32). Widths 3 to 8 are known at compile time, and
+  width 1 and wider regions are summed one region at a time.
+- Square regions, floats, widths 3 to 5: summing row by row instead of a region at once is slower (width 3, F32: 0.29
+  vs 0.14 ms). Widths 6 to 8 are faster row by row (width 8, F32: 0.10 vs 0.23 ms).
+- Regions with the output's size, horizontal pass: 2 rows at once instead of 4 is up to 1.3x slower; 8 rows is
+  within 10% of 4.
+- Regions with the output's size, vertical pass: the loops already vectorize. Not attempted.
