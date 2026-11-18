@@ -93,10 +93,18 @@ namespace boofcv {
                 }
             }
 
-            if (border == nullptr)
-                return;
+            if (border != nullptr)
+                sample_border(input, samples, radius, output, *border);
+        }
 
-            border->setImage(input);
+        /// The census of sample_S64() for the pixels within 'radius' of an edge, read through 'border'. 'radius' is the
+        /// largest x or y of a sample. Same as ImplCensusTransformBorder.sample_S64()
+        template<class E>
+        static void sample_border( const Gray<E>& input, const std::vector<Point2D<int32_t>>& samples, int32_t radius,
+                                   Gray<S64>& output, ImageBorder<E>& border ) {
+            const int32_t width = input.width;
+            const int32_t height = input.height;
+            border.setImage(input);
 
             for (int32_t y = 0; y < height; y++) {
                 const bool whole_row = y < radius || y >= height - radius || width <= 2*radius;
@@ -104,7 +112,26 @@ namespace boofcv {
                     // skip the inner image
                     if (!whole_row && x == radius)
                         x = width - radius;
-                    output.unsafe_at(x, y) = sample(*border, x, y, samples);
+                    output.unsafe_at(x, y) = sample(border, x, y, samples);
+                }
+            }
+        }
+
+        /// The census of dense3x3() (R = 1) or dense5x5() (R = 2) for the pixels within R of an edge, read through
+        /// 'border'. Same as ImplCensusTransformBorder.dense3x3_U8() and dense5x5_S32()
+        template<int R, class E, class C>
+        static void dense_border( const Gray<E>& input, Gray<C>& output, ImageBorder<E>& border ) {
+            const int32_t width = input.width;
+            const int32_t height = input.height;
+            border.setImage(input);
+
+            for (int32_t y = 0; y < height; y++) {
+                const bool whole_row = y < R || y >= height - R || width <= 2*R;
+                for (int32_t x = 0; x < width; x++) {
+                    // skip the inner image
+                    if (!whole_row && x == R)
+                        x = width - R;
+                    output.unsafe_at(x, y) = (C)region<R>(border, x, y);
                 }
             }
         }
@@ -185,20 +212,8 @@ namespace boofcv {
                 }
             }
 
-            if (border == nullptr)
-                return;
-
-            border->setImage(input);
-
-            for (int32_t y = 0; y < height; y++) {
-                const bool whole_row = y < R || y >= height - R || width <= 2*R;
-                for (int32_t x = 0; x < width; x++) {
-                    // skip the inner image
-                    if (!whole_row && x == R)
-                        x = width - R;
-                    output.unsafe_at(x, y) = (C)region<R>(*border, x, y);
-                }
-            }
+            if (border != nullptr)
+                dense_border<R>(input, output, *border);
         }
 
         /// Census of a single pixel, reading through the border. Same as ImplCensusTransformBorder.regionNxN()
