@@ -10,14 +10,7 @@ using namespace boofcv;
 namespace {
     /// True for GrayU8 images and an integer kernel, false for GrayF32. Set by NativeBase.setImageType()
     bool is_integer( JNIEnv* env, jobject obj ) {
-        static const jfieldID fid = [env] {
-            jclass local = safe_FindClass(env, "org/boofcpp/NativeBase");
-            jfieldID id = safe_GetFieldID(env, local, "isInteger", "Z");
-            env->NewGlobalRef(local);
-            env->DeleteLocalRef(local);
-            return id;
-        }();
-        return env->GetBooleanField(obj, fid);
+        return env->GetBooleanField(obj, NativeBaseFields::get(env).isInteger);
     }
 
     /// Calls func(input, output) with the pixels of the Java gray images. No JNI calls are allowed in 'func' since

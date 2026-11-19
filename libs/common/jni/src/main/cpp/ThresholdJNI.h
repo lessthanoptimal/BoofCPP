@@ -21,9 +21,9 @@ void threshold_images( Filter<E>* filter, JNIEnv* env, jobject jinput, jobject j
 template<template<class> class Filter>
 void threshold_process( JNIEnv* env, jobject obj, jobject jinput, jobject joutput ) {
     jni_call(env, [&] {
-        jclass objClass = env->GetObjectClass(obj);
-        jboolean isInteger = env->GetBooleanField(obj, safe_GetFieldID(env, objClass, "isInteger", "Z"));
-        jlong nativePtr = env->GetLongField(obj, safe_GetFieldID(env, objClass, "nativePtr", "J"));
+        const NativeBaseFields& fields = NativeBaseFields::get(env);
+        jboolean isInteger = env->GetBooleanField(obj, fields.isInteger);
+        jlong nativePtr = env->GetLongField(obj, fields.nativePtr);
         if (isInteger)
             threshold_images((Filter<boofcv::U8>*)nativePtr, env, jinput, joutput);
         else

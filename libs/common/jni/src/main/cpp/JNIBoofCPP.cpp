@@ -6,14 +6,31 @@
 
 using namespace boofcv;
 
+namespace {
+    /// IDs of DogArray_I32, looked up once
+    struct DogArrayI32 {
+        jclass cls;
+        jmethodID resize;
+        jfieldID data, size;
+
+        explicit DogArrayI32( JNIEnv* env ) : cls(global_class(env, "org/ddogleg/struct/DogArray_I32")) {
+            resize = safe_GetMethodID(env, cls, "resize", "(I)Lorg/ddogleg/struct/DogArray_I32;");
+            data = safe_GetFieldID(env, cls, "data", "[I");
+            size = safe_GetFieldID(env, cls, "size", "I");
+        }
+    };
+}
 
 WrapJDogArray_I32::WrapJDogArray_I32(JNIEnv *env, jobject jobj)
 : env(env), jobj(jobj), data(nullptr), size(0)
 {
-    objClass = env->GetObjectClass(jobj);
-    methodResize =  safe_GetMethodID(env, objClass, "resize", "(I)Lorg/ddogleg/struct/DogArray_I32;");
-    fid_data = safe_GetFieldID(env,objClass,"data","[I");
-    fid_size = safe_GetFieldID(env,objClass,"size","I");
+    static const DogArrayI32 ids(env);
+    if( !env->IsInstanceOf(jobj, ids.cls) )
+        throw std::runtime_error("Expected a DogArray_I32");
+    objClass = ids.cls;
+    methodResize = ids.resize;
+    fid_data = ids.data;
+    fid_size = ids.size;
 
     this->array_object = (jarray)env->GetObjectField (jobj, fid_data);
     if( array_object == nullptr ) {
@@ -93,14 +110,36 @@ void WrapJDogArray_I32::resize( uint32_t desired ) {
     }
 }
 
+namespace {
+    /// IDs of PackedSetsPoint2D_I32, the DogArrays inside it and BlockIndexLength, looked up once
+    struct PackedSetsIds {
+        jclass packed;
+        jfieldID blockLength, blocks, sets;
+        jmethodID resize, get, set_to;
+
+        explicit PackedSetsIds( JNIEnv* env ) : packed(global_class(env, "boofcv/struct/PackedSetsPoint2D_I32")) {
+            blockLength = safe_GetFieldID(env, packed, "blockLength", "I");
+            blocks = safe_GetFieldID(env, packed, "blocks", "Lorg/ddogleg/struct/DogArray;");
+            sets = safe_GetFieldID(env, packed, "sets", "Lorg/ddogleg/struct/DogArray;");
+            jclass dog_array = global_class(env, "org/ddogleg/struct/DogArray");
+            resize = safe_GetMethodID(env, dog_array, "resize", "(I)Lorg/ddogleg/struct/DogArray;");
+            get = safe_GetMethodID(env, dog_array, "get", "(I)Ljava/lang/Object;");
+            jclass block_index_length = global_class(env, "boofcv/struct/BlockIndexLength");
+            set_to = safe_GetMethodID(env, block_index_length, "setTo", "(III)V");
+        }
+    };
+}
+
 void copy_into_java( JNIEnv *env,
                      const boofcv::PackedSet<boofcv::Point2D<boofcv::S32>>& src ,
                      jobject dst )
 {
-    jclass class_packed = env->GetObjectClass(dst);
-    jfieldID field_blockLength = safe_GetFieldID(env,class_packed, "blockLength", "I");
-    jfieldID field_blocks = safe_GetFieldID(env,class_packed, "blocks", "Lorg/ddogleg/struct/DogArray;");
-    jfieldID field_sets = safe_GetFieldID(env,class_packed, "sets", "Lorg/ddogleg/struct/DogArray;");
+    static const PackedSetsIds ids(env);
+    if( !env->IsInstanceOf(dst, ids.packed) )
+        throw std::runtime_error("Expected a PackedSetsPoint2D_I32");
+    jfieldID field_blockLength = ids.blockLength;
+    jfieldID field_blocks = ids.blocks;
+    jfieldID field_sets = ids.sets;
 
     jint blockLength = env->GetIntField(dst,field_blockLength);
 
@@ -111,10 +150,8 @@ void copy_into_java( JNIEnv *env,
 
     jobject object_blocks = env->GetObjectField (dst, field_blocks);
     jobject object_sets = env->GetObjectField (dst, field_sets);
-    jclass class_fastqueue = env->GetObjectClass(object_blocks);
-
-    jmethodID method_resize =  safe_GetMethodID(env, class_fastqueue, "resize", "(I)Lorg/ddogleg/struct/DogArray;");
-    jmethodID method_get =  safe_GetMethodID(env, class_fastqueue, "get", "(I)Ljava/lang/Object;");
+    jmethodID method_resize = ids.resize;
+    jmethodID method_get = ids.get;
 
     env->DeleteLocalRef(env->CallObjectMethod(object_blocks,method_resize,(jint)src._number_of_blocks));
     env->DeleteLocalRef(env->CallObjectMethod(object_sets,method_resize,(jint)src.set_info.size()));
@@ -131,8 +168,7 @@ void copy_into_java( JNIEnv *env,
         env->ReleasePrimitiveArrayCritical((jarray)the_array, array_dst, 0);
     }
 
-    jclass class_blockindexlength = env->FindClass("boofcv/struct/BlockIndexLength");
-    jmethodID method_bil_set =  safe_GetMethodID(env, class_blockindexlength, "setTo", "(III)V");
+    jmethodID method_bil_set = ids.set_to;
 
     for( uint32_t i = 0; i < src.set_info.size(); i++ ) {
         const PackedSetInfo& set_info = src.set_info[i];
@@ -173,6 +209,34 @@ jmethodID safe_GetMethodID( JNIEnv *env, jclass& objClass, const char* name , co
         throw std::runtime_error(std::string("Java method not found: ") + name + " " + type);
     }
     return fid;
+}
+
+jclass global_class( JNIEnv* env, const char* name ) {
+    jclass local = safe_FindClass(env, name);
+    auto global = (jclass)env->NewGlobalRef(local);
+    env->DeleteLocalRef(local);
+    return global;
+}
+
+jfieldID class_field_id( JNIEnv* env, jobject obj, const char* name, const char* type ) {
+    jclass local = env->GetObjectClass(obj);
+    jfieldID fid = safe_GetFieldID(env, local, name, type);
+    env->NewGlobalRef(local);
+    env->DeleteLocalRef(local);
+    return fid;
+}
+
+const NativeBaseFields& NativeBaseFields::get( JNIEnv* env ) {
+    static const NativeBaseFields fields = [env] {
+        jclass cls = global_class(env, "org/boofcpp/NativeBase");
+        NativeBaseFields f{};
+        f.nativePtr = safe_GetFieldID(env, cls, "nativePtr", "J");
+        f.isInteger = safe_GetFieldID(env, cls, "isInteger", "Z");
+        f.inputBits = safe_GetFieldID(env, cls, "inputBits", "I");
+        f.outputBits = safe_GetFieldID(env, cls, "outputBits", "I");
+        return f;
+    }();
+    return fields;
 }
 
 void throw_java_exception( JNIEnv* env ) {
@@ -283,33 +347,55 @@ JImageInfoF32 extractInfoF32( JNIEnv *env, jobject& jimage ) {
 }
 
 namespace {
-    /// Field IDs of ImageBase, looked up once. The global reference keeps the class loaded, and so the IDs valid
+    /// Field IDs of ImageBase, looked up once
     struct ImageBaseFields {
         jfieldID width, height, stride, startIndex;
 
         explicit ImageBaseFields( JNIEnv* env ) {
-            jclass local = safe_FindClass(env, "boofcv/struct/image/ImageBase");
-            width = safe_GetFieldID(env, local, "width", "I");
-            height = safe_GetFieldID(env, local, "height", "I");
-            stride = safe_GetFieldID(env, local, "stride", "I");
-            startIndex = safe_GetFieldID(env, local, "startIndex", "I");
-            env->NewGlobalRef(local);
-            env->DeleteLocalRef(local);
+            jclass cls = global_class(env, "boofcv/struct/image/ImageBase");
+            width = safe_GetFieldID(env, cls, "width", "I");
+            height = safe_GetFieldID(env, cls, "height", "I");
+            stride = safe_GetFieldID(env, cls, "stride", "I");
+            startIndex = safe_GetFieldID(env, cls, "startIndex", "I");
         }
     };
+
+    /// The 'data' field of the gray image class that declares it, looked up once
+    struct GrayData {
+        jclass cls;
+        jfieldID data;
+
+        GrayData( JNIEnv* env, const char* name, const char* type ) : cls(global_class(env, name)) {
+            data = safe_GetFieldID(env, cls, "data", type);
+        }
+    };
+
+    /// The gray image class with a data array of JNI signature 'type', or null if there's none
+    const GrayData* gray_data( JNIEnv* env, const char* type ) {
+        switch( type[1] ) {
+            case 'B': { static const GrayData d(env, "boofcv/struct/image/GrayI8", "[B"); return &d; }
+            case 'S': { static const GrayData d(env, "boofcv/struct/image/GrayI16", "[S"); return &d; }
+            case 'I': { static const GrayData d(env, "boofcv/struct/image/GrayS32", "[I"); return &d; }
+            case 'J': { static const GrayData d(env, "boofcv/struct/image/GrayS64", "[J"); return &d; }
+            case 'F': { static const GrayData d(env, "boofcv/struct/image/GrayF32", "[F"); return &d; }
+            case 'D': { static const GrayData d(env, "boofcv/struct/image/GrayF64", "[D"); return &d; }
+            default: return nullptr;
+        }
+    }
 }
 
 JImageInfo extractInfoCritical( JNIEnv *env, jobject& jimage , const char*type ) {
     static const ImageBaseFields base(env);
     JImageInfo ret;
 
-    jclass objClass = env->GetObjectClass(jimage);
+    // Images that aren't gray, e.g. interleaved, have their own data field
+    const GrayData* gray = gray_data(env, type);
     jfieldID fid;
-
-    fid = env->GetFieldID(objClass, "data", type);
-    if( env->ExceptionCheck() ) {
-        env->ExceptionDescribe();
-        throw std::runtime_error("Get field ID for data failed");
+    if( gray != nullptr && env->IsInstanceOf(jimage, gray->cls) ) {
+        fid = gray->data;
+    } else {
+        jclass objClass = env->GetObjectClass(jimage);
+        fid = safe_GetFieldID(env, objClass, "data", type);
     }
     ret.jdata = env->GetObjectField (jimage, fid);
     if( ret.jdata == nullptr ) {

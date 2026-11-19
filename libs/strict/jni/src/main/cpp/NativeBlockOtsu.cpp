@@ -11,9 +11,8 @@ JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeBlockOtsu_nativeinit(
     JNIEnv *env, jobject obj, jboolean otsu2, jobject jregionWidth, jdouble tuning,
     jdouble scale, jboolean down , jboolean thresholdFromLocalBlocks ) {
 
-    jclass objClass = env->GetObjectClass(obj);
-    jfieldID fid = env->GetFieldID(objClass, "isInteger", "Z");
-    jboolean isInteger = env->GetBooleanField(obj, fid);
+    const NativeBaseFields& fields = NativeBaseFields::get(env);
+    jboolean isInteger = env->GetBooleanField(obj, fields.isInteger);
 
     boofcv::ConfigLength region_width = config_from_java<boofcv::ConfigLength>(env,jregionWidth);
 
@@ -23,17 +22,14 @@ JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeBlockOtsu_nativeinit(
     } else {
         ptr = (jlong)new ThresholdBlockOtsu<F32>((bool)otsu2,region_width,(double)tuning,(double)scale,(bool)down,(bool)thresholdFromLocalBlocks);
     }
-    fid = env->GetFieldID(objClass, "nativePtr", "J");
-    env->SetLongField(obj, fid, ptr);
+    env->SetLongField(obj, fields.nativePtr, ptr);
 }
 
 JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeBlockOtsu_nativedestroy(JNIEnv *env, jobject obj) {
 
-    jclass objClass = env->GetObjectClass(obj);
-    jfieldID fid = env->GetFieldID(objClass, "isInteger", "Z");
-    jboolean isInteger = env->GetBooleanField(obj, fid);
-    fid = env->GetFieldID(objClass, "nativePtr", "J");
-    jlong nativePtr = env->GetLongField(obj, fid);
+    const NativeBaseFields& fields = NativeBaseFields::get(env);
+    jboolean isInteger = env->GetBooleanField(obj, fields.isInteger);
+    jlong nativePtr = env->GetLongField(obj, fields.nativePtr);
 
     if( isInteger ) {
         delete (ThresholdBlockOtsu<U8> *) nativePtr;

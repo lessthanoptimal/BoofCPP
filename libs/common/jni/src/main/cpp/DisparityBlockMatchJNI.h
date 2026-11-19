@@ -103,17 +103,17 @@ namespace disparity_jni {
 JNIEXPORT void JNICALL PREFIX##_nativeinit( JNIEnv* env, jobject obj, jobject jconfig, jboolean image_f32 ) { \
     try { \
         disparity_jni::NativeBlockMatch* alg = disparity_jni::create<FACTORY>(env, jconfig, image_f32); \
-        jclass cls = env->GetObjectClass(obj); \
-        env->SetLongField(obj, safe_GetFieldID(env, cls, "nativePtr", "J"), (jlong)alg); \
+        static const jfieldID native_ptr = class_field_id(env, obj, "nativePtr", "J"); \
+        env->SetLongField(obj, native_ptr, (jlong)alg); \
     } catch (...) { \
         throw_java_exception(env); \
     } \
 } \
 JNIEXPORT void JNICALL PREFIX##_nativedestroy( JNIEnv* env, jobject obj ) { \
     try { \
-        delete get_native_ptr<disparity_jni::NativeBlockMatch>(env, obj); \
-        jclass cls = env->GetObjectClass(obj); \
-        env->SetLongField(obj, safe_GetFieldID(env, cls, "nativePtr", "J"), 0); \
+        static const jfieldID native_ptr = class_field_id(env, obj, "nativePtr", "J"); \
+        delete (disparity_jni::NativeBlockMatch*)env->GetLongField(obj, native_ptr); \
+        env->SetLongField(obj, native_ptr, 0); \
     } catch (...) { \
         throw_java_exception(env); \
     } \
@@ -121,8 +121,9 @@ JNIEXPORT void JNICALL PREFIX##_nativedestroy( JNIEnv* env, jobject obj ) { \
 JNIEXPORT void JNICALL PREFIX##_nativeprocess( JNIEnv* env, jobject obj, jobject jleft, jobject jright, \
                                               jobject jdisparity, jobject jscore ) { \
     try { \
-        disparity_jni::process_any(env, get_native_ptr<disparity_jni::NativeBlockMatch>(env, obj), jleft, jright, \
-                                   jdisparity, jscore); \
+        static const jfieldID native_ptr = class_field_id(env, obj, "nativePtr", "J"); \
+        disparity_jni::process_any(env, (disparity_jni::NativeBlockMatch*)env->GetLongField(obj, native_ptr), jleft, \
+                                   jright, jdisparity, jscore); \
     } catch (...) { \
         throw_java_exception(env); \
     } \

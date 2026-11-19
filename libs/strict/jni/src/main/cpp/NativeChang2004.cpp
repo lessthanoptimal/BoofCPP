@@ -5,18 +5,40 @@
 
 using namespace boofcv;
 
+namespace {
+    /// IDs of NativeChang2004, looked up once
+    struct Chang2004Ids {
+        jfieldID nativePtr, storagePoints, packedPoints;
+        jmethodID addContour;
+
+        explicit Chang2004Ids( JNIEnv* env ) {
+            jclass cls = global_class(env, "org/boofcpp/contour/NativeChang2004");
+            nativePtr = safe_GetFieldID(env, cls, "nativePtr", "J");
+            storagePoints = safe_GetFieldID(env, cls, "storagePoints", "Lorg/ddogleg/struct/DogArray_I32;");
+            packedPoints = safe_GetFieldID(env, cls, "packedPoints", "Lboofcv/struct/PackedSetsPoint2D_I32;");
+            addContour = safe_GetMethodID(env, cls, "addContour", "(II)V");
+        }
+    };
+
+    const Chang2004Ids& ids( JNIEnv* env ) {
+        static const Chang2004Ids ids(env);
+        return ids;
+    }
+
+    LinearContourLabelChang2004* get_contour( JNIEnv* env, jobject obj ) {
+        return (LinearContourLabelChang2004*)env->GetLongField(obj, ids(env).nativePtr);
+    }
+}
+
 extern "C" {
 
 JNIEXPORT void JNICALL Java_org_boofcpp_contour_NativeChang2004_native_1init
         (JNIEnv *env, jobject obj)
 {
     jni_call(env, [&] {
-        jclass objClass = env->GetObjectClass(obj);
-        jfieldID fid = safe_GetFieldID(env,objClass, "nativePtr", "J");
-
         LinearContourLabelChang2004* ptr = new LinearContourLabelChang2004(ConnectRule::FOUR);
         ptr->maxContourSize = 0x7fffffff; // Java's max is a signed int
-        env->SetLongField(obj, fid, (jlong)ptr);
+        env->SetLongField(obj, ids(env).nativePtr, (jlong)ptr);
     });
 }
 
@@ -24,13 +46,8 @@ JNIEXPORT void JNICALL Java_org_boofcpp_contour_NativeChang2004_native_1destroy
         (JNIEnv *env, jobject obj)
 {
     jni_call(env, [&] {
-        jclass objClass = env->GetObjectClass(obj);
-        jfieldID fid = env->GetFieldID(objClass, "nativePtr", "J");
-        jlong nativePtr = env->GetLongField(obj, fid);
-
-        delete (LinearContourLabelChang2004*) nativePtr;
-
-        env->SetLongField(obj, fid, 0);
+        delete get_contour(env, obj);
+        env->SetLongField(obj, ids(env).nativePtr, 0);
     });
 }
 
@@ -38,9 +55,7 @@ JNIEXPORT void JNICALL Java_org_boofcpp_contour_NativeChang2004_native_1process
         (JNIEnv *env, jobject obj, jobject jbinary, jobject jlabel)
 {
     jni_call(env, [&] {
-        jclass objClass = env->GetObjectClass(obj);
-        jfieldID fid = safe_GetFieldID(env,objClass, "nativePtr", "J");
-        LinearContourLabelChang2004* contour = (LinearContourLabelChang2004*)env->GetLongField(obj, fid);
+        LinearContourLabelChang2004* contour = get_contour(env, obj);
 
         ImageAndInfo<Gray<U8>,JImageInfo> input = wrapCriticalGrayU8(env,jbinary);
         ImageAndInfo<Gray<S32>,JImageInfo> label = wrapCriticalGrayS32(env,jlabel);
@@ -53,11 +68,10 @@ JNIEXPORT void JNICALL Java_org_boofcpp_contour_NativeChang2004_native_1process
             contour->process(input.image, label.image);
         }
 
-        jfieldID fidPoints = safe_GetFieldID(env, objClass, "storagePoints", "Lorg/ddogleg/struct/DogArray_I32;");
-        jobject jpoints = env->GetObjectField(obj,fidPoints);
+        jobject jpoints = env->GetObjectField(obj, ids(env).storagePoints);
         WrapJDogArray_I32 grow_queue(env,jpoints);
 
-        jmethodID midAdd =  safe_GetMethodID(env, objClass, "addContour", "(II)V");
+        jmethodID midAdd = ids(env).addContour;
 
         for( uint32_t i = 0; i < contour->contours.size(); i++ ) {
             ContourPacked &p = contour->contours.at(i);
@@ -67,8 +81,7 @@ JNIEXPORT void JNICALL Java_org_boofcpp_contour_NativeChang2004_native_1process
             env->CallVoidMethod(obj,midAdd,(jint)p.id,(jint)p.externalIndex);
         }
 
-        jfieldID field_packed = safe_GetFieldID(env, objClass, "packedPoints", "Lboofcv/struct/PackedSetsPoint2D_I32;");
-        jobject jpacked = env->GetObjectField(obj,field_packed);
+        jobject jpacked = env->GetObjectField(obj, ids(env).packedPoints);
         copy_into_java(env,contour->packedPoints,jpacked);
 
         // TODO storageContours
@@ -79,9 +92,7 @@ JNIEXPORT void JNICALL Java_org_boofcpp_contour_NativeChang2004_setSaveInnerCont
         (JNIEnv *env, jobject obj, jboolean enabled)
 {
     jni_call(env, [&] {
-        jclass objClass = env->GetObjectClass(obj);
-        jfieldID fid = safe_GetFieldID(env, objClass, "nativePtr", "J");
-        auto * contour = (LinearContourLabelChang2004*)env->GetLongField(obj, fid);
+        LinearContourLabelChang2004* contour = get_contour(env, obj);
 
         contour->saveInternalContours = enabled;
     });
@@ -91,9 +102,7 @@ JNIEXPORT jboolean JNICALL Java_org_boofcpp_contour_NativeChang2004_isSaveIntern
         (JNIEnv *env, jobject obj)
 {
     return jni_call(env, [&] {
-        jclass objClass = env->GetObjectClass(obj);
-        jfieldID fid = safe_GetFieldID(env,objClass, "nativePtr", "J");
-        auto * contour = (LinearContourLabelChang2004*)env->GetLongField(obj, fid);
+        LinearContourLabelChang2004* contour = get_contour(env, obj);
 
         return (jboolean)contour->saveInternalContours;
     });
@@ -103,9 +112,7 @@ JNIEXPORT void JNICALL Java_org_boofcpp_contour_NativeChang2004_nativeSetMinCont
         (JNIEnv *env, jobject obj, jint size)
 {
     jni_call(env, [&] {
-        jclass objClass = env->GetObjectClass(obj);
-        jfieldID fid = safe_GetFieldID(env, objClass, "nativePtr", "J");
-        auto* contour = (LinearContourLabelChang2004*)env->GetLongField(obj, fid);
+        LinearContourLabelChang2004* contour = get_contour(env, obj);
 
         contour->minContourSize = static_cast<uint32_t>(size);
     });
@@ -115,9 +122,7 @@ JNIEXPORT jint JNICALL Java_org_boofcpp_contour_NativeChang2004_nativeGetMinCont
         (JNIEnv *env, jobject obj)
 {
     return jni_call(env, [&] {
-        jclass objClass = env->GetObjectClass(obj);
-        jfieldID fid = safe_GetFieldID(env,objClass, "nativePtr", "J");
-        auto* contour = (LinearContourLabelChang2004*)env->GetLongField(obj, fid);
+        LinearContourLabelChang2004* contour = get_contour(env, obj);
 
         return static_cast<jint>(contour->minContourSize);
     });
@@ -127,9 +132,7 @@ JNIEXPORT void JNICALL Java_org_boofcpp_contour_NativeChang2004_nativeSetMaxCont
         (JNIEnv *env, jobject obj, jint size)
 {
     jni_call(env, [&] {
-        jclass objClass = env->GetObjectClass(obj);
-        jfieldID fid = safe_GetFieldID(env,objClass, "nativePtr", "J");
-        auto* contour = (LinearContourLabelChang2004*)env->GetLongField(obj, fid);
+        LinearContourLabelChang2004* contour = get_contour(env, obj);
 
         contour->maxContourSize = static_cast<uint32_t>(size);
     });
@@ -139,9 +142,7 @@ JNIEXPORT jint JNICALL Java_org_boofcpp_contour_NativeChang2004_nativeGetMaxCont
         (JNIEnv *env, jobject obj)
 {
     return jni_call(env, [&] {
-        jclass objClass = env->GetObjectClass(obj);
-        jfieldID fid = safe_GetFieldID(env, objClass, "nativePtr", "J");
-        auto* contour = (LinearContourLabelChang2004*)env->GetLongField(obj, fid);
+        LinearContourLabelChang2004* contour = get_contour(env, obj);
 
         return static_cast<jint>(contour->maxContourSize);
     });
@@ -151,9 +152,7 @@ JNIEXPORT void JNICALL Java_org_boofcpp_contour_NativeChang2004_setConnectRule
         (JNIEnv *env, jobject obj, jobject jrule )
 {
     jni_call(env, [&] {
-        jclass objClass = env->GetObjectClass(obj);
-        jfieldID fid = safe_GetFieldID(env, objClass, "nativePtr", "J");
-        auto* contour = (LinearContourLabelChang2004*)env->GetLongField(obj, fid);
+        LinearContourLabelChang2004* contour = get_contour(env, obj);
 
         jclass enumClass = env->GetObjectClass(jrule);
         jmethodID mid =  safe_GetMethodID(env, enumClass, "ordinal", "()I");
@@ -179,9 +178,7 @@ JNIEXPORT jobject JNICALL Java_org_boofcpp_contour_NativeChang2004_getConnectRul
         (JNIEnv *env, jobject obj)
 {
     return jni_call(env, [&] {
-        jclass objClass = env->GetObjectClass(obj);
-        jfieldID fid = env->GetFieldID(objClass, "nativePtr", "J");
-        auto* contour = (LinearContourLabelChang2004*)env->GetLongField(obj, fid);
+        LinearContourLabelChang2004* contour = get_contour(env, obj);
 
         jclass enumClass = safe_FindClass(env,"boofcv/struct/ConnectRule");
 
