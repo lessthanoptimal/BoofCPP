@@ -47,6 +47,8 @@ public class BenchmarkThresholding
 
     InputToBinary<GrayU8> block_minmax_native = new NativeBlockMinMax<>(regionWidth, scale, down, 1, local_blocks,type);
     InputToBinary<GrayU8> block_minmax_java = FactoryThresholdBinary.blockMinMax( regionWidth, scale, down, local_blocks, 1, type);
+    InputToBinary<GrayF32> block_minmax_native_F32 = new NativeBlockMinMax<>(regionWidth, scale, down, 1, local_blocks, GrayF32.class);
+    InputToBinary<GrayF32> block_minmax_java_F32 = FactoryThresholdBinary.blockMinMax(regionWidth, scale, down, local_blocks, 1, GrayF32.class);
     InputToBinary<GrayU8> block_mean_native = new NativeBlockMean<>(regionWidth, scale, down, local_blocks, type);
     InputToBinary<GrayU8> block_mean_java = FactoryThresholdBinary.blockMean( regionWidth, scale, down, local_blocks, type);
     InputToBinary<GrayU8> block_otsu_native = new NativeBlockOtsu<>(true, regionWidth, 0, scale, down, local_blocks, type);
@@ -76,6 +78,8 @@ public class BenchmarkThresholding
     @Benchmark public void local_mean_java_U8() { local_mean_java.process(input,output); }
     @Benchmark public void block_minmax_native_U8() { block_minmax_native.process(input,output); }
     @Benchmark public void block_minmax_java_U8() { block_minmax_java.process(input,output); }
+    @Benchmark public void block_minmax_native_F32() { block_minmax_native_F32.process(inputF32,output); }
+    @Benchmark public void block_minmax_java_F32() { block_minmax_java_F32.process(inputF32,output); }
     @Benchmark public void block_mean_native_U8() { block_mean_native.process(input,output); }
     @Benchmark public void block_mean_java_U8() { block_mean_java.process(input,output); }
     @Benchmark public void block_otsu_native_U8() { block_otsu_native.process(input,output); }

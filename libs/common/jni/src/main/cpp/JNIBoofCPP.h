@@ -184,6 +184,8 @@ struct JavaConfig;
 /// looked up by its Java name, so a field that's missing in Java throws instead of being silently skipped.
 template<class C>
 void config_from_java( JNIEnv* env, jobject jconfig, C& config ) {
+    if (jconfig == nullptr)
+        throw std::invalid_argument("Configuration is null");
     jclass cls = env->GetObjectClass(jconfig);
     visit_fields(config, [&]( const char* name, auto& field ) {
         using T = std::decay_t<decltype(field)>;

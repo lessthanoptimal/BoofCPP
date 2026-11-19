@@ -90,8 +90,9 @@ Not kept, C++ on the 4032x3024 test image:
 - Local mean: for U8 the one-pass mean gives identical results, so it went into strict. For F32 it adds floats in a
   different order, and a different mean can flip a pixel of the binary image, so it would need strict's order of
   operations. Not attempted.
-- Block Otsu: histograms filled block by block, as strict does, with several copies are no faster than row by row
-  (U8 6.4 vs 6.6 ms).
+- Block mean, Otsu and min-max: statistics of one row of blocks at a time, thresholded while the rows are in cache,
+  give identical results, so they went into strict. For block Otsu, histograms filled one block at a time with
+  several copies are no faster than one image row at a time (U8 6.4 vs 6.6 ms).
 
 ## Average down-sample (2026-11-18)
 

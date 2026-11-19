@@ -44,8 +44,7 @@ public class BoofCPP {
     public static void initialize() {
         BOverrideFactoryThresholdBinary.globalFixed = NativeGlobalFixed::new;
         BOverrideFactoryThresholdBinary.globalOtsu = NativeGlobalOtsu::new;
-        // Native BlockMinMax isn't faster than Java's
-//        BOverrideFactoryThresholdBinary.blockMinMax = NativeBlockMinMax::new;
+        BOverrideFactoryThresholdBinary.blockMinMax = NativeBlockMinMax::new;
         BOverrideFactoryThresholdBinary.blockMean = NativeBlockMean::new;
         BOverrideFactoryThresholdBinary.blockOtsu = NativeBlockOtsu::new;
         BOverrideFactoryThresholdBinary.localMean = NativeLocalMean::new;

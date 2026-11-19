@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
 #include <random>
+#include <vector>
 #include "testing_utils.h"
 #include "boofcv/binary_ops.h"
 #include "variant_strict.h"
@@ -183,4 +184,39 @@ class ComputeOtsuTest : public boofcv::BoofCPPTest {};
 
 TEST_F(ComputeOtsuTest, ComputeOtsu) {
     // Test of the class ComputeOtsu is intentionally omitted. Done by comparing results to Java
+}
+
+class ComputeOtsuNonEmptyTest : public boofcv::BoofCPPTest {};
+
+/// Same results as ComputeOtsu on random histograms, sparse and dense
+TEST_F(ComputeOtsuNonEmptyTest, same_as_ComputeOtsu) {
+    std::mt19937 gen(0xBEEF);
+    for (uint32_t length : {1u, 2u, 10u, 256u, 1000u}) {
+        for (double fill : {0.02, 0.3, 1.0}) {
+            for (int trial = 0; trial < 20; trial++) {
+                GrowArray<uint32_t> histogram(length);
+                std::vector<uint32_t> bins, counts;
+                uint32_t total = 0;
+                for (uint32_t i = 0; i < length; i++) {
+                    histogram[i] = std::uniform_real_distribution<double>(0, 1)(gen) < fill ? gen()%1000 : 0;
+                    total += histogram[i];
+                    if (histogram[i] != 0) {
+                        bins.push_back(i);
+                        counts.push_back(histogram[i]);
+                    }
+                }
+                for (bool otsu2 : {true, false})
+                    for (double tuning : {0.0, 0.5, 2.0})
+                        for (bool down : {true, false})
+                            for (double scale : {0.95, 1.0, 1.5}) {
+                                ComputeOtsu expected(otsu2, tuning, down, scale);
+                                ComputeOtsuNonEmpty found(otsu2, tuning, down, scale);
+                                expected.compute(histogram, total);
+                                found.compute(bins.data(), counts.data(), (uint32_t)bins.size(), length, total);
+                                ASSERT_EQ(expected.threshold, found.threshold);
+                                ASSERT_EQ(expected.variance, found.variance);
+                            }
+            }
+        }
+    }
 }

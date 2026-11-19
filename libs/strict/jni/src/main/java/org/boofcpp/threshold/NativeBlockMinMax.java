@@ -4,9 +4,9 @@ import boofcv.struct.ConfigLength;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
 
-/// Native block min-max threshold. It isn't registered, since it isn't faster than BoofCV's Java code
+/// Native block min-max threshold, created by BoofCV's FactoryThresholdBinary through BOverrideFactoryThresholdBinary
 ///
-/// BOOFCPP_IGNORE true
+/// BOOFCPP_OVERRIDE BOverrideFactoryThresholdBinary.blockMinMax
 public class NativeBlockMinMax<T extends ImageGray<T>> extends NativeThresholdBase<T>
 {
     public NativeBlockMinMax(ConfigLength regionWidth, double scale , boolean down,
