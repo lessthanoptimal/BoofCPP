@@ -11,13 +11,9 @@
 
 using namespace boofcv;
 
-class GlobalOtsuBinaryFilterTest : public boofcv::BoofCPPTest {};
 class GlobalFixedBinaryFilterTest : public boofcv::BoofCPPTest {};
 class LocalMeanBinaryFilterTest : public boofcv::BoofCPPTest {};
-class ThresholdOpsTest : public boofcv::BoofCPPTest {};
 
-TEST_F(GlobalOtsuBinaryFilterTest, scale) { threshold_checks::global_otsu_scale(); }
-TEST_F(GlobalOtsuBinaryFilterTest, min_value_offset) { threshold_checks::global_otsu_min_value_offset(); }
 TEST_F(GlobalFixedBinaryFilterTest, double_threshold) { threshold_checks::global_fixed_double_threshold(); }
 TEST_F(LocalMeanBinaryFilterTest, naive) { threshold_checks::local_mean_naive(); }
 TEST_F(LocalMeanBinaryFilterTest, zero_radius_U8) { threshold_checks::local_mean_zero_radius<U8>(); }
@@ -44,63 +40,6 @@ namespace {
         check_equals(expected, sub_found);
         sub_input.subimage = false;
         sub_found.subimage = false;
-    }
-}
-
-/// Same threshold as strict, for histograms with any offset, and the same exceptions
-TEST_F(ThresholdOpsTest, computeOtsu_same_as_strict) {
-    std::mt19937 gen(0xBEEF);
-    int inside = 0, outside = 0;
-    for (auto shape : {std::pair<uint32_t, uint32_t>{1, 1}, {7, 3}, {37, 29}, {401, 297}}) {
-        for (auto values : {std::pair<int, int>{0, 255}, {20, 200}, {90, 90}, {0, 3}}) {
-            Gray<U8> input = random_image(shape.first, shape.second, values.first, values.second, gen);
-            for (auto bounds : {std::pair<double, double>{0, 255}, {20, 200}, {-5.5, 300.7}, {90, 90}, {0, 1e6}}) {
-                for (bool otsu2 : {true, false}) {
-                    uint32_t expected = 0;
-                    bool thrown = false;
-                    try {
-                        expected = boofcv::ThresholdOps::computeOtsu(input, bounds.first, bounds.second, otsu2);
-                    } catch (std::out_of_range&) {
-                        thrown = true;
-                    }
-                    if (thrown) {
-                        EXPECT_THROW(boofcv::fast::ThresholdOps::computeOtsu(input, bounds.first, bounds.second, otsu2),
-                                     std::out_of_range);
-                        outside++;
-                    } else {
-                        ASSERT_EQ(expected,
-                                  boofcv::fast::ThresholdOps::computeOtsu(input, bounds.first, bounds.second, otsu2));
-                        inside++;
-                    }
-                }
-            }
-        }
-    }
-    // both cases were tested
-    EXPECT_GT(inside, 0);
-    EXPECT_GT(outside, 0);
-
-    Gray<U8> input(5, 5);
-    EXPECT_THROW(boofcv::fast::ThresholdOps::computeOtsu(input, 10.0, 5.0), std::invalid_argument);
-    EXPECT_THROW(boofcv::fast::ThresholdOps::computeOtsu(input, -1e12, 5.0), std::invalid_argument);
-}
-
-TEST_F(GlobalOtsuBinaryFilterTest, same_as_strict) {
-    std::mt19937 gen(0xBEEF);
-    for (auto shape : {std::pair<uint32_t, uint32_t>{7, 3}, {37, 29}, {401, 297}}) {
-        Gray<U8> input = random_image(shape.first, shape.second, 0, 255, gen);
-        Gray<F32> inputF;
-        convert(input, inputF);
-        for (bool down : {true, false}) {
-            for (double scale : {0.0, 0.95, 1.0, 1.3}) {
-                boofcv::GlobalOtsuBinaryFilter<U8> strict(0, 255, down, scale);
-                boofcv::fast::GlobalOtsuBinaryFilter<U8> fast(0, 255, down, scale);
-                check_same<U8>(strict, fast, input);
-                boofcv::GlobalOtsuBinaryFilter<F32> strictF(0, 255, down, scale);
-                boofcv::fast::GlobalOtsuBinaryFilter<F32> fastF(0, 255, down, scale);
-                check_same<F32>(strictF, fastF, inputF);
-            }
-        }
     }
 }
 

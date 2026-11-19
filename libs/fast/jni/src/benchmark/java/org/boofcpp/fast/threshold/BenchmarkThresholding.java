@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 @Fork(value = 1)
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class BenchmarkThresholding {
-    @Param({"global_otsu", "local_mean", "block_mean", "block_mean_local", "block_otsu", "block_otsu_local",
+    @Param({"local_mean", "block_mean", "block_mean_local", "block_otsu", "block_otsu_local",
             "block_minmax", "block_minmax_local"})
     public String op;
 
@@ -64,9 +64,6 @@ public class BenchmarkThresholding {
         boolean down = true;
         boolean local = op.endsWith("_local");
         switch (op.replace("_local", "")) {
-            case "global_otsu":
-                return strictNative ? new org.boofcpp.threshold.NativeGlobalOtsu(0, 255, 1.0, down, type) :
-                        FactoryThresholdBinary.globalOtsu(0, 255, 1.0, down, type);
             case "local_mean":
                 return strictNative ? new org.boofcpp.threshold.NativeLocalMean(width, scale, down, type) :
                         FactoryThresholdBinary.localMean(width, scale, down, type);
