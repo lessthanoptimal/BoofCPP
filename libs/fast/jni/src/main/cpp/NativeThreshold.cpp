@@ -15,19 +15,19 @@ namespace {
     template<class Factory>
     void create( JNIEnv* env, jobject obj, Factory factory ) {
         jni_call(env, [&] {
-            jclass objClass = env->GetObjectClass(obj);
-            jboolean isInteger = env->GetBooleanField(obj, safe_GetFieldID(env, objClass, "isInteger", "Z"));
+            const NativeBaseFields& fields = NativeBaseFields::get(env);
+            jboolean isInteger = env->GetBooleanField(obj, fields.isInteger);
             jlong ptr = isInteger ? (jlong)factory(U8()) : (jlong)factory(F32());
-            env->SetLongField(obj, safe_GetFieldID(env, objClass, "nativePtr", "J"), ptr);
+            env->SetLongField(obj, fields.nativePtr, ptr);
         });
     }
 
     template<template<class> class Filter>
     void destroy( JNIEnv* env, jobject obj ) {
         jni_call(env, [&] {
-            jclass objClass = env->GetObjectClass(obj);
-            jboolean isInteger = env->GetBooleanField(obj, safe_GetFieldID(env, objClass, "isInteger", "Z"));
-            jlong nativePtr = env->GetLongField(obj, safe_GetFieldID(env, objClass, "nativePtr", "J"));
+            const NativeBaseFields& fields = NativeBaseFields::get(env);
+            jboolean isInteger = env->GetBooleanField(obj, fields.isInteger);
+            jlong nativePtr = env->GetLongField(obj, fields.nativePtr);
             if (isInteger)
                 delete (Filter<U8>*)nativePtr;
             else

@@ -11,9 +11,8 @@ extern "C" {
 JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeGlobalFixed_nativeinit(
     JNIEnv *env, jobject obj, jdouble threshold, jboolean down ) {
 
-    jclass objClass = env->GetObjectClass(obj);
-    jfieldID fid = env->GetFieldID(objClass, "isInteger", "Z");
-    jboolean isInteger = env->GetBooleanField(obj, fid);
+    const NativeBaseFields& fields = NativeBaseFields::get(env);
+    jboolean isInteger = env->GetBooleanField(obj, fields.isInteger);
 
     jlong ptr;
     if( isInteger ) {
@@ -21,17 +20,14 @@ JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeGlobalFixed_nativeinit(
     } else {
         ptr = (jlong)new GlobalFixedBinaryFilter<F32>((double)threshold, (bool)down);
     }
-    fid = env->GetFieldID(objClass, "nativePtr", "J");
-    env->SetLongField(obj, fid, ptr);
+    env->SetLongField(obj, fields.nativePtr, ptr);
 }
 
 JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeGlobalFixed_nativedestroy(JNIEnv *env, jobject obj) {
 
-    jclass objClass = env->GetObjectClass(obj);
-    jfieldID fid = env->GetFieldID(objClass, "isInteger", "Z");
-    jboolean isInteger = env->GetBooleanField(obj, fid);
-    fid = env->GetFieldID(objClass, "nativePtr", "J");
-    jlong nativePtr = env->GetLongField(obj, fid);
+    const NativeBaseFields& fields = NativeBaseFields::get(env);
+    jboolean isInteger = env->GetBooleanField(obj, fields.isInteger);
+    jlong nativePtr = env->GetLongField(obj, fields.nativePtr);
 
     if( isInteger ) {
         delete (GlobalFixedBinaryFilter<U8> *) nativePtr;

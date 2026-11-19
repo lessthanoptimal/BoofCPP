@@ -162,12 +162,19 @@ jmethodID safe_GetMethodID( JNIEnv *env, jclass& objClass, const char* name , co
 jdouble safe_GetDouble( JNIEnv *env, jclass& objClass, jobject& obj, const char* name );
 jint safe_GetInt( JNIEnv *env, jclass& objClass, jobject& obj, const char* name );
 
-/// The C++ object stored in the Java object's 'nativePtr' field
-template<class T>
-T* get_native_ptr( JNIEnv* env, jobject obj ) {
-    jclass cls = env->GetObjectClass(obj);
-    return (T*)env->GetLongField(obj, safe_GetFieldID(env, cls, "nativePtr", "J"));
-}
+/// Global reference to a Java class. It keeps the class loaded, so field and method IDs looked up from it stay valid.
+/// It's never deleted
+jclass global_class( JNIEnv* env, const char* name );
+
+/// Field 'name' of obj's class. Keeps the class loaded, so the ID can be stored and used with any object of that class
+jfieldID class_field_id( JNIEnv* env, jobject obj, const char* name, const char* type );
+
+/// Field IDs of org.boofcpp.NativeBase, looked up on the first call
+struct NativeBaseFields {
+    jfieldID nativePtr, isInteger, inputBits, outputBits;
+
+    static const NativeBaseFields& get( JNIEnv* env );
+};
 
 /// Java signature of a configuration that's a field inside another configuration. Specialize it when needed
 template<class C>

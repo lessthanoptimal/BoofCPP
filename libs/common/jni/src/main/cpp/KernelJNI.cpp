@@ -4,18 +4,15 @@
 using namespace boofcv;
 
 namespace {
-    /// Field IDs of a kernel class, looked up once. The global reference keeps the class loaded, and so the IDs valid
+    /// Field IDs of a kernel class, looked up once
     struct KernelClass {
         jclass cls;
         jfieldID width, offset, data;
 
-        KernelClass( JNIEnv* env, const char* name, const char* data_type ) {
-            jclass local = safe_FindClass(env, name);
-            width = safe_GetFieldID(env, local, "width", "I");
-            offset = safe_GetFieldID(env, local, "offset", "I");
-            data = safe_GetFieldID(env, local, "data", data_type);
-            cls = (jclass)env->NewGlobalRef(local);
-            env->DeleteLocalRef(local);
+        KernelClass( JNIEnv* env, const char* name, const char* data_type ) : cls(global_class(env, name)) {
+            width = safe_GetFieldID(env, cls, "width", "I");
+            offset = safe_GetFieldID(env, cls, "offset", "I");
+            data = safe_GetFieldID(env, cls, "data", data_type);
         }
     };
 

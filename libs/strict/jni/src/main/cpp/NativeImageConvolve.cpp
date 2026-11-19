@@ -30,11 +30,10 @@ BorderType borderJavaToCpp( int type ) {
 
 static void nativeHorizontal( JNIEnv *env, jobject obj, jobject jkernel, jobject jinput, jobject joutput, jint jborderType ) {
 
-    jclass objClass = env->GetObjectClass(obj);
-    jfieldID fid = env->GetFieldID(objClass, "isInteger", "Z");
-    jboolean isInteger = env->GetBooleanField(obj, fid);
-    jint inputBits = safe_GetInt(env,objClass,obj,"inputBits");
-    jint outputBits = safe_GetInt(env,objClass,obj,"outputBits");
+    const NativeBaseFields& fields = NativeBaseFields::get(env);
+    jboolean isInteger = env->GetBooleanField(obj, fields.isInteger);
+    jint inputBits = env->GetIntField(obj, fields.inputBits);
+    jint outputBits = env->GetIntField(obj, fields.outputBits);
 
     BorderType borderType = borderJavaToCpp((int)jborderType);
 
@@ -103,11 +102,10 @@ JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeConvolveImage_nativeHoriz
 
 static void nativeVertical( JNIEnv *env, jobject obj, jobject jkernel, jobject jinput, jobject joutput, jint jborderType ) {
 
-    jclass objClass = env->GetObjectClass(obj);
-    jfieldID fid = env->GetFieldID(objClass, "isInteger", "Z");
-    jboolean isInteger = env->GetBooleanField(obj, fid);
-    jint inputBits = safe_GetInt(env,objClass,obj,"inputBits");
-    jint outputBits = safe_GetInt(env,objClass,obj,"outputBits");
+    const NativeBaseFields& fields = NativeBaseFields::get(env);
+    jboolean isInteger = env->GetBooleanField(obj, fields.isInteger);
+    jint inputBits = env->GetIntField(obj, fields.inputBits);
+    jint outputBits = env->GetIntField(obj, fields.outputBits);
 
     BorderType borderType = borderJavaToCpp((int)jborderType);
 
@@ -170,11 +168,10 @@ JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeConvolveImage_nativeVerti
 
 static void nativeConvolve( JNIEnv *env, jobject obj, jobject jkernel, jobject jinput, jobject joutput, jint jborderType ) {
 
-   jclass objClass = env->GetObjectClass(obj);
-    jfieldID fid = env->GetFieldID(objClass, "isInteger", "Z");
-    jboolean isInteger = env->GetBooleanField(obj, fid);
-    jint inputBits = safe_GetInt(env,objClass,obj,"inputBits");
-    jint outputBits = safe_GetInt(env,objClass,obj,"outputBits");
+    const NativeBaseFields& fields = NativeBaseFields::get(env);
+    jboolean isInteger = env->GetBooleanField(obj, fields.isInteger);
+    jint inputBits = env->GetIntField(obj, fields.inputBits);
+    jint outputBits = env->GetIntField(obj, fields.outputBits);
 
     BorderType borderType = borderJavaToCpp((int)jborderType);
 
