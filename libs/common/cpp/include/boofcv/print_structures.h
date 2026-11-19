@@ -2,7 +2,8 @@
 #define BOOFCPP_PRINT_STRUCTURES_H
 
 #include <stdio.h>
-#include "boofcv/convolve.h"
+#include "boofcv/convolve_kernels.h"
+#include "boofcv/image_types.h"
 #include "boofcv/sanity_checks.h"
 
 namespace boofcv {

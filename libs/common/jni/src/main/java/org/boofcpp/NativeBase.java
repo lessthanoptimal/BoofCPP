@@ -1,6 +1,5 @@
 package org.boofcpp;
 
-import boofcv.abst.filter.binary.InputToBinary;
 import boofcv.struct.image.ImageGray;
 import boofcv.struct.image.ImageType;
 
