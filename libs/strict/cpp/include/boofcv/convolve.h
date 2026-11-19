@@ -320,13 +320,13 @@ namespace boofcv {
             if( fits_mean_divisor<E>(kernel, divisor) ) {
                 const MeanDivisor<E> mean((uint32_t)divisor);
                 if( mean.uses_multiply32() )
-                    horizontal_rows<W>(kernel, input, output, [&]( signed_type total ) {
+                    horizontal_rows<W>(kernel, input, output, [mean]( signed_type total ) {
                         return mean.multiply32((sum_type)total); });
                 else if( mean.uses_multiply() )
-                    horizontal_rows<W>(kernel, input, output, [&]( signed_type total ) {
+                    horizontal_rows<W>(kernel, input, output, [mean]( signed_type total ) {
                         return mean.multiply((sum_type)total); });
                 else
-                    horizontal_rows<W>(kernel, input, output, [&]( signed_type total ) { return mean((sum_type)total); });
+                    horizontal_rows<W>(kernel, input, output, [mean]( signed_type total ) { return mean((sum_type)total); });
             } else {
                 const signed_type halfDivisor = divisor/2;
                 horizontal_rows<W>(kernel, input, output, [=]( signed_type total ) {
@@ -387,8 +387,10 @@ namespace boofcv {
                         for( uint32_t x = 0; x < n; x++ )
                             totals[x] += src[x]*weight;
                     }
+                    // offset the pointer here: GCC doesn't vectorize an index of x0 + x
+                    R* out = output_row + x0;
                     for( uint32_t x = 0; x < n; x++ )
-                        output_row[x0 + x] = result(totals[x]);
+                        out[x] = result(totals[x]);
                 }
             }
         }
@@ -475,13 +477,13 @@ namespace boofcv {
             if( fits_mean_divisor<E>(kernel, divisor) ) {
                 const MeanDivisor<E> mean((uint32_t)divisor);
                 if( mean.uses_multiply32() )
-                    vertical_rows<W>(kernel, input, output, [&]( signed_type total ) {
+                    vertical_rows<W>(kernel, input, output, [mean]( signed_type total ) {
                         return mean.multiply32((sum_type)total); });
                 else if( mean.uses_multiply() )
-                    vertical_rows<W>(kernel, input, output, [&]( signed_type total ) {
+                    vertical_rows<W>(kernel, input, output, [mean]( signed_type total ) {
                         return mean.multiply((sum_type)total); });
                 else
-                    vertical_rows<W>(kernel, input, output, [&]( signed_type total ) { return mean((sum_type)total); });
+                    vertical_rows<W>(kernel, input, output, [mean]( signed_type total ) { return mean((sum_type)total); });
             } else {
                 const signed_type halfDivisor = divisor/2;
                 vertical_rows<W>(kernel, input, output, [=]( signed_type total ) {
@@ -518,8 +520,10 @@ namespace boofcv {
                         for( uint32_t x = 0; x < n; x++ )
                             totals[x] += row[x] * weight;
                     }
+                    // offset the pointer here: GCC doesn't vectorize an index of x0 + x
+                    R* out = output_ptr + x0;
                     for( uint32_t x = 0; x < n; x++ )
-                        output_ptr[x0 + x] = result(totals[x]);
+                        out[x] = result(totals[x]);
                 }
             }
         }
@@ -681,8 +685,10 @@ namespace boofcv {
                                 totals[x] += src[x]*weight;
                         }
                     }
+                    // offset the pointer here: GCC doesn't vectorize an index of x0 + x
+                    R* out = output_row + x0;
                     for( uint32_t x = 0; x < n; x++ )
-                        output_row[x0 + x] = result(totals[x]);
+                        out[x] = result(totals[x]);
                 }
             }
         }
