@@ -528,6 +528,35 @@ namespace boofcv {
             }
         }
 
+        /// Same as vertical_rows, with each pixel's sum kept in a register. W must be known at compile time. Faster for
+        /// floating point images with kernel widths 3 to 9; slower for wider kernels, where GCC no longer vectorizes
+        /// it, and for integer images
+        template<int W, class E, class R, class Result>
+        static void vertical_rows_registers( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
+                                             const Gray<E>& input, Gray<R>& output, Result result )
+        {
+            static_assert(W > 0, "kernel width must be known at compile time");
+            typedef typename TypeInfo<E>::signed_type signed_type;
+            signed_type weights[W];
+            for( int k = 0; k < W; k++ )
+                weights[k] = kernel.data[k];
+
+            int32_t yEnd = input.height-(W-kernel.offset-1);
+
+            for( int32_t y = kernel.offset; y < yEnd; y++ ) {
+                R* out = &output.data[output.offset+y*output.stride];
+                const E* rows[W];
+                for( int k = 0; k < W; k++ )
+                    rows[k] = &input.data[input.offset + (y-kernel.offset+k)*input.stride];
+                for( uint32_t x = 0; x < input.width; x++ ) {
+                    signed_type total = 0;
+                    for( int k = 0; k < W; k++ )
+                        total += rows[k][x] * weights[k];
+                    out[x] = result(total);
+                }
+            }
+        }
+
         /// Floating point convolution where each sum is divided by 'divisor'. W is the kernel's width, or 0 if it's
         /// only known at run time
         template<int W = 0, class E>
@@ -537,7 +566,11 @@ namespace boofcv {
                               typename std::enable_if<std::is_floating_point<E>::value >::type* = 0 )
         {
             typedef typename TypeInfo<E>::signed_type signed_type;
-            vertical_rows<W>(kernel, input, output, [=]( signed_type total ) { return (E)(total/divisor); });
+            auto result = [=]( signed_type total ) { return (E)(total/divisor); };
+            if constexpr( W >= 3 && W <= 9 )
+                vertical_rows_registers<W>(kernel, input, output, result);
+            else
+                vertical_rows<W>(kernel, input, output, result);
         }
 
         template<typename E, typename R>
@@ -561,7 +594,11 @@ namespace boofcv {
                               const Gray<E>& input, Gray<R>& output )
         {
             typedef typename TypeInfo<E>::signed_type signed_type;
-            vertical_rows<W>(kernel, input, output, []( signed_type total ) { return static_cast<R>(total); });
+            auto result = []( signed_type total ) { return static_cast<R>(total); };
+            if constexpr( std::is_floating_point<E>::value && W >= 3 && W <= 9 )
+                vertical_rows_registers<W>(kernel, input, output, result);
+            else
+                vertical_rows<W>(kernel, input, output, result);
         }
 
         template<class E>
