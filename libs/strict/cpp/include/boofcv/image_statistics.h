@@ -66,9 +66,13 @@ namespace boofcv {
         /// Histogram of pixel values. Bin i counts pixels equal to minValue + i, where minValue can be outside the
         /// pixel type's range, same as BoofCV's int. Throws std::out_of_range if a pixel doesn't have a bin, same as
         /// BoofCV. To avoid a branch per pixel, bins are clamped to one bin past the histogram, which is checked at
-        /// the end. For unsigned integers
+        /// the end, except for U8, see histogram_U8(). For unsigned integers
         template<class T, std::enable_if_t<std::is_integral_v<T> && std::is_unsigned_v<T>, int> = 0>
         static void histogram( const Gray<T>& input , int32_t minValue , GrowArray<uint32_t>& histogram ) {
+            if constexpr (std::is_same_v<T, U8>) {
+                histogram_U8(input, minValue, histogram);
+                return;
+            }
             // Unsigned 32-bit arithmetic gives value - minValue for every bin, and pixels below minValue wrap around
             // to values past the histogram
             using W = std::common_type_t<uint32_t, T>;
@@ -138,6 +142,38 @@ namespace boofcv {
                 histogram[i] = bins[i];
             }
             histogram[0] += nan;
+        }
+
+    private:
+        /// histogram() for U8. Pixels are counted in several histograms, so that repeated values don't wait on each
+        /// other, then the counts of each value are added up and moved to its bin
+        static void histogram_U8( const Gray<U8>& input, int32_t minValue, GrowArray<uint32_t>& histogram ) {
+            constexpr uint32_t COPIES = 4;
+            std::vector<uint32_t> copies(256*COPIES, 0);
+            uint32_t* h = copies.data();
+            const uint32_t width = input.width;
+            for( uint32_t y = 0; y < input.height; y++ ) {
+                const U8* row = &input.data[input.offset + y*input.stride];
+                uint32_t x = 0;
+                for( ; x + COPIES <= width; x += COPIES )
+                    for( uint32_t k = 0; k < COPIES; k++ )
+                        h[256*k + row[x + k]]++;
+                for( ; x < width; x++ )
+                    h[row[x]]++;
+            }
+
+            histogram.fill(0);
+            for( int32_t value = 0; value < 256; value++ ) {
+                uint32_t count = 0;
+                for( uint32_t k = 0; k < COPIES; k++ )
+                    count += h[256*k + value];
+                if( count == 0 )
+                    continue;
+                const int64_t bin = (int64_t)value - minValue;
+                if( bin < 0 || bin >= histogram.size )
+                    throw std::out_of_range("Pixel value outside of the histogram");
+                histogram[(uint32_t)bin] = count;
+            }
         }
     };
 }

@@ -173,3 +173,37 @@ TEST_F(ImageStatisticsTest, histogram_F32_outside) {
 TEST_F(ImageStatisticsTest, histogram_F64_outside) {
     check_histogram_float_outside<F64>();
 }
+
+/// U8 against a pixel by pixel count: widths that aren't a multiple of the 4 histogram copies, a sub-image, values
+/// from a few to all 256, and minValue below, at and above the smallest pixel
+TEST_F(ImageStatisticsTest, histogram_U8_counts) {
+    std::mt19937 gen(0xBEEF);
+    for( uint32_t width : {1u, 3u, 4u, 7u, 37u} ) {
+        for( auto values : {std::pair<int, int>{0, 255}, {20, 23}, {90, 90}} ) {
+            Gray<U8> parent(width + 3, 9);
+            ImageMiscOps::fill_uniform(parent, (U8)values.first, (U8)values.second, gen);
+            Gray<U8> image = parent.makeSubimage(1, 2, 1 + width, 9);
+            for( int32_t minValue : {-3, 0, values.first, values.first + 1} ) {
+                GrowArray<uint32_t> histogram(300);
+                std::vector<uint32_t> expected(300, 0);
+                bool outside = false;
+                for( uint32_t y = 0; y < image.height; y++ ) {
+                    for( uint32_t x = 0; x < image.width; x++ ) {
+                        const int32_t bin = image.at(x, y) - minValue;
+                        if( bin < 0 )
+                            outside = true;
+                        else
+                            expected[bin]++;
+                    }
+                }
+                if( outside ) {
+                    ASSERT_THROW(ImageStatistics::histogram(image, minValue, histogram), std::out_of_range);
+                    continue;
+                }
+                ImageStatistics::histogram(image, minValue, histogram);
+                for( uint32_t i = 0; i < 300; i++ )
+                    ASSERT_EQ(expected[i], histogram[i]) << width << " " << minValue << " " << i;
+            }
+        }
+    }
+}

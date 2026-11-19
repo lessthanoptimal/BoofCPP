@@ -37,23 +37,6 @@ namespace {
 }
 
 extern "C" {
-// Global Otsu
-JNIEXPORT void JNICALL Java_org_boofcpp_fast_threshold_NativeGlobalOtsu_nativeinit(
-        JNIEnv* env, jobject obj, jdouble minValue, jdouble maxValue, jdouble scale, jboolean down ) {
-    create(env, obj, [&]( auto pixel ) {
-        return new fast::GlobalOtsuBinaryFilter<decltype(pixel)>(minValue, maxValue, (bool)down, (double)scale);
-    });
-}
-
-JNIEXPORT void JNICALL Java_org_boofcpp_fast_threshold_NativeGlobalOtsu_nativedestroy( JNIEnv* env, jobject obj ) {
-    destroy<fast::GlobalOtsuBinaryFilter>(env, obj);
-}
-
-JNIEXPORT void JNICALL Java_org_boofcpp_fast_threshold_NativeGlobalOtsu_nativeprocess(
-        JNIEnv* env, jobject obj, jobject jinput, jobject joutput ) {
-    threshold_process<fast::GlobalOtsuBinaryFilter>(env, obj, jinput, joutput);
-}
-
 // Local mean
 JNIEXPORT void JNICALL Java_org_boofcpp_fast_threshold_NativeLocalMean_nativeinit(
         JNIEnv* env, jobject obj, jobject jregionWidth, jdouble scale, jboolean down ) {

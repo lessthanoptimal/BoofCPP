@@ -12,7 +12,6 @@ import org.boofcpp.fast.disparity.NativeDisparityBlockMatch;
 import org.boofcpp.fast.threshold.NativeBlockMean;
 import org.boofcpp.fast.threshold.NativeBlockMinMax;
 import org.boofcpp.fast.threshold.NativeBlockOtsu;
-import org.boofcpp.fast.threshold.NativeGlobalOtsu;
 import org.boofcpp.fast.threshold.NativeLocalMean;
 
 /// Fast's accuracy against BoofCV's Java code
@@ -23,7 +22,7 @@ public class Accuracy {
         AccuracyRecord.run("fast", BoofCPPFast.nativeBuildInfo(),
                 new MeanBlurAccuracy(new NativeImageBlurOps<>(null), GrayF32.class, GrayF64.class),
                 new DisparityAccuracy(NativeDisparityBlockMatch::create, GrayU8.class, GrayF32.class),
-                new ThresholdAccuracy(NativeGlobalOtsu::new, NativeLocalMean::new, NativeBlockMean::new,
+                new ThresholdAccuracy(null, NativeLocalMean::new, NativeBlockMean::new,
                         NativeBlockOtsu::new, NativeBlockMinMax::new, GrayU8.class, GrayF32.class));
     }
 }
