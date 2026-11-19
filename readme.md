@@ -152,32 +152,32 @@ They can also be run from IntelliJ with the JMH plugin.
 
 Example Results: Java/JNI Benchmark
 ```
-Benchmark                                     Mode  Cnt    Score    Error  Units
-BenchmarkThresholding.block_mean_java_U8      avgt    5   18.321 ±  0.244  ms/op
-BenchmarkThresholding.block_mean_native_U8    avgt    5   12.769 ±  0.479  ms/op
-BenchmarkThresholding.block_minmax_java_U8    avgt    5   19.762 ±  0.352  ms/op
-BenchmarkThresholding.block_minmax_native_U8  avgt    5   21.616 ±  0.122  ms/op
-BenchmarkThresholding.block_otsu_java_U8      avgt    5   48.116 ±  1.703  ms/op
-BenchmarkThresholding.block_otsu_native_U8    avgt    5   35.232 ±  0.266  ms/op
-BenchmarkThresholding.global_fixed_java_U8    avgt    5    9.888 ±  0.812  ms/op
-BenchmarkThresholding.global_fixed_native_U8  avgt    5    1.260 ±  0.151  ms/op
-BenchmarkThresholding.global_otsu_java_U8     avgt    5   21.899 ±  1.578  ms/op
-BenchmarkThresholding.global_otsu_native_U8   avgt    5   13.223 ±  1.488  ms/op
-BenchmarkThresholding.local_mean_java_U8      avgt    5  100.411 ± 21.708  ms/op
-BenchmarkThresholding.local_mean_native_U8    avgt    5   71.637 ±  2.955  ms/op
+Benchmark                                     Mode  Cnt   Score   Error  Units
+BenchmarkThresholding.block_mean_java_U8      avgt    5  15.746 ± 0.220  ms/op
+BenchmarkThresholding.block_mean_native_U8    avgt    5   2.570 ± 0.043  ms/op
+BenchmarkThresholding.block_minmax_java_U8    avgt    5  18.857 ± 0.085  ms/op
+BenchmarkThresholding.block_minmax_native_U8  avgt    5   1.363 ± 0.004  ms/op
+BenchmarkThresholding.block_otsu_java_U8      avgt    5  36.033 ± 1.305  ms/op
+BenchmarkThresholding.block_otsu_native_U8    avgt    5  11.561 ± 0.082  ms/op
+BenchmarkThresholding.global_fixed_java_U8    avgt    5   7.615 ± 0.195  ms/op
+BenchmarkThresholding.global_fixed_native_U8  avgt    5   0.606 ± 0.028  ms/op
+BenchmarkThresholding.global_otsu_java_F32    avgt    5  15.900 ± 0.980  ms/op
+BenchmarkThresholding.global_otsu_java_U8     avgt    5  15.291 ± 1.036  ms/op
+BenchmarkThresholding.global_otsu_native_F32  avgt    5  12.003 ± 0.158  ms/op
+BenchmarkThresholding.global_otsu_native_U8   avgt    5   4.971 ± 0.261  ms/op
+BenchmarkThresholding.local_mean_java_U8      avgt    5  47.901 ± 1.058  ms/op
+BenchmarkThresholding.local_mean_native_U8    avgt    5   8.906 ± 0.038  ms/op
 ```
 
 Example Results: C++ Benchmark
 ```
-        global_fixed time = 1.145900 (ms)
-         global_otsu time = 12.192900 (ms)
-          local_mean time = 64.670296 (ms)
-       block_min_max time = 20.870100 (ms)
-          block_mean time = 13.440100 (ms)
-          block_otsu time = 37.993999 (ms)
+        global_fixed time = 0.825200 (ms)
+         global_otsu time = 4.511800 (ms)
+          local_mean time = 9.113400 (ms)
+       block_min_max time = 1.408000 (ms)
+          block_mean time = 2.695900 (ms)
+          block_otsu time = 11.794299 (ms)
 ```
-NOTE: Most the performance difference between C++ and C++/JNI comes from being built as an application vs library.
-When built as an application the compiler can unroll loops and other optimizations much easier.
 
 # Accuracy
 

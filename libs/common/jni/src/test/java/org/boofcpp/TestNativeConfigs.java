@@ -21,6 +21,11 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /// Makes sure the C++ configurations have the same fields, enum values, and defaults as BoofCV's
 public class TestNativeConfigs extends BoofCPPStandardJUnit {
+    /// A null configuration is a Java exception, not a crash
+    @Test void nullConfigThrows() {
+        assertThrows(IllegalArgumentException.class, () -> NativeConfigs.roundTripLength(null, new ConfigLength()));
+    }
+
     @Test void configDisparityBM() throws Exception {
         checkConfig(ConfigDisparityBM.class, ConfigDisparityBM::new, NativeConfigs.fieldNamesBM(), Set.of(),
                 NativeConfigs::defaultsBM, NativeConfigs::roundTripBM);

@@ -2,13 +2,17 @@
 #define BOOFCPP_THRESHOLD_BLOCK_FILTERS_H
 
 #include <algorithm>
+#include <cstdint>
+#include <limits>
+#include <stdexcept>
+#include <type_traits>
+#include <vector>
 
 #include "boofcv/image_types.h"
 #include "boofcv/base_types.h"
 #include "boofcv/config_types.h"
 #include "boofcv/sanity_checks.h"
 #include "boofcv/binary_ops.h"
-#include "boofcv/image_misc_ops.h"
 
 namespace boofcv
 {
@@ -27,249 +31,220 @@ namespace boofcv
      *
      * <p>The block based approach used here was inspired by a high level description found in AprilTags.</p>
      *
-     * @tparam T Type of input image.
-     * @tparam S Type of image used to store statistics.
+     * Statistics are computed one row of blocks at a time, then that row of blocks is thresholded while its pixels
+     * are still in cache, one image row at a time with a threshold per column. With the local 3x3 region a row of
+     * blocks is thresholded once the next one has its statistics.
+     *
+     * @tparam E Type of the input image's pixels.
      *
      * @author Peter Abeles
      */
-    template<class T, class S>
-    class ThresholdBlockCommon : public InputToBinary<T>{
-    public: // NOTE: These would be protected but C++ doesn't make it easy to test protected data structures
-        // Stores computed block statistics
-        S stats;
-
-        // the desired width and height of a block requested by the user
+    template<class E>
+    class ThresholdBlockCommon : public InputToBinary<Gray<E>> {
+    public:
         ConfigLength requestedBlockWidth;
-
-        // the adjusted size to minimize extra pixels near the image upper extreme
-        uint32_t blockWidth,blockHeight;
-
-        // Should it use the local 3x3 block region
         bool thresholdFromLocalBlocks;
 
-    public:
-        /**
-         * Configures the detector
-         * @param requestedBlockWidth About how wide and tall you wish a block to be in pixels.
-         */
-        ThresholdBlockCommon(const ConfigLength& requestedBlockWidth, bool thresholdFromLocalBlocks ) {
-            this->requestedBlockWidth = requestedBlockWidth;
-            this->thresholdFromLocalBlocks = thresholdFromLocalBlocks;
-            this->blockWidth = 0;
-            this->blockHeight = 0;
-        }
+        /// Size of a block and the number of blocks along x and y. Set by process()
+        uint32_t blockWidth = 0, blockHeight = 0;
+        uint32_t blocksX = 0, blocksY = 0;
 
-        virtual ~ThresholdBlockCommon() = default;
+        ThresholdBlockCommon( const ConfigLength& requestedBlockWidth, bool thresholdFromLocalBlocks )
+                : requestedBlockWidth(requestedBlockWidth), thresholdFromLocalBlocks(thresholdFromLocalBlocks) {}
 
-        /**
-         * Converts the gray scale input image into a binary image
-         * @param input Input image
-         * @param output Output binary image
-         */
-        void process(const T& input , Gray<U8>& output ) {
-            checkSameShape(input,output);
+        void process( const Gray<E>& input, Gray<U8>& output ) override {
+            checkSameShape(input, output);
 
-            auto requestedBlockWidth = (uint32_t)this->requestedBlockWidth.computeI( std::min(input.width,input.height));
-            if( input.width < requestedBlockWidth || input.height < requestedBlockWidth ) {
-                throw invalid_argument("Image is smaller than block size");
+            auto requested = (uint32_t)requestedBlockWidth.computeI(std::min(input.width, input.height));
+            if (input.width < requested || input.height < requested)
+                throw std::invalid_argument("Image is smaller than block size");
+            if (requested == 0)
+                throw std::invalid_argument("Block width must be at least 1");
+
+            selectBlockSize(input.width, input.height, requested);
+            blocksX = input.width/blockWidth;
+            blocksY = input.height/blockHeight;
+
+            begin(input.width);
+            for (uint32_t by = 0; by < blocksY; by++) {
+                statistics(input, by);
+                if (!thresholdFromLocalBlocks)
+                    threshold_rows(input, output, by);
+                else if (by > 0)
+                    threshold_rows(input, output, by - 1);
             }
-
-            selectBlockSize(input.width,input.height,(uint32_t)requestedBlockWidth);
-
-            this->stats.reshape(input.width/blockWidth,input.height/blockHeight);
-
-            uint32_t innerWidth = input.width%blockWidth == 0 ?
-                                input.width : input.width-blockWidth-(input.width%blockWidth);
-            uint32_t innerHeight = input.height%blockHeight == 0 ?
-                                input.height : input.height-blockHeight-(input.height%blockHeight);
-
-            computeStatistics(input, innerWidth, innerHeight);
-            applyThreshold(input,output);
+            if (thresholdFromLocalBlocks)
+                threshold_rows(input, output, blocksY - 1);
         }
 
-        /**
-         * Selects a block size which is close to the requested block size by the user
-         */
-        void selectBlockSize( uint32_t width , uint32_t height , uint32_t requestedBlockWidth) {
-
-            uint32_t rows = height/requestedBlockWidth;
-            uint32_t cols = width/requestedBlockWidth;
-
-            blockHeight = height/rows;
-            blockWidth = width/cols;
+        /// Selects a block size which is close to the requested block size, so that the last block in each row and
+        /// column doesn't have many more pixels than the others
+        void selectBlockSize( uint32_t width, uint32_t height, uint32_t requestedBlockWidth ) {
+            blockHeight = height/(height/requestedBlockWidth);
+            blockWidth = width/(width/requestedBlockWidth);
         }
 
-        /**
-         * Applies the dynamically computed threshold to each pixel in the image, one block at a time
-         */
-        void applyThreshold( const T& input, Gray<U8>& output ) {
-            for (uint32_t blockY = 0; blockY < stats.height; blockY++) {
-                for (uint32_t blockX = 0; blockX < stats.width; blockX++) {
-                    thresholdBlock(blockX,blockY,input,output);
-                }
-            }
-        }
+        bool isThresholdFromLocalBlocks() const { return thresholdFromLocalBlocks; }
 
-        /**
-         * Computes the min-max value for each block in the image
-         */
-        virtual void computeStatistics( const T& input, uint32_t innerWidth, uint32_t innerHeight) {
-            int statPixelStride = stats.num_bands;
-
-            uint32_t indexStats = 0;
-            for (uint32_t y = 0; y < innerHeight; y += blockHeight) {
-                for (uint32_t x = 0; x < innerWidth; x += blockWidth, indexStats += statPixelStride) {
-                    computeBlockStatistics(x,y,blockWidth,blockHeight,indexStats,input);
-                }
-                // handle the case where the image's width isn't evenly divisible by the block's width
-                if( innerWidth != input.width ) {
-                    computeBlockStatistics(innerWidth,y,input.width-innerWidth,blockHeight,indexStats,input);
-                    indexStats += statPixelStride;
-                }
-            }
-            // handle the case where the image's height isn't evenly divisible by the block's height
-            if( innerHeight != input.height ) {
-                uint32_t y = innerHeight;
-                uint32_t blockHeight = input.height-innerHeight;
-                for (uint32_t x = 0; x < innerWidth; x += blockWidth, indexStats += statPixelStride) {
-                    computeBlockStatistics(x,y,blockWidth,blockHeight,indexStats,input);
-                }
-                if( innerWidth != input.width ) {
-                    computeBlockStatistics(innerWidth,y,input.width-innerWidth,blockHeight,indexStats,input);
-                }
-            }
-        }
-
-        /**
-         * Computes the min-max value inside a block
-         * @param x0 lower bound pixel value of block, x-axis
-         * @param y0 upper bound pixel value of block, y-axis
-         * @param width Block's width
-         * @param height Block's height
-         * @param indexStats array index of statistics image pixel
-         * @param input Input image
-         */
-        virtual void computeBlockStatistics(uint32_t x0 , uint32_t y0 ,
-                                            uint32_t width , uint32_t height ,
-                                            uint32_t indexStats , const T& input) = 0;
-
-        /**
-         * Thresholds all the pixels inside the specified block
-         * @param blockX0 Block x-coordinate
-         * @param blockY0 Block y-coordinate
-         * @param input Input image
-         * @param output Output image
-         */
-        virtual void thresholdBlock(uint32_t blockX0 , uint32_t blockY0 , const T& input, Gray<U8>& output ) = 0;
-
-        bool isThresholdFromLocalBlocks() {
-            return thresholdFromLocalBlocks;
-        }
-
-        void setThresholdFromLocalBlocks(bool thresholdFromLocalBlocks) {
+        void setThresholdFromLocalBlocks( bool thresholdFromLocalBlocks ) {
             this->thresholdFromLocalBlocks = thresholdFromLocalBlocks;
         }
+
+    protected:
+        uint32_t block_x0( uint32_t bx ) const { return bx*blockWidth; }
+        uint32_t block_x1( uint32_t bx, uint32_t width ) const { return bx == blocksX - 1 ? width : (bx + 1)*blockWidth; }
+        uint32_t block_y0( uint32_t by ) const { return by*blockHeight; }
+        uint32_t block_y1( uint32_t by, uint32_t height ) const {
+            return by == blocksY - 1 ? height : (by + 1)*blockHeight;
+        }
+
+        /// Blocks [bx0, bx1] x [by0, by1] whose statistics give block (bx, by)'s threshold
+        void region( uint32_t bx, uint32_t by, uint32_t& bx0, uint32_t& by0, uint32_t& bx1, uint32_t& by1 ) const {
+            if (thresholdFromLocalBlocks) {
+                bx0 = bx > 0 ? bx - 1 : 0;
+                by0 = by > 0 ? by - 1 : 0;
+                bx1 = std::min(blocksX - 1, bx + 1);
+                by1 = std::min(blocksY - 1, by + 1);
+            } else {
+                bx0 = bx1 = bx;
+                by0 = by1 = by;
+            }
+        }
+
+        /// Allocates storage for an image this wide, with the block sizes already selected
+        virtual void begin( uint32_t width ) = 0;
+
+        /// Statistics of every block in row 'by'
+        virtual void statistics( const Gray<E>& input, uint32_t by ) = 0;
+
+        /// Thresholds every pixel in the row of blocks 'by'
+        virtual void threshold_rows( const Gray<E>& input, Gray<U8>& output, uint32_t by ) = 0;
     };
 
     /**
      * <p>
      * Applies a threshold to an image by computing the mean values in a regular grid across
      * the image.  When thresholding all the pixels inside a box (grid element) the mean values is found
-     * in the surrounding 3x3 grid region.\
+     * in the surrounding 3x3 grid region.
      * </p>
      *
      * <p>See {@link ThresholdBlockMinMax} for a more detailed discussion of elements of this strategy</p>
      *
+     * Each block's mean is computed in BoofCV's order. For floats, eight blocks are summed at once so their adds
+     * overlap.
+     *
      * @author Peter Abeles
      */
     template<class E>
-    class ThresholdBlockMean : public ThresholdBlockCommon<Gray<E>,Interleaved<E>>
-    {
+    class ThresholdBlockMean : public ThresholdBlockCommon<E> {
     public:
-        float scale; // in the java version U8 uses double and F32 uses float. using double causes slight diff in float results
+        using sum_type = typename TypeInfo<E>::sum_type;
+
+        // in the java version U8 uses double and F32 uses float. using double causes slight diff in float results
+        float scale;
         bool down;
 
-        ThresholdBlockMean(const ConfigLength &requestedBlockWidth, bool thresholdFromLocalBlocks,
-                           double scale , bool down)
-                : ThresholdBlockCommon<Gray<E>,Interleaved<E>>(requestedBlockWidth, thresholdFromLocalBlocks) {
-            this->scale = (float)scale;
-            this->down = down;
-            this->stats.setNumberOfBands(1);
+        ThresholdBlockMean( const ConfigLength& requestedBlockWidth, bool thresholdFromLocalBlocks, double scale,
+                            bool down )
+                : ThresholdBlockCommon<E>(requestedBlockWidth, thresholdFromLocalBlocks), scale((float)scale),
+                  down(down) {}
+
+    protected:
+        std::vector<sum_type> sums;
+        std::vector<E> means;
+        std::vector<E> column;
+
+        void begin( uint32_t width ) override {
+            sums.resize(this->blocksX);
+            means.resize(this->blocksX*this->blocksY);
+            column.resize(width);
         }
 
-        virtual ~ThresholdBlockMean() = default;
-
-        void thresholdBlock(uint32_t blockX0 , uint32_t blockY0 , const Gray<E>& input, Gray<U8>& output ) override {
-
-            uint32_t x0 = blockX0*this->blockWidth;
-            uint32_t y0 = blockY0*this->blockHeight;
-
-            uint32_t x1 = blockX0==this->stats.width-1 ? input.width : (blockX0+1)*this->blockWidth;
-            uint32_t y1 = blockY0==this->stats.height-1 ? input.height: (blockY0+1)*this->blockHeight;
-
-            // define the local 3x3 region in blocks, taking in account the image border
-            uint32_t blockX1, blockY1;
-            if(this->thresholdFromLocalBlocks) {
-                blockX1 = std::min(this->stats.width - 1, blockX0 + 1);
-                blockY1 = std::min(this->stats.height - 1, blockY0 + 1);
-
-                blockX0 = blockX0 > 0 ? blockX0 - 1 : 0;
-                blockY0 = blockY0 > 0 ? blockY0 - 1 : 0;
-            } else {
-                blockX1 = blockX0;
-                blockY1 = blockY0;
-            }
-
-            // Average the mean across local blocks
-            typename TypeInfo<E>::sum_type sum = 0;
-
-            for (uint32_t y = blockY0; y <= blockY1; y++) {
-                for (uint32_t x = blockX0; x <= blockX1; x++) {
-                    sum += this->stats.unsafe_at(x,y,0);
-                }
-            }
-            E mean = sum/((blockY1-blockY0+1)*(blockX1-blockX0+1));
-
-            // apply threshold
+        void statistics( const Gray<E>& input, uint32_t by ) override {
+            const uint32_t blocks = this->blocksX, block_width = this->blockWidth, width = input.width;
+            const uint32_t y0 = this->block_y0(by), y1 = this->block_y1(by, input.height);
+            sum_type* s = sums.data();
+            std::fill(s, s + blocks, (sum_type)0);
             for (uint32_t y = y0; y < y1; y++) {
-//                uint32_t indexInput = input.offset + y*input.stride + x0;
-//                uint32_t indexOutput = output.offset + y*output.stride + x0;
-//                uint32_t end = indexOutput + (x1-x0);
-//                for (; indexOutput < end; indexOutput++, indexInput++ ) {
-//                    output.data[indexOutput] = (U8)(down == (input.data[indexInput] <= mean));
-//                }
-                E* inptr = &input.data[input.offset + y*input.stride + x0];
-                U8* outptr = &output.data[output.offset + y*output.stride + x0];
-                E* end = &inptr[x1-x0];
-
-                while( inptr != end ) {
-                    *outptr++ = static_cast<U8>(down == (*inptr++ <= mean));
+                const E* row = &input.data[input.offset + y*input.stride];
+                if constexpr (std::is_integral_v<E>) {
+                    for (uint32_t bx = 0; bx < blocks; bx++) {
+                        const uint32_t x1 = this->block_x1(bx, width);
+                        sum_type total = 0;
+                        for (uint32_t x = this->block_x0(bx); x < x1; x++)
+                            total += row[x];
+                        s[bx] += total;
+                    }
+                } else {
+                    sum_float_row(row, s, blocks, block_width, width);
                 }
+            }
+            for (uint32_t bx = 0; bx < blocks; bx++) {
+                const uint32_t area = (this->block_x1(bx, width) - this->block_x0(bx))*(y1 - y0);
+                sum_type sum = s[bx];
+                if constexpr (std::is_integral_v<E>)
+                    sum = static_cast<sum_type>(scale*sum/area + 0.5f);
+                else
+                    sum = static_cast<sum_type>(scale*sum/area);
+                means[by*blocks + bx] = static_cast<E>(sum);
             }
         }
 
-        void computeBlockStatistics(uint32_t x0, uint32_t y0, uint32_t width, uint32_t height, uint32_t indexStats,
-                                    const Gray<E>& input) override {
-            typedef typename TypeInfo<E>::sum_type sum_type;
-            sum_type sum = 0;
+        /// Adds a row's pixels to each block's sum, one pixel after another as BoofCV does. The last block also covers
+        /// the pixels after the other blocks
+        static void sum_float_row( const E* row, sum_type* s, uint32_t blocks, uint32_t block_width, uint32_t width ) {
+            const uint32_t last = blocks - 1;
+            uint32_t bx = 0;
+            for (; bx + 8 <= last; bx += 8) {
+                const E* r = row + bx*block_width;
+                sum_type s0 = s[bx], s1 = s[bx + 1], s2 = s[bx + 2], s3 = s[bx + 3];
+                sum_type s4 = s[bx + 4], s5 = s[bx + 5], s6 = s[bx + 6], s7 = s[bx + 7];
+                for (uint32_t x = 0; x < block_width; x++) {
+                    s0 += r[x];
+                    s1 += r[block_width + x];
+                    s2 += r[2*block_width + x];
+                    s3 += r[3*block_width + x];
+                    s4 += r[4*block_width + x];
+                    s5 += r[5*block_width + x];
+                    s6 += r[6*block_width + x];
+                    s7 += r[7*block_width + x];
+                }
+                s[bx] = s0; s[bx + 1] = s1; s[bx + 2] = s2; s[bx + 3] = s3;
+                s[bx + 4] = s4; s[bx + 5] = s5; s[bx + 6] = s6; s[bx + 7] = s7;
+            }
+            for (; bx < last; bx++) {
+                const E* r = row + bx*block_width;
+                for (uint32_t x = 0; x < block_width; x++)
+                    s[bx] += r[x];
+            }
+            for (uint32_t x = last*block_width; x < width; x++)
+                s[last] += row[x];
+        }
 
-            for (uint32_t y = 0; y < height; y++) {
-//                int indexInput = input.offset + (y0+y)*input.stride + x0;
-//                for (int x = 0; x < width; x++) {
-//                    sum += input.data[indexInput++];
-//                }
-                E* ptr = &input.data[input.offset + (y0+y)*input.stride + x0];
-                E* end = &ptr[width];
-                while( ptr != end ) {
-                    sum += *ptr++;
+        void threshold_rows( const Gray<E>& input, Gray<U8>& output, uint32_t by ) override {
+            const uint32_t width = input.width;
+            E* threshold = column.data();
+            for (uint32_t bx = 0; bx < this->blocksX; bx++) {
+                uint32_t bx0, by0, bx1, by1;
+                this->region(bx, by, bx0, by0, bx1, by1);
+                sum_type sum = 0;
+                for (uint32_t y = by0; y <= by1; y++)
+                    for (uint32_t x = bx0; x <= bx1; x++)
+                        sum += means[y*this->blocksX + x];
+                const E mean = sum/((by1 - by0 + 1)*(bx1 - bx0 + 1));
+                std::fill(threshold + this->block_x0(bx), threshold + this->block_x1(bx, width), mean);
+            }
+            for (uint32_t y = this->block_y0(by); y < this->block_y1(by, input.height); y++) {
+                const E* in = &input.data[input.offset + y*input.stride];
+                U8* out = &output.data[output.offset + y*output.stride];
+                if (down) {
+                    for (uint32_t x = 0; x < width; x++)
+                        out[x] = static_cast<U8>(in[x] <= threshold[x]);
+                } else {
+                    for (uint32_t x = 0; x < width; x++)
+                        out[x] = static_cast<U8>(!(in[x] <= threshold[x]));
                 }
             }
-            if( std::numeric_limits<sum_type>::is_integer )
-                sum = static_cast<sum_type>(scale*sum/(width*height)+0.5f);
-            else {
-                sum = static_cast<sum_type>(scale*sum/(width*height));
-            }
-            this->stats.data[indexStats] = static_cast<E>(sum);
         }
     };
 
@@ -283,121 +258,144 @@ namespace boofcv
      * <p>NOTE: This produces visually different results from {@link ThresholdBlockOtsu} because the block algorithm
      * combines histograms from its neighboring blocks. That's why it appears to have a wider effective block.</p>
      *
+     * Pixels are converted to U8, as BoofCV does. Histograms are filled one image row at a time into several copies,
+     * so that repeated values don't wait on each other, and Otsu's method only visits the histogram's non-empty bins.
+     * Only the rows of blocks the local region needs are kept.
+     *
      * @see GThresholdImageOps#computeOtsu(ImageGray, double, double)
      *
      * @author Peter Abeles
      */
     template<class E>
-    class ThresholdBlockOtsu : public ThresholdBlockCommon<Gray<E>,Interleaved<S32>> {
+    class ThresholdBlockOtsu : public ThresholdBlockCommon<E> {
     public:
-
-        GrowArray<uint32_t> histogram;
-
-        ComputeOtsu otsu;
+        ComputeOtsuNonEmpty otsu;
 
         /**
-         * Configures the detector
-         *
          * @param requestedBlockWidth About how wide and tall you wish a block to be in pixels.
          * @param tuning Tuning parameter. 0 = standard Otsu. Greater than 0 will penalize zero texture.
          */
-         ThresholdBlockOtsu(bool otsu2, ConfigLength requestedBlockWidth, double tuning, double scale, bool down,
+        ThresholdBlockOtsu( bool otsu2, ConfigLength requestedBlockWidth, double tuning, double scale, bool down,
                             bool thresholdFromLocalBlocks )
-                 : ThresholdBlockCommon<Gray<E>,Interleaved<S32>>(requestedBlockWidth, thresholdFromLocalBlocks),
-                   histogram(256) , otsu(otsu2,tuning,down,scale)
-        {
-            this->stats.setNumberOfBands(256);
+                : ThresholdBlockCommon<E>(requestedBlockWidth, thresholdFromLocalBlocks),
+                  otsu(otsu2, tuning, down, scale) {}
+
+    protected:
+        /// Copies of each histogram while it's being filled
+        static constexpr uint32_t COPIES = std::is_same_v<E, U8> ? 2 : 4;
+        /// Rows of blocks kept: the one being filled and the two before it
+        static constexpr uint32_t ROWS = 3;
+
+        std::vector<uint32_t> histograms;  // 256 bins per block for ROWS rows of blocks
+        std::vector<uint32_t> copies;      // 256*COPIES bins per block for one row of blocks
+        std::vector<U8> bytes;             // a row of pixels converted to U8
+        std::vector<int16_t> column;       // threshold per column
+        uint32_t histogram[256], bins[256], counts[256];
+
+        void begin( uint32_t width ) override {
+            histograms.resize(ROWS*this->blocksX*256);
+            copies.assign(this->blocksX*256*COPIES, 0);
+            if constexpr (!std::is_same_v<E, U8>)
+                bytes.resize(width);
+            column.resize(width);
         }
 
-        void computeStatistics( const Gray<E>& input, uint32_t innerWidth, uint32_t innerHeight) override {
-            ImageMiscOps::fill(this->stats,0);
-            ThresholdBlockCommon<Gray<E>,Interleaved<S32>>::computeStatistics(input,innerWidth,innerHeight);
+        uint32_t* block_histogram( uint32_t bx, uint32_t by ) {
+            return &histograms[((by%ROWS)*this->blocksX + bx)*256];
         }
 
-        void computeBlockStatistics(uint32_t x0, uint32_t y0, uint32_t width, uint32_t height, uint32_t indexStats,
-                                    const Gray<E>& input) override
-        {
-            S32* stats_ptr = &this->stats.data[indexStats];
-            for (uint32_t y = 0; y < height; y++) {
-//                uint32_t indexInput = input.offset + (y0+y)*input.stride + x0;
-//                for (uint32_t x = 0; x < width; x++) {
-//                    this->stats.data[indexStats+static_cast<int>(input.data[indexInput++])]++;
-//                }
-
-                E* input_ptr = &input.data[input.offset + (y0+y)*input.stride + x0];
-                E* end = &input_ptr[width];
-                while( input_ptr != end ) {
-                    stats_ptr[U8(*input_ptr++)]++;
+        void statistics( const Gray<E>& input, uint32_t by ) override {
+            const uint32_t blocks = this->blocksX, width = input.width;
+            for (uint32_t y = this->block_y0(by); y < this->block_y1(by, input.height); y++) {
+                const U8* row;
+                if constexpr (std::is_same_v<E, U8>) {
+                    row = &input.data[input.offset + y*input.stride];
+                } else {
+                    const E* in = &input.data[input.offset + y*input.stride];
+                    U8* b = bytes.data();
+                    for (uint32_t x = 0; x < width; x++)
+                        b[x] = U8(in[x]);
+                    row = b;
+                }
+                for (uint32_t bx = 0; bx < blocks; bx++) {
+                    uint32_t* h = &copies[bx*256*COPIES];
+                    const uint32_t x1 = this->block_x1(bx, width);
+                    uint32_t x = this->block_x0(bx);
+                    for (; x + COPIES <= x1; x += COPIES)
+                        for (uint32_t k = 0; k < COPIES; k++)
+                            h[256*k + row[x + k]]++;
+                    for (; x < x1; x++)
+                        h[row[x]]++;
+                }
+            }
+            for (uint32_t bx = 0; bx < blocks; bx++) {
+                uint32_t* h = &copies[bx*256*COPIES];
+                uint32_t* merged = block_histogram(bx, by);
+                for (uint32_t i = 0; i < 256; i++) {
+                    uint32_t total = 0;
+                    for (uint32_t k = 0; k < COPIES; k++) {
+                        total += h[256*k + i];
+                        h[256*k + i] = 0;
+                    }
+                    merged[i] = total;
                 }
             }
         }
 
-        void thresholdBlock(uint32_t blockX0 , uint32_t blockY0 , const Gray<E>& input, Gray<U8>& output ) override
-        {
-            uint32_t x0 = blockX0*this->blockWidth;
-            uint32_t y0 = blockY0*this->blockHeight;
-
-            uint32_t x1 = blockX0 == this->stats.width-1  ? input.width : (blockX0+1)*this->blockWidth;
-            uint32_t y1 = blockY0 == this->stats.height-1 ? input.height: (blockY0+1)*this->blockHeight;
-
-            // define the local 3x3 region in blocks, taking in account the image border
-            uint32_t blockX1, blockY1;
-            if(this->thresholdFromLocalBlocks) {
-                blockX1 = std::min(this->stats.width  - 1, blockX0 + 1);
-                blockY1 = std::min(this->stats.height - 1, blockY0 + 1);
-
-                blockX0 = blockX0 > 0 ? blockX0 - 1 : 0;
-                blockY0 = blockY0 > 0 ? blockY0 - 1 : 0;
-            } else {
-                blockX1 = blockX0;
-                blockY1 = blockY0;
-            }
-
-            // sum up histogram in local region
-            histogram.fill(0);
-
-            for (uint32_t y = blockY0; y <= blockY1; y++) {
-//                for (uint32_t x = blockX0; x <= blockX1; x++) {
-//                    int indexStats = this->stats.index_of(x,y,0);
-//                    for (int i = 0; i < histogram.size; i++) {
-//                        histogram[i] += this->stats.data[indexStats+i];
-//                    }
-//                }
-                S32* stats_ptr = &this->stats.data[this->stats.index_of(blockX0,y,0)];
-                for (uint32_t x = blockX0; x <= blockX1; x++) {
-                    for (uint32_t i = 0; i < histogram.size; i++) {
-                        histogram[i] += *stats_ptr++;
+        void threshold_rows( const Gray<E>& input, Gray<U8>& output, uint32_t by ) override {
+            const uint32_t width = input.width;
+            int16_t* threshold = column.data();
+            for (uint32_t bx = 0; bx < this->blocksX; bx++) {
+                uint32_t bx0, by0, bx1, by1;
+                this->region(bx, by, bx0, by0, bx1, by1);
+                std::fill(histogram, histogram + 256, 0);
+                for (uint32_t y = by0; y <= by1; y++) {
+                    for (uint32_t x = bx0; x <= bx1; x++) {
+                        const uint32_t* h = block_histogram(x, y);
+                        for (uint32_t i = 0; i < 256; i++)
+                            histogram[i] += h[i];
                     }
                 }
+                uint32_t n = 0, total = 0;
+                for (uint32_t i = 0; i < 256; i++) {
+                    bins[n] = i;
+                    counts[n] = histogram[i];
+                    total += histogram[i];
+                    n += histogram[i] != 0;
+                }
+                otsu.compute(bins, counts, n, 256, total);
+                // The threshold is a whole number, so comparing a pixel with it as an integer is the same
+                const auto t = (int16_t)std::min(256.0, std::max(-1.0, otsu.threshold));
+                std::fill(threshold + this->block_x0(bx), threshold + this->block_x1(bx, width), t);
             }
-
-            // this can vary across the image at the borders
-            uint32_t total = 0;
-            for (uint32_t i = 0; i < histogram.size; i++) {
-                total += histogram[i];
-            }
-
-            // compute threshold
-            otsu.compute(histogram,total);
-
-            for (uint32_t y = y0; y < y1; y++) {
-                uint32_t indexInput = input.offset + y*input.stride + x0;
-                uint32_t indexOutput = output.offset + y*output.stride + x0;
-                uint32_t end = indexOutput + (x1-x0);
-                for (; indexOutput < end; indexOutput++, indexInput++ ) {
-                    output.data[indexOutput] = static_cast<U8>(otsu.down == ((U8)(input.data[indexInput]) <= otsu.threshold));
-                    // TODO make this more efficient for floats.
-                    //      is it possible to avoid converting it to an int twice? once here and once above
-                    //      java version convert it into a U8 image and doesn't support float directly
+            for (uint32_t y = this->block_y0(by); y < this->block_y1(by, input.height); y++) {
+                const E* in = &input.data[input.offset + y*input.stride];
+                U8* out = &output.data[output.offset + y*output.stride];
+                if (otsu.down) {
+                    for (uint32_t x = 0; x < width; x++)
+                        out[x] = static_cast<U8>((int16_t)(U8)in[x] <= threshold[x]);
+                } else {
+                    for (uint32_t x = 0; x < width; x++)
+                        out[x] = static_cast<U8>((int16_t)(U8)in[x] > threshold[x]);
                 }
             }
         }
     };
 
+    /**
+     * Applies a threshold to an image from the minimum and maximum values in a regular grid across the image. The
+     * threshold of a block is the scaled average of the minimum and maximum in its local 3x3 region. See
+     * ThresholdBlockCommon.
+     *
+     * The minimum and maximum of each column over a row of blocks vectorize, then give each block's. Like BoofCV, NaN
+     * is ignored unless it's a block's first pixel.
+     *
+     * @author Peter Abeles
+     */
     template<class E>
-    class ThresholdBlockMinMax : public ThresholdBlockCommon<Gray<E>,Interleaved<E>> {
+    class ThresholdBlockMinMax : public ThresholdBlockCommon<E> {
     public:
-        typedef typename TypeInfo<E>::sum_type sum_type;
+        using sum_type = typename TypeInfo<E>::sum_type;
 
         // if the min and max value's difference is <= to this value then it is considered
         // to be textureless and a default value is used
@@ -406,96 +404,116 @@ namespace boofcv
         bool down;
 
         /**
-         * Configures the detector
          * @param minimumSpread If the difference between min max is less than or equal to this
          *                         value then it is considered textureless.  Set to &le; -1 to disable.
          * @param requestedBlockWidth About how wide and tall you wish a block to be in pixels.
          */
-        ThresholdBlockMinMax(float minimumSpread, const ConfigLength& requestedBlockWidth, bool thresholdFromLocalBlocks,
-                             float scale , bool down )
-        : ThresholdBlockCommon<Gray<E>,Interleaved<E>>(requestedBlockWidth, thresholdFromLocalBlocks)
-        {
-            this->minimumSpread = minimumSpread;
-            this->scale = scale;
-            this->down = down;
-            this->stats.setNumberOfBands(2);
+        ThresholdBlockMinMax( float minimumSpread, const ConfigLength& requestedBlockWidth,
+                              bool thresholdFromLocalBlocks, float scale, bool down )
+                : ThresholdBlockCommon<E>(requestedBlockWidth, thresholdFromLocalBlocks),
+                  minimumSpread(minimumSpread), scale(scale), down(down) {}
+
+    protected:
+        /// Type of a pixel's threshold. Unsigned integers compare the same with an average clamped to their largest
+        /// value. A scaled average can be below a signed integer's lowest value, so those keep the sum type
+        using threshold_type = std::conditional_t<std::is_integral_v<E> && std::is_signed_v<E>, sum_type, E>;
+
+        std::vector<E> column_min, column_max;  // per column over the rows of a row of blocks
+        std::vector<E> mins, maxs;              // per block
+        std::vector<threshold_type> column;     // threshold per column
+        std::vector<U8> textureless;            // 1 for the columns of a textureless block
+
+        static constexpr E highest() {
+            return std::numeric_limits<E>::has_infinity ? std::numeric_limits<E>::infinity()
+                                                        : std::numeric_limits<E>::max();
         }
 
-        void thresholdBlock(uint32_t blockX0 , uint32_t blockY0 , const Gray<E>& input, Gray<U8>& output ) override
-        {
-            uint32_t x0 = blockX0*this->blockWidth;
-            uint32_t y0 = blockY0*this->blockHeight;
+        static constexpr E lowest() {
+            return std::numeric_limits<E>::has_infinity ? -std::numeric_limits<E>::infinity()
+                                                        : std::numeric_limits<E>::lowest();
+        }
 
-            uint32_t x1 = blockX0== this->stats.width-1 ? input.width : (blockX0+1)*this->blockWidth;
-            uint32_t y1 = blockY0== this->stats.height-1 ? input.height: (blockY0+1)*this->blockHeight;
+        void begin( uint32_t width ) override {
+            column_min.resize(width);
+            column_max.resize(width);
+            mins.resize(this->blocksX*this->blocksY);
+            maxs.resize(this->blocksX*this->blocksY);
+            column.resize(width);
+            textureless.resize(width);
+        }
 
-            // define the local 3x3 region in blocks, taking in account the image border
-            int blockX1, blockY1;
-            if(this->thresholdFromLocalBlocks) {
-                blockX1 = std::min(this->stats.width  - 1, blockX0 + 1);
-                blockY1 = std::min(this->stats.height - 1, blockY0 + 1);
-
-                blockX0 = blockX0 > 0 ? blockX0 - 1 : 0;
-                blockY0 = blockY0 > 0 ? blockY0 - 1 : 0;
-            } else {
-                blockX1 = blockX0;
-                blockY1 = blockY0;
-            }
-
-            // find the min and max pixel values inside this block region
-            E min = std::numeric_limits<E>::max();
-            E max = std::numeric_limits<E>::min();
-
-            for (uint32_t y = blockY0; y <= blockY1; y++) {
-                for (uint32_t x = blockX0; x <= blockX1; x++) {
-                    E localMin = this->stats.at(x,y,0);
-                    E localMax = this->stats.at(x,y,1);
-
-                    if( localMin < min )
-                        min = localMin;
-                    if( localMax > max )
-                        max = localMax;
+        void statistics( const Gray<E>& input, uint32_t by ) override {
+            const uint32_t width = input.width;
+            const uint32_t y0 = this->block_y0(by), y1 = this->block_y1(by, input.height);
+            E* cmin = column_min.data();
+            E* cmax = column_max.data();
+            std::fill(cmin, cmin + width, highest());
+            std::fill(cmax, cmax + width, lowest());
+            for (uint32_t y = y0; y < y1; y++) {
+                const E* row = &input.data[input.offset + y*input.stride];
+                for (uint32_t x = 0; x < width; x++) {
+                    cmin[x] = row[x] < cmin[x] ? row[x] : cmin[x];
+                    cmax[x] = row[x] > cmax[x] ? row[x] : cmax[x];
                 }
             }
+            for (uint32_t bx = 0; bx < this->blocksX; bx++) {
+                const uint32_t x0 = this->block_x0(bx), x1 = this->block_x1(bx, width);
+                E min = highest(), max = lowest();
+                for (uint32_t x = x0; x < x1; x++) {
+                    min = cmin[x] < min ? cmin[x] : min;
+                    max = cmax[x] > max ? cmax[x] : max;
+                }
+                // BoofCV starts from the first pixel, so a NaN there is never replaced
+                const E first = input.data[input.offset + y0*input.stride + x0];
+                if (first != first)
+                    min = max = first;
+                mins[by*this->blocksX + bx] = min;
+                maxs[by*this->blocksX + bx] = max;
+            }
+        }
 
-            // apply threshold
-            auto textureThreshold = static_cast<sum_type>(this->minimumSpread);
-            for (uint32_t y = y0; y < y1; y++) {
-                E* input_ptr = &input.data[input.offset + y*input.stride + x0];
-                U8* output_ptr = &output.data[output.offset + y*output.stride + x0];
-
-                for (uint32_t i = x1-x0; i ; i-- ) {
-                    if( max-min <= textureThreshold ) {
-                        *output_ptr++ = 1;
-                        input_ptr++;
-                    } else {
-                        auto average = static_cast<sum_type>(scale*((max+min)/2));
-                        *output_ptr++ = static_cast<U8>( down == *input_ptr++ <= average );
+        void threshold_rows( const Gray<E>& input, Gray<U8>& output, uint32_t by ) override {
+            const uint32_t width = input.width;
+            const auto textureThreshold = static_cast<sum_type>(minimumSpread);
+            threshold_type* threshold = column.data();
+            U8* flat = textureless.data();
+            for (uint32_t bx = 0; bx < this->blocksX; bx++) {
+                uint32_t bx0, by0, bx1, by1;
+                this->region(bx, by, bx0, by0, bx1, by1);
+                E min = std::numeric_limits<E>::max();
+                E max = std::numeric_limits<E>::min();
+                for (uint32_t y = by0; y <= by1; y++) {
+                    for (uint32_t x = bx0; x <= bx1; x++) {
+                        E localMin = mins[y*this->blocksX + x];
+                        E localMax = maxs[y*this->blocksX + x];
+                        if (localMin < min)
+                            min = localMin;
+                        if (localMax > max)
+                            max = localMax;
                     }
                 }
+                const bool is_flat = max - min <= textureThreshold;
+                const auto average = static_cast<sum_type>(scale*((max + min)/2));
+                threshold_type t = average;
+                if constexpr (std::is_integral_v<E> && std::is_unsigned_v<E>) {
+                    // The comparison is the same for any average above the largest pixel value
+                    t = (E)std::min<sum_type>(average, std::numeric_limits<E>::max());
+                }
+                const uint32_t x0 = this->block_x0(bx), x1 = this->block_x1(bx, width);
+                std::fill(threshold + x0, threshold + x1, t);
+                std::fill(flat + x0, flat + x1, (U8)is_flat);
             }
-        }
-
-        void computeBlockStatistics(uint32_t x0, uint32_t y0, uint32_t width, uint32_t height, uint32_t indexStats,
-                                    const Gray<E>& input) override
-        {
-
-            E min,max;
-            min = max = input.at(x0,y0);
-
-            for (uint32_t y = 0; y < height; y++) {
-                uint32_t indexInput = input.offset + (y0+y)*input.stride + x0;
-                for (uint32_t x = 0; x < width; x++) {
-                    E value = input.data[indexInput++];
-                    if( value < min )
-                        min = value;
-                    else if( value > max )
-                        max = value;
+            for (uint32_t y = this->block_y0(by); y < this->block_y1(by, input.height); y++) {
+                const E* in = &input.data[input.offset + y*input.stride];
+                U8* out = &output.data[output.offset + y*output.stride];
+                if (down) {
+                    for (uint32_t x = 0; x < width; x++)
+                        out[x] = flat[x] | static_cast<U8>(in[x] <= threshold[x]);
+                } else {
+                    for (uint32_t x = 0; x < width; x++)
+                        out[x] = flat[x] | static_cast<U8>(!(in[x] <= threshold[x]));
                 }
             }
-
-            this->stats.data[indexStats]   = min;
-            this->stats.data[indexStats+1] = max;
         }
     };
 }
