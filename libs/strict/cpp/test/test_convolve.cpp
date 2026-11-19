@@ -1,3 +1,4 @@
+#include <cstring>
 #include "boofcv/print_structures.h"
 #include "gtest/gtest.h"
 #include "boofcv/convolve.h"
@@ -519,6 +520,73 @@ TEST_F(ConvolveImage_InnerTest, vertical_F32) {
         compare.vertical_inner();
     }
 }
+
+/// vertical_rows_registers is bit identical to vertical_rows: kernels that aren't centered, an input sub-image, and
+/// image widths below, at and above vertical_rows' block of 256 columns
+template<int W, class E>
+void check_vertical_registers( std::mt19937& gen ) {
+    typedef typename TypeInfo<E>::signed_type K;
+    auto result = []( K total ) { return (E)(total/(K)7); };
+    for( uint32_t width : {1u, 17u, 256u, 300u} ) {
+        Gray<E> parent(width+5, 3*W);
+        ImageMiscOps::fill_uniform(parent, (E)0, (E)50, gen);
+        Gray<E> input = parent.makeSubimage(2, 1, 2+width, parent.height-1);
+        for( uint32_t offset : {(uint32_t)W/2, 0u, (uint32_t)W-1} ) {
+            Kernel1D<K> kernel(W, offset);
+            KernelOps::fill_uniform(kernel, (K)-10, (K)10, gen);
+            Gray<E> expected(width, input.height), found(width, input.height);
+            ImageMiscOps::fill(expected, (E)1);
+            ImageMiscOps::fill(found, (E)1);
+            ConvolveImage_Inner::vertical_rows<W>(kernel, input, expected, result);
+            ConvolveImage_Inner::vertical_rows_registers<W>(kernel, input, found, result);
+            for( uint32_t y = 0; y < input.height; y++ )
+                ASSERT_EQ(0, std::memcmp(&expected.data[y*expected.stride], &found.data[y*found.stride],
+                                         width*sizeof(E))) << "W " << W << " width " << width << " offset " << offset;
+        }
+    }
+}
+
+template<class E>
+void check_vertical_registers() {
+    std::mt19937 gen(0xBEEF);
+    check_vertical_registers<3,E>(gen);
+    check_vertical_registers<5,E>(gen);
+    check_vertical_registers<7,E>(gen);
+    check_vertical_registers<9,E>(gen);
+}
+
+/// vertical_unrolled on both sides of the switch between vertical_rows_registers (floats, widths 3 to 9) and
+/// vertical_rows (wider), with and without a divisor, against the naive convolution
+template<class E>
+void check_vertical_unrolled_widths() {
+    typedef typename TypeInfo<E>::signed_type K;
+    std::mt19937 gen(0xBEEF);
+    Gray<E> input(37, 40);
+    ImageMiscOps::fill_uniform(input, (E)0, (E)50, gen);
+    ImageBorderValue<E> border(0);
+    border.setImage(input);
+    for( uint32_t width : {3u, 5u, 7u, 9u, 11u, 13u, 15u} ) {
+        for( uint32_t offset : {width/2, 0u, width-1} ) {
+            Kernel1D<K> kernel(width, offset);
+            KernelOps::fill_uniform(kernel, (K)-10, (K)10, gen);
+            Gray<E> expected(input.width, input.height), found(input.width, input.height);
+            ConvolveNaive::vertical(kernel, border, expected);
+            ConvolveImage_Inner::vertical_unrolled(kernel, input, found);
+            check_equals_inner(expected, found, 0, 0, offset, width-1-offset);
+            ConvolveNaive::vertical(kernel, border, expected, (K)7);
+            ConvolveImage_Inner::vertical_unrolled(kernel, input, found, (K)7);
+            check_equals_inner(expected, found, 0, 0, offset, width-1-offset);
+        }
+    }
+}
+
+TEST_F(ConvolveImage_InnerTest, vertical_unrolled_F32) { check_vertical_unrolled_widths<F32>(); }
+
+TEST_F(ConvolveImage_InnerTest, vertical_unrolled_F64) { check_vertical_unrolled_widths<F64>(); }
+
+TEST_F(ConvolveImage_InnerTest, vertical_registers_F32) { check_vertical_registers<F32>(); }
+
+TEST_F(ConvolveImage_InnerTest, vertical_registers_F64) { check_vertical_registers<F64>(); }
 
 TEST_F(ConvolveImage_InnerTest, convolve_U8) {
     CompareToNaive<U8> compare;
