@@ -7,6 +7,7 @@
 #include <iterator>
 #include <memory>
 #include <stdexcept>
+#include <type_traits>
 #include <vector>
 
 #include "boofcv/census_variants.h"
@@ -68,8 +69,6 @@ namespace boofcv {
             if (samples.size() > 64)
                 throw std::invalid_argument("At most 64 samples");
             output.reshape(input.width, input.height);
-            const int32_t width = input.width;
-            const int32_t height = input.height;
 
             // The inner image is the same distance from each edge, the largest x or y of a sample
             int32_t radius = 0;
@@ -78,20 +77,7 @@ namespace boofcv {
                 radius = std::max(radius, std::abs(p.y));
             }
 
-            // One pass over the row for each sample so that the loop over the row can be vectorized
-            for (int32_t y = radius; y < height - radius; y++) {
-                const E* __restrict center = input.data + input.offset + y*input.stride + radius;
-                S64* __restrict out = output.data + output.offset + y*output.stride + radius;
-                const int32_t length = width - 2*radius;
-                for (int32_t x = 0; x < length; x++)
-                    out[x] = 0;
-
-                for (size_t bit = 0; bit < samples.size(); bit++) {
-                    const E* __restrict neighbor = center + samples[bit].y*(int32_t)input.stride + samples[bit].x;
-                    for (int32_t x = 0; x < length; x++)
-                        out[x] |= (S64)((uint64_t)(neighbor[x] > center[x]) << bit);
-                }
-            }
+            byte_rows(input, samples, radius, output);
 
             if (border != nullptr)
                 sample_border(input, samples, radius, output, *border);
@@ -187,33 +173,112 @@ namespace boofcv {
         template<int R, class E, class C>
         static void dense( const Gray<E>& input, Gray<C>& output, ImageBorder<E>* border ) {
             output.reshape(input.width, input.height);
-            const int32_t width = input.width;
-            const int32_t height = input.height;
-
-            // inner image, where the region never leaves the image. One pass over the row for each neighbor
-            // so that the loop over the row can be vectorized
-            for (int32_t y = R; y < height - R; y++) {
-                const E* __restrict center = input.data + input.offset + y*input.stride + R;
-                C* __restrict out = output.data + output.offset + y*output.stride + R;
-                const int32_t length = width - 2*R;
-                for (int32_t x = 0; x < length; x++)
-                    out[x] = 0;
-
-                int32_t bit = 0;
-                for (int32_t dy = -R; dy <= R; dy++) {
-                    for (int32_t dx = -R; dx <= R; dx++) {
-                        if (dx == 0 && dy == 0)
-                            continue;
-                        const E* __restrict neighbor = center + dy*(int32_t)input.stride + dx;
-                        for (int32_t x = 0; x < length; x++)
-                            out[x] |= (C)((C)(neighbor[x] > center[x]) << bit);
-                        bit++;
-                    }
-                }
-            }
+            if constexpr (R == 2 && std::is_same<E, F32>::value)
+                fused_5x5(input, output);
+            else
+                byte_rows(input, create_block_samples(R, R), R, output);
 
             if (border != nullptr)
                 dense_border<R>(input, output, *border);
+        }
+
+        /// Array offsets of the samples from the center pixel
+        template<class E>
+        static std::vector<int32_t> sample_offsets( const Gray<E>& input,
+                                                    const std::vector<Point2D<int32_t>>& samples ) {
+            std::vector<int32_t> offsets(samples.size());
+            for (size_t i = 0; i < samples.size(); i++)
+                offsets[i] = samples[i].y*(int32_t)input.stride + samples[i].x;
+            return offsets;
+        }
+
+        /// Bits of up to 8 samples into a byte per pixel: bits[x] = sum of (center[x + offsets[k]] > center[x]) << k.
+        /// Comparing 8 samples in one pass over the row writes each byte once, instead of once per sample
+        template<class E>
+        static void byte_bits( const E* __restrict center, const int32_t* offsets, int32_t count, int32_t length,
+                               uint8_t* __restrict bits ) {
+            if (count == 8) {
+                const int32_t o0 = offsets[0], o1 = offsets[1], o2 = offsets[2], o3 = offsets[3];
+                const int32_t o4 = offsets[4], o5 = offsets[5], o6 = offsets[6], o7 = offsets[7];
+                for (int32_t x = 0; x < length; x++) {
+                    const E c = center[x];
+                    bits[x] = (uint8_t)((center[x + o0] > c) | (center[x + o1] > c) << 1 | (center[x + o2] > c) << 2 |
+                                        (center[x + o3] > c) << 3 | (center[x + o4] > c) << 4 |
+                                        (center[x + o5] > c) << 5 | (center[x + o6] > c) << 6 |
+                                        (center[x + o7] > c) << 7);
+                }
+            } else {
+                for (int32_t x = 0; x < length; x++) {
+                    uint8_t b = 0;
+                    for (int32_t k = 0; k < count; k++)
+                        b |= (uint8_t)((center[x + offsets[k]] > center[x]) << k);
+                    bits[x] = b;
+                }
+            }
+        }
+
+        /// Inner image census from groups of 8 samples, each group's bits in a byte row, then the rows combined into
+        /// the output. 'radius' is the largest x or y of a sample
+        template<class E, class C>
+        static void byte_rows( const Gray<E>& input, const std::vector<Point2D<int32_t>>& samples, int32_t radius,
+                               Gray<C>& output ) {
+            const int32_t height = input.height;
+            const int32_t length = (int32_t)input.width - 2*radius;
+            if (length <= 0 || height <= 2*radius)
+                return;
+            const std::vector<int32_t> offsets = sample_offsets(input, samples);
+            const int32_t count = (int32_t)samples.size();
+            const int32_t groups = (count + 7)/8;
+            std::vector<uint8_t> rows((size_t)groups*length);
+
+            for (int32_t y = radius; y < height - radius; y++) {
+                const E* center = input.data + input.offset + y*input.stride + radius;
+                C* __restrict out = output.data + output.offset + y*output.stride + radius;
+                // a single group of a byte output is the output
+                if constexpr (sizeof(C) == 1) {
+                    byte_bits(center, offsets.data(), count, length, (uint8_t*)out);
+                    continue;
+                }
+                for (int32_t g = 0; g < groups; g++)
+                    byte_bits(center, offsets.data() + 8*g, std::min(8, count - 8*g), length,
+                              rows.data() + (size_t)g*length);
+                if (groups == 3) {
+                    const uint8_t *b0 = rows.data(), *b1 = b0 + length, *b2 = b1 + length;
+                    for (int32_t x = 0; x < length; x++)
+                        out[x] = (C)((uint32_t)b0[x] | (uint32_t)b1[x] << 8 | (uint32_t)b2[x] << 16);
+                } else {
+                    for (int32_t x = 0; x < length; x++) {
+                        uint64_t v = 0;
+                        for (int32_t g = 0; g < groups; g++)
+                            v |= (uint64_t)rows[(size_t)g*length + x] << (8*g);
+                        out[x] = (C)v;
+                    }
+                }
+            }
+        }
+
+        /// Inner image census of the 24 neighbors of a 5x5 region in one pass, each bit ORed into the output. Faster
+        /// than byte rows for F32, whose comparisons are 32 bits wide like the output
+        static void fused_5x5( const Gray<F32>& input, Gray<S32>& output ) {
+            const int32_t height = input.height;
+            const int32_t length = (int32_t)input.width - 4;
+            if (length <= 0 || height <= 4)
+                return;
+            const std::vector<int32_t> offsets = sample_offsets(input, create_block_samples(2, 2));
+            int32_t o[24];
+            std::copy(offsets.begin(), offsets.end(), o);
+            for (int32_t y = 2; y < height - 2; y++) {
+                const F32* __restrict center = input.data + input.offset + y*input.stride + 2;
+                S32* __restrict out = output.data + output.offset + y*output.stride + 2;
+                for (int32_t x = 0; x < length; x++) {
+                    const F32 c = center[x];
+                    S32 v = 0;
+#pragma GCC unroll 24
+                    for (int32_t k = 0; k < 24; k++)
+                        v |= (S32)(center[x + o[k]] > c) << k;
+                    out[x] = v;
+                }
+            }
         }
 
         /// Census of a single pixel, reading through the border. Same as ImplCensusTransformBorder.regionNxN()

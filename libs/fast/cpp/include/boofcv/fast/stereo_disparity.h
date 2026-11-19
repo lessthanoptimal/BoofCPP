@@ -13,6 +13,7 @@ namespace boofcv::fast {
     using boofcv::StereoDisparityBlockMatchCensus;
     using boofcv::StereoDisparityBlockMatchPreFilter;
     using boofcv::FactoryCensusTransform;
+    using boofcv::CensusTransform;
 
     /// Fast's parts of block matching: its selectors, and 16-bit scores where they hold every region score. Results are
     /// the same as strict's
