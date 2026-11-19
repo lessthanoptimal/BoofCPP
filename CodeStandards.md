@@ -21,6 +21,8 @@
     Namespace `boofcv::fast`. See [Fast](#fast)
 - C++ standard is specified in the root `CMakeLists.txt`
 - Java version will match BoofCV
+- BoofCV's single-threaded Java code is the ground truth for results
+  - Don't use multi-threaded BoofCV code for accuracy tests
 - Library version will match BoofCV's version
 - Templates are only used when they greatly simplify the code, e.g. image data types
 - Use virtual functions for polymorphism is preferred over templates except in hot loops or when it makes it more complex
@@ -62,7 +64,7 @@
 
 ```
 libs/
-  common/   Code every variant shares: image types, borders, configurations, JNI helpers, test helpers
+  common/   Code independent of any variant, see Common below
   strict/   Results identical to BoofCV
   fast/     Results within floating point tolerance of BoofCV
 android/    One module that packages the native libraries of every variant
@@ -85,6 +87,14 @@ results/    Accuracy records, see Accuracy
   `BoofCPP.initialize()` registers the strict hooks and then the hooks of every other variant that's available, each
   replacing only the hooks it has
 - New architecture specific variants follow the same layout
+
+# Common (libs/common)
+
+- Code that's independent of any implementation goes here: data structures, headers, glue such as JNI helpers, and
+  test code, even if only one variant uses it so far
+- Code specific to one variant, including its glue, doesn't go here
+- Implementations of algorithms don't go here
+  - Naive/brute force implementations used by unit tests are allowed, since they test the optimized implementations
 
 # Fast
 
