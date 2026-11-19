@@ -85,6 +85,13 @@ namespace boofcv {
         uint32_t shift = 0;
     };
 
+    /// Number of pixels inside an image 'length' pixels long in the window [i - radius, i + radius]
+    inline uint32_t window_count( uint32_t i, uint32_t radius, uint32_t length ) {
+        uint32_t lower = i > radius ? i - radius : 0;
+        uint32_t upper = std::min(i + radius, length - 1);
+        return upper - lower + 1;
+    }
+
     /// The image border of a normalized convolution. Each border pixel is the sum of the kernel weights inside the
     /// image times their pixels, divided by the sum of those weights. Integers round the division:
     ///

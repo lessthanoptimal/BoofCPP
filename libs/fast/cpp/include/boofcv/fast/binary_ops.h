@@ -2,7 +2,6 @@
 #define BOOFCPP_FAST_BINARY_OPS_H
 
 #include <cstdint>
-#include <type_traits>
 
 #include "boofcv/binary_ops.h"
 
@@ -12,6 +11,8 @@ namespace boofcv::fast {
     using boofcv::GlobalFixedBinaryFilter;
     using boofcv::GlobalOtsuBinaryFilter;
     using boofcv::InputToBinary;
+    using boofcv::LocalMeanBinaryFilter;
+    using boofcv::ThresholdOps;
 
     /// Same results as strict's ComputeOtsu, but only the histogram's non-empty bins are visited. An empty bin leaves
     /// the background and foreground weights and sums unchanged, so its between class variance equals the one before
@@ -38,27 +39,6 @@ namespace boofcv::fast {
         bool useOtsu2;
         double tuning;
         double scale;
-    };
-
-    class ThresholdOps : public boofcv::ThresholdOps {
-    public:
-        /// Same as strict's ThresholdOps::localMean() for U8, in one pass over the image and without its storage
-        static void localMean( const Gray<U8>& input, Gray<U8>& output, const ConfigLength& width, float scale,
-                               bool down );
-    };
-
-    /// Same results as strict's LocalMeanBinaryFilter. Faster for U8, see ThresholdOps::localMean()
-    template<class T>
-    class LocalMeanBinaryFilter : public boofcv::LocalMeanBinaryFilter<T> {
-    public:
-        using boofcv::LocalMeanBinaryFilter<T>::LocalMeanBinaryFilter;
-
-        void process( const Gray<T>& input, Gray<U8>& output ) override {
-            if constexpr (std::is_same_v<T, U8>)
-                ThresholdOps::localMean(input, output, this->regionWidth, this->scale, this->down);
-            else
-                boofcv::LocalMeanBinaryFilter<T>::process(input, output);
-        }
     };
 }
 

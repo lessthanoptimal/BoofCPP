@@ -187,19 +187,30 @@ namespace threshold_checks {
         return output;
     }
 
-    /// Compares with naive_local_mean(), including regions wider than the image and sub-images
+    /// Compares with naive_local_mean() on random, flat and smooth images, where many pixels equal their mean, with
+    /// regions from 2 pixels to wider than the image, a region relative to the image size, and sub-images
     inline void local_mean_naive() {
         std::mt19937 gen(0xBEEF);
-        for (uint32_t width : {5u, 31u, 64u}) {
-            for (uint32_t height : {3u, 20u, 33u}) {
-                Gray<U8> input(width, height);
+        const ConfigLength regions[] = {ConfigLength::fixed(2), ConfigLength::fixed(3), ConfigLength::fixed(8),
+                                        ConfigLength::fixed(41), ConfigLength::fixed(1000),
+                                        ConfigLength::relative(0.2, 3)};
+        for (auto shape : {std::pair<uint32_t, uint32_t>{2, 2}, {5, 3}, {37, 29}, {64, 64}, {161, 47}}) {
+            for (int content = 0; content < 3; content++) {
+                Gray<U8> input(shape.first, shape.second);
                 ImageMiscOps::fill_uniform(input, (U8)0, (U8)255, gen);
-                for (double region : {3.0, 8.0, 15.0, 70.0}) {
+                if (content == 1) {
+                    ImageMiscOps::fill(input, (U8)128);
+                } else if (content == 2) {
+                    for (uint32_t y = 0; y < input.height; y++)
+                        for (uint32_t x = 0; x < input.width; x++)
+                            input.at(x, y) = (U8)((x*3 + y*2)%256);
+                }
+                for (const ConfigLength& region : regions) {
                     for (bool down : {true, false}) {
                         for (float scale : {0.95f, 1.0f, 1.05f}) {
-                            Gray<U8> expected = naive_local_mean(input, ConfigLength::fixed(region), scale, down);
-                            tested::LocalMeanBinaryFilter<U8> alg(ConfigLength::fixed(region), scale, down);
-                            Gray<U8> found(width, height);
+                            Gray<U8> expected = naive_local_mean(input, region, scale, down);
+                            tested::LocalMeanBinaryFilter<U8> alg(region, scale, down);
+                            Gray<U8> found(input.width, input.height);
                             alg.process(input, found);
                             check_equals(expected, found);
 

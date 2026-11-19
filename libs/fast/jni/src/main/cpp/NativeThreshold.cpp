@@ -37,24 +37,6 @@ namespace {
 }
 
 extern "C" {
-// Local mean
-JNIEXPORT void JNICALL Java_org_boofcpp_fast_threshold_NativeLocalMean_nativeinit(
-        JNIEnv* env, jobject obj, jobject jregionWidth, jdouble scale, jboolean down ) {
-    create(env, obj, [&]( auto pixel ) {
-        return new fast::LocalMeanBinaryFilter<decltype(pixel)>(
-                config_from_java<ConfigLength>(env, jregionWidth), (float)scale, (bool)down);
-    });
-}
-
-JNIEXPORT void JNICALL Java_org_boofcpp_fast_threshold_NativeLocalMean_nativedestroy( JNIEnv* env, jobject obj ) {
-    destroy<fast::LocalMeanBinaryFilter>(env, obj);
-}
-
-JNIEXPORT void JNICALL Java_org_boofcpp_fast_threshold_NativeLocalMean_nativeprocess(
-        JNIEnv* env, jobject obj, jobject jinput, jobject joutput ) {
-    threshold_process<fast::LocalMeanBinaryFilter>(env, obj, jinput, joutput);
-}
-
 // Block mean
 JNIEXPORT void JNICALL Java_org_boofcpp_fast_threshold_NativeBlockMean_nativeinit(
         JNIEnv* env, jobject obj, jobject jregionWidth, jdouble scale, jboolean down,

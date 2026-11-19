@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include <random>
 #include "testing_utils.h"
 #include "boofcv/binary_ops.h"
 #include "variant_strict.h"

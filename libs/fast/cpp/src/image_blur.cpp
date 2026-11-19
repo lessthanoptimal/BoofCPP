@@ -1,5 +1,5 @@
 #include "boofcv/fast/image_blur.h"
-#include "mean_window.h"
+#include "boofcv/convolve.h"
 
 #include <algorithm>
 #include <stdexcept>
