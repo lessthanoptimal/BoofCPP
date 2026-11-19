@@ -10,9 +10,13 @@ using namespace boofcv;
 namespace {
     /// True for GrayU8 images and an integer kernel, false for GrayF32. Set by NativeBase.setImageType()
     bool is_integer( JNIEnv* env, jobject obj ) {
-        jfieldID fid = env->GetFieldID(env->GetObjectClass(obj), "isInteger", "Z");
-        if (fid == nullptr)
-            throw std::runtime_error("isInteger field not found");
+        static const jfieldID fid = [env] {
+            jclass local = safe_FindClass(env, "org/boofcpp/NativeBase");
+            jfieldID id = safe_GetFieldID(env, local, "isInteger", "Z");
+            env->NewGlobalRef(local);
+            env->DeleteLocalRef(local);
+            return id;
+        }();
         return env->GetBooleanField(obj, fid);
     }
 

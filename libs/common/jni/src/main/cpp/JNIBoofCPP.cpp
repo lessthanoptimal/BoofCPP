@@ -282,7 +282,25 @@ JImageInfoF32 extractInfoF32( JNIEnv *env, jobject& jimage ) {
     return ret;
 }
 
+namespace {
+    /// Field IDs of ImageBase, looked up once. The global reference keeps the class loaded, and so the IDs valid
+    struct ImageBaseFields {
+        jfieldID width, height, stride, startIndex;
+
+        explicit ImageBaseFields( JNIEnv* env ) {
+            jclass local = safe_FindClass(env, "boofcv/struct/image/ImageBase");
+            width = safe_GetFieldID(env, local, "width", "I");
+            height = safe_GetFieldID(env, local, "height", "I");
+            stride = safe_GetFieldID(env, local, "stride", "I");
+            startIndex = safe_GetFieldID(env, local, "startIndex", "I");
+            env->NewGlobalRef(local);
+            env->DeleteLocalRef(local);
+        }
+    };
+}
+
 JImageInfo extractInfoCritical( JNIEnv *env, jobject& jimage , const char*type ) {
+    static const ImageBaseFields base(env);
     JImageInfo ret;
 
     jclass objClass = env->GetObjectClass(jimage);
@@ -298,12 +316,10 @@ JImageInfo extractInfoCritical( JNIEnv *env, jobject& jimage , const char*type )
         throw std::runtime_error("data object is null");
     }
 
-    ret.width = safe_GetInt(env,objClass,jimage, "width");
-    ret.height = safe_GetInt(env,objClass,jimage, "height");
-    ret.stride = safe_GetInt(env,objClass,jimage, "stride");
-    ret.offset = safe_GetInt(env,objClass,jimage, "startIndex");
-
-    // Get the elements (you probably have to fetch the length of the array as well
+    ret.width = env->GetIntField(jimage, base.width);
+    ret.height = env->GetIntField(jimage, base.height);
+    ret.stride = env->GetIntField(jimage, base.stride);
+    ret.offset = env->GetIntField(jimage, base.startIndex);
     ret.dataLength = env->GetArrayLength((jarray)ret.jdata);
 
     return ret;
