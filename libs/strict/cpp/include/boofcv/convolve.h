@@ -85,293 +85,199 @@ namespace boofcv {
         uint32_t shift = 0;
     };
 
-    /**
-     * Optimized normalized convlution code which just processes the image border.
-     */
+    /// The image border of a normalized convolution. Each border pixel is the sum of the kernel weights inside the
+    /// image times their pixels, divided by the sum of those weights. Integers round the division:
+    ///
+    ///     total = 0, weight = 0
+    ///     for each kernel element k whose pixel p is inside the image:
+    ///         weight += k
+    ///         total  += p*k
+    ///     output = total/weight              (integers: (total + weight/2)/weight)
+    ///
+    /// Same results as BoofCV's ConvolveNormalized_JustBorder_SB, including the order of every sum. The work is
+    /// arranged to vectorize without changing that order: border rows are summed many pixels at a time, and a weight
+    /// shared by a whole row or column is computed once
     class ConvolveNormalized_JustBorder {
     public:
+        /// Left and right borders. BoofCV updates the float weight incrementally from column to column, which is done
+        /// here for every type. For integers it's the same as summing the weights inside
         template<class E>
         static void horizontal( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel,
-                                const Gray<E>& input, Gray<E>& output ,
-                                typename std::enable_if<std::is_integral<E>::value >::type* = 0)
-        {
-            typedef typename TypeInfo<E>::signed_type signed_type;
-
-            uint32_t offsetL = kernel.offset;
-            uint32_t offsetR = kernel.width-offsetL-1;
-
-            for (uint32_t i = 0; i < input.height; i++) {
-                uint32_t indexDest = output.offset + i * output.stride;
-                uint32_t j = input.offset + i * input.stride;
-                uint32_t jStart = j;
-                uint32_t jEnd = j + offsetL;
-
-                for (; j < jEnd; j++) {
-                    signed_type total = 0;
-                    signed_type weight = 0;
-                    uint32_t indexSrc = jStart;
-                    for (uint32_t k = kernel.width - (offsetR + 1 + j - jStart); k < kernel.width; k++) {
-                        signed_type w = kernel.data[k];
-                        weight += w;
-                        total += input.data[indexSrc++] * w;
-                    }
-                    output.data[indexDest++] = (E)((total+weight/2)/weight);
-                }
-
-                j += input.width - (offsetL+offsetR);
-                indexDest += input.width - (offsetL+offsetR);
-
-                jEnd = jStart + input.width;
-                for (; j < jEnd; j++) {
-                    signed_type total = 0;
-                    signed_type weight = 0;
-                    uint32_t indexSrc = j - offsetL;
-                    uint32_t kEnd = jEnd - indexSrc;
-
-                    for (uint32_t k = 0; k < kEnd; k++) {
-                        signed_type w = kernel.data[k];
-                        weight += w;
-                        total += input.data[indexSrc++] * w;
-                    }
-                    output.data[indexDest++] = (E)((total+weight/2)/weight);
-                }
-            }
-        }
-
-        template<class E>
-        static void horizontal( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel,
-                                const Gray<E>& input, Gray<E>& output ,
-                                typename std::enable_if<std::is_floating_point<E>::value >::type* = 0)
-        {
-            // Port of BoofCV ConvolveNormalized_JustBorder_SB.horizontal(Kernel1D_F32,...). The weight is updated
-            // incrementally across the border, which changes floating point rounding vs. recomputing it each pixel.
-            typedef typename TypeInfo<E>::signed_type signed_type;
-
-            const signed_type* dataKer = kernel.data.data;
-            const int32_t kernelWidth = kernel.width;
+                                const Gray<E>& input, Gray<E>& output ) {
+            typedef typename TypeInfo<E>::signed_type K;
+            const int32_t kw = kernel.width;
             const int32_t offsetL = kernel.offset;
-            const int32_t offsetR = kernelWidth-offsetL-1;
+            const int32_t offsetR = kw - offsetL - 1;
             const int32_t width = input.width;
+            const K* ker = kernel.data.data;
 
-            for (uint32_t y = 0; y < input.height; y++) {
-                int32_t indexDest = output.offset + y * output.stride;
-                int32_t j = input.offset + y * input.stride;
-                const int32_t jStart = j;
-                int32_t jEnd = j + offsetL;
-
-                signed_type weight = 0;
-                for (int32_t k = kernelWidth - offsetR; k < kernelWidth; k++) {
-                    weight += dataKer[k];
+            // pixel x sums kernel elements k0 to k1 - 1, which start at input column x - offsetL + k0
+            auto column = [&]( int32_t x, int32_t k0, int32_t k1, K weight ) {
+                for (uint32_t y = 0; y < input.height; y++) {
+                    const E* src = &input.data[input.offset + y*input.stride] + (x - offsetL);
+                    K total = 0;
+                    for (int32_t k = k0; k < k1; k++)
+                        total += src[k]*ker[k];
+                    output.data[output.offset + y*output.stride + x] = normalize<E>(total, weight);
                 }
+            };
 
-                for (; j < jEnd; j++) {
-                    signed_type total = 0;
-                    int32_t indexSrc = jStart;
-                    int32_t kernelIdx0 = kernelWidth - (offsetR + 1 + j - jStart);
-                    weight += dataKer[kernelIdx0];
-                    for (int32_t k = kernelIdx0; k < kernelWidth; k++) {
-                        total += input.data[indexSrc++] * dataKer[k];
-                    }
-                    output.data[indexDest++] = (E)(total/weight);
-                }
-
-                j += width - (offsetL+offsetR);
-                indexDest += width - (offsetL+offsetR);
-
-                {
-                    weight = 0;
-                    int32_t kEnd = jStart + width - (j - offsetL) + 1;
-                    for (int32_t k = 0; k < kEnd; k++) {
-                        weight += dataKer[k];
-                    }
-                }
-
-                jEnd = jStart + width;
-                for (; j < jEnd; j++) {
-                    signed_type total = 0;
-                    int32_t indexSrc = j - offsetL;
-                    const int32_t kEnd = jEnd - indexSrc;
-
-                    for (int32_t k = 0; k < kEnd; k++) {
-                        total += input.data[indexSrc++] * dataKer[k];
-                    }
-                    weight -= dataKer[kEnd];
-                    output.data[indexDest++] = (E)(total/weight);
-                }
+            K weight = 0;
+            for (int32_t k = kw - offsetR; k < kw; k++)
+                weight += ker[k];
+            for (int32_t x = 0; x < offsetL; x++) {
+                weight += ker[offsetL - x];
+                column(x, offsetL - x, kw, weight);
+            }
+            weight = 0;
+            for (int32_t k = 0; k < kw; k++)
+                weight += ker[k];
+            for (int32_t r = 0; r < offsetR; r++) {
+                weight -= ker[kw - 1 - r];
+                column(width - offsetR + r, 0, kw - 1 - r, weight);
             }
         }
 
+        /// Top and bottom borders
         template<class E>
         static void vertical( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel,
-                              const Gray<E>& input, Gray<E>& output ,
-                              typename std::enable_if<std::is_integral<E>::value >::type* = 0 )
-        {
-            typedef typename TypeInfo<E>::signed_type signed_type;
+                              const Gray<E>& input, Gray<E>& output ) {
+            typedef typename TypeInfo<E>::signed_type K;
+            const uint32_t offsetL = kernel.offset;
+            const uint32_t offsetR = kernel.width - offsetL - 1;
 
-            uint32_t offsetL = kernel.offset;
-            uint32_t offsetR = kernel.width-offsetL-1;
-
-            uint32_t yEnd = input.height - offsetR;
-
-            for (uint32_t y = 0; y < offsetL; y++) {
-                uint32_t indexDst = output.offset + y * output.stride;
-                uint32_t i = input.offset + y * input.stride;
-                uint32_t iEnd = i + input.width;
-
-                uint32_t kStart = offsetL - y;
-
-                signed_type weight = 0;
-                for (uint32_t k = kStart; k < kernel.width; k++) {
+            // row y sums kernel elements k0 to k1 - 1, which start at input row y - offsetL + k0
+            auto border_row = [&]( uint32_t y, uint32_t k0, uint32_t k1 ) {
+                K weight = 0;
+                for (uint32_t k = k0; k < k1; k++)
                     weight += kernel.data[k];
-                }
-
-                for ( ; i < iEnd; i++) {
-                    signed_type total = 0;
-                    uint32_t indexSrc = i - y * input.stride;
-                    for (uint32_t k = kStart; k < kernel.width; k++, indexSrc += input.stride) {
-                        total += input.data[indexSrc] * kernel.data[k];
-                    }
-                    output.data[indexDst++] = (E)((total+weight/2)/weight);
-                }
-            }
-
-            for (uint32_t y = yEnd; y < input.height; y++) {
-                uint32_t indexDst = output.offset + y * output.stride;
-                uint32_t i = input.offset + y * input.stride;
-                uint32_t iEnd = i + input.width;
-
-                uint32_t kEnd = input.height - (y - offsetL);
-
-                signed_type weight = 0;
-                for (uint32_t k = 0; k < kEnd; k++) {
-                    weight += kernel.data[k];
-                }
-
-                for ( ; i < iEnd; i++) {
-                    signed_type total = 0;
-                    uint32_t indexSrc = i - offsetL * input.stride;
-                    for (uint32_t k = 0; k < kEnd; k++, indexSrc += input.stride) {
-                        total += input.data[indexSrc] * kernel.data[k];
-                    }
-                    output.data[indexDst++] = (E)((total+weight/2)/weight);
-                }
-            }
+                sum_row(&output.data[output.offset + y*output.stride], input.width, weight, [&]( auto add ) {
+                    for (uint32_t k = k0; k < k1; k++)
+                        add(&input.data[input.offset + (y + k - offsetL)*input.stride], kernel.data[k]);
+                });
+            };
+            for (uint32_t y = 0; y < offsetL; y++)
+                border_row(y, offsetL - y, kernel.width);
+            for (uint32_t y = input.height - offsetR; y < input.height; y++)
+                border_row(y, 0, input.height - (y - offsetL));
         }
 
-        template<class E>
-        static void vertical( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel,
-                              const Gray<E>& input, Gray<E>& output ,
-                              typename std::enable_if<std::is_floating_point<E>::value >::type* = 0 )
-        {
-            typedef typename TypeInfo<E>::signed_type signed_type;
-
-            uint32_t offsetL = kernel.offset;
-            uint32_t offsetR = kernel.width-offsetL-1;
-
-            uint32_t yEnd = input.height - offsetR;
-
-            for (uint32_t y = 0; y < offsetL; y++) {
-                uint32_t indexDst = output.offset + y * output.stride;
-                uint32_t i = input.offset + y * input.stride;
-                uint32_t iEnd = i + input.width;
-
-                uint32_t kStart = offsetL - y;
-
-                signed_type weight = 0;
-                for (uint32_t k = kStart; k < kernel.width; k++) {
-                    weight += kernel.data[k];
-                }
-
-                for ( ; i < iEnd; i++) {
-                    signed_type total = 0;
-                    uint32_t indexSrc = i - y * input.stride;
-                    for (uint32_t k = kStart; k < kernel.width; k++, indexSrc += input.stride) {
-                        total += input.data[indexSrc] * kernel.data[k];
-                    }
-                    output.data[indexDst++] = (E)(total/weight);
-                }
-            }
-
-            for (uint32_t y = yEnd; y < input.height; y++) {
-                uint32_t indexDst = output.offset + y * output.stride;
-                uint32_t i = input.offset + y * input.stride;
-                uint32_t iEnd = i + input.width;
-
-                uint32_t kEnd = input.height - (y - offsetL);
-
-                signed_type weight = 0;
-                for (uint32_t k = 0; k < kEnd; k++) {
-                    weight += kernel.data[k];
-                }
-
-                for ( ; i < iEnd; i++) {
-                    signed_type total = 0;
-                    uint32_t indexSrc = i - offsetL * input.stride;
-                    for (uint32_t k = 0; k < kEnd; k++, indexSrc += input.stride) {
-                        total += input.data[indexSrc] * kernel.data[k];
-                    }
-                    output.data[indexDst++] = (E)(total/weight);
-                }
-            }
-        }
-
-        /// The image border of a 2D kernel's normalized convolution: each pixel is the sum of the kernel weights inside
-        /// the image times the pixels, divided by the sum of those weights. Integers round the division. Same as BoofCV's
-        /// ConvolveNormalized_JustBorder_SB.convolve(), including the order of the sums
+        /// The border of a 2D kernel, with sums over kernel rows then columns as BoofCV does
         template<class E>
         static void convolve( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel,
                               const Gray<E>& input, Gray<E>& output ) {
+            typedef typename TypeInfo<E>::signed_type K;
+            const int32_t kw = kernel.width;
             const int32_t offsetL = kernel.offset;
-            const int32_t offsetR = (int32_t)kernel.width - offsetL - 1;
+            const int32_t offsetR = kw - offsetL - 1;
             const int32_t width = input.width;
             const int32_t height = input.height;
 
-            // left and right borders
-            for (int32_t y = 0; y < height; y++) {
-                const int32_t minI = y >= offsetL ? -offsetL : -y;
-                const int32_t maxI = y < height - offsetR ? offsetR : height - y - 1;
-                for (int32_t x = 0; x < offsetL; x++)
-                    border_pixel(kernel, input, output, x, y, minI, maxI, -x, offsetR);
-                for (int32_t x = width - offsetR; x < width; x++)
-                    border_pixel(kernel, input, output, x, y, minI, maxI, -offsetL, width - x - 1);
-            }
-            // top and bottom borders, without the corners
-            for (int32_t y = 0; y < offsetL; y++) {
-                for (int32_t x = offsetL; x < width - offsetR; x++)
-                    border_pixel(kernel, input, output, x, y, -y, offsetR, -offsetL, offsetR);
-            }
-            for (int32_t y = height - offsetR; y < height; y++) {
-                for (int32_t x = offsetL; x < width - offsetR; x++)
-                    border_pixel(kernel, input, output, x, y, -offsetL, height - y - 1, -offsetL, offsetR);
-            }
+            // sum of the kernel weights in rows minI to maxI and columns minJ to maxJ, relative to its center
+            auto window_weight = [&]( int32_t minI, int32_t maxI, int32_t minJ, int32_t maxJ ) {
+                K weight = 0;
+                for (int32_t i = minI; i <= maxI; i++) {
+                    const K* ker = kernel.data.data + (i + offsetL)*kw + offsetL;
+                    for (int32_t j = minJ; j <= maxJ; j++)
+                        weight += ker[j];
+                }
+                check_weight(weight);
+                return weight;
+            };
+
+            // one pixel. Its weight is summed with the total, unless 'given'
+            auto pixel = [&]( int32_t x, int32_t y, int32_t minI, int32_t maxI, int32_t minJ, int32_t maxJ,
+                              const K* given ) {
+                K total = 0, weight = 0;
+                for (int32_t i = minI; i <= maxI; i++) {
+                    const E* src = input.data + input.offset + (y + i)*input.stride + x;
+                    const K* ker = kernel.data.data + (i + offsetL)*kw + offsetL;
+                    for (int32_t j = minJ; j <= maxJ; j++) {
+                        const K w = ker[j];
+                        if (!given)
+                            weight += w;
+                        total += src[j]*w;
+                    }
+                }
+                if (given)
+                    weight = *given;
+                else
+                    check_weight(weight);
+                output.unsafe_at(x, y) = normalize<E>(total, weight);
+            };
+
+            // left and right borders, with the corners. Rows away from the top and bottom share the column's weight
+            auto column = [&]( int32_t x, int32_t minJ, int32_t maxJ ) {
+                const K weight = window_weight(-offsetL, offsetR, minJ, maxJ);
+                for (int32_t y = 0; y < height; y++) {
+                    const int32_t minI = y >= offsetL ? -offsetL : -y;
+                    const int32_t maxI = y < height - offsetR ? offsetR : height - y - 1;
+                    const bool inner = minI == -offsetL && maxI == offsetR;
+                    pixel(x, y, minI, maxI, minJ, maxJ, inner ? &weight : nullptr);
+                }
+            };
+            for (int32_t x = 0; x < offsetL; x++)
+                column(x, -x, offsetR);
+            for (int32_t x = width - offsetR; x < width; x++)
+                column(x, -offsetL, width - x - 1);
+
+            // top and bottom borders without the corners. Every pixel in a row has the same weight
+            auto border_row = [&]( int32_t y, int32_t minI, int32_t maxI ) {
+                sum_row(&output.data[output.offset + y*output.stride + offsetL], width - offsetL - offsetR,
+                        window_weight(minI, maxI, -offsetL, offsetR), [&]( auto add ) {
+                    for (int32_t i = minI; i <= maxI; i++) {
+                        const E* src = input.data + input.offset + (y + i)*input.stride + offsetL;
+                        const K* ker = kernel.data.data + (i + offsetL)*kw + offsetL;
+                        for (int32_t j = -offsetL; j <= offsetR; j++)
+                            add(src + j, ker[j]);
+                    }
+                });
+            };
+            for (int32_t y = 0; y < offsetL; y++)
+                border_row(y, -y, offsetR);
+            for (int32_t y = height - offsetR; y < height; y++)
+                border_row(y, -offsetL, height - y - 1);
         }
 
     private:
-        /// One pixel of convolve(), summing kernel rows minI to maxI and columns minJ to maxJ relative to its center
-        template<class E>
-        static void border_pixel( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel,
-                                  const Gray<E>& input, Gray<E>& output, int32_t x, int32_t y,
-                                  int32_t minI, int32_t maxI, int32_t minJ, int32_t maxJ ) {
-            typedef typename TypeInfo<E>::signed_type signed_type;
-            const int32_t offsetL = kernel.offset;
-            signed_type total = 0;
-            signed_type weight = 0;
-            for (int32_t i = minI; i <= maxI; i++) {
-                const E* src = input.data + input.offset + (y + i)*input.stride + x;
-                const signed_type* ker = kernel.data.data + (i + offsetL)*kernel.width + offsetL;
-                for (int32_t j = minJ; j <= maxJ; j++) {
-                    signed_type w = ker[j];
-                    weight += w;
-                    total += src[j]*w;
-                }
-            }
-            if constexpr (std::is_integral<E>::value) {
-                // BoofCV's Java code throws an ArithmeticException
+        /// Pixels summed at once by sum_row()
+        static constexpr uint32_t CHUNK = 256;
+
+        template<class E, class K>
+        static E normalize( K total, K weight ) {
+            if constexpr (std::is_integral<E>::value)
+                return static_cast<E>((total + weight/2)/weight);
+            else
+                return static_cast<E>(total/weight);
+        }
+
+        /// BoofCV's Java code throws an ArithmeticException for integers
+        template<class K>
+        static void check_weight( K weight ) {
+            if constexpr (std::is_integral<K>::value) {
                 if (weight == 0)
                     throw std::domain_error("Kernel weights inside the image sum to zero");
-                output.unsafe_at(x, y) = static_cast<E>((total + weight/2)/weight);
-            } else {
-                output.unsafe_at(x, y) = static_cast<E>(total/weight);
+            }
+        }
+
+        /// out[x] = (sum of src[x]*w over the terms)/weight for x < n. terms(add) calls add(src, w) once per term,
+        /// in the order they're summed. Done CHUNK pixels at a time, so the sums vectorize along the row
+        template<class E, class K, class Terms>
+        static void sum_row( E* out, uint32_t n, K weight, Terms terms ) {
+            for (uint32_t x0 = 0; x0 < n; x0 += CHUNK) {
+                const uint32_t m = std::min(CHUNK, n - x0);
+                K total[CHUNK];
+                for (uint32_t x = 0; x < m; x++)
+                    total[x] = 0;
+                // offset the pointers here: GCC doesn't vectorize an index of x0 + x
+                terms([&]( const E* src, K w ) {
+                    src += x0;
+                    for (uint32_t x = 0; x < m; x++)
+                        total[x] += src[x]*w;
+                });
+                E* o = out + x0;
+                for (uint32_t x = 0; x < m; x++)
+                    o[x] = normalize<E>(total[x], weight);
             }
         }
     };

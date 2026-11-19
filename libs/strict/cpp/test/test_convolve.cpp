@@ -74,6 +74,16 @@ public:
         checkResults_border();
     }
 
+    void convolve_norm_border() {
+        ConvolveNormalizedNaive::convolve(kernel2,input,expected);
+        ConvolveNormalized_JustBorder::convolve(kernel2,input,found);
+
+        borderX0 = borderY0 = kernel2.offset;
+        borderX1 = borderY1 = kernel2.width-1-kernel2.offset;
+
+        checkResults_border();
+    }
+
     void horizontal_div_inner() {
         ImageBorderValue<E> border(0);
         border.setImage(input);
@@ -315,6 +325,30 @@ TEST_F(ConvolveNormalized_JustBorderTest, vertical_F32) {
         compare.vertical_norm_border();
     }
 }
+
+/// Rows longer than the number of pixels the border code sums at once, and kernels that aren't centered
+template<class E>
+void check_just_border_wide() {
+    CompareToNaive<E> compare;
+    for (uint32_t w : {255u, 256u, 257u, 600u}) {
+        compare.setImageSize(w, 9);
+        for (auto [width, offset] : {std::pair{5u, 2u}, {7u, 1u}, {4u, 3u}, {7u, 6u}}) {
+            compare.setKernel(width, offset);
+            compare.horizontal_norm_border();
+            compare.vertical_norm_border();
+            compare.setKernel2(width, offset);
+            // a corner's window can have one weight, which must not be zero for integers
+            for (uint32_t i = 0; i < compare.kernel2.data.size; i++)
+                if (compare.kernel2.data[i] == 0)
+                    compare.kernel2.data[i] = 1;
+            compare.convolve_norm_border();
+        }
+    }
+}
+
+TEST_F(ConvolveNormalized_JustBorderTest, wide_U8) { check_just_border_wide<U8>(); }
+
+TEST_F(ConvolveNormalized_JustBorderTest, wide_F32) { check_just_border_wide<F32>(); }
 
 class ConvolveImage_InnerTest : public boofcv::BoofCPPTest {};
 
