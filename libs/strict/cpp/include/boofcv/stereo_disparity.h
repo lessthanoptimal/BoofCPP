@@ -235,8 +235,8 @@ namespace boofcv {
         }
     };
 
-    /// The parts FactoryBlockMatch builds block matching from that a variant can replace. Strict's are the same as
-    /// BoofCV's
+    /// The parts FactoryBlockMatch builds block matching from that a variant can replace. Strict's give the same
+    /// results as BoofCV's
     struct BlockMatchParts {
         /// Selects the disparity from error scores
         template<class S, class D>
@@ -247,8 +247,9 @@ namespace boofcv {
         using SelectCorrelation = SelectCorrelationWithChecks_F32<D>;
 
         /// Integer score type which replaces int32_t when the largest region score and the disparity range are
-        /// below its maximum. int32_t if there's none
-        using SmallScore = int32_t;
+        /// below its maximum. int32_t if there's none. The running sums of 16-bit scores are exact modulo 2^16, so
+        /// region scores below 65535 are exact
+        using SmallScore = uint16_t;
     };
 
     /// Creates stereo disparity algorithms from 'Parts'. Same as BoofCV's FactoryStereoDisparity

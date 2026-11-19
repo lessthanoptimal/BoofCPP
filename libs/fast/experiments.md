@@ -64,12 +64,14 @@ test image, reflected border): each F32 comparison gives a 32-bit mask that is n
 
 ## Stereo block matching (2026-11-18)
 
-Not kept, from C++ prototypes on the benchmark's stereo pair (672x504, range 100, 7x7 region, every check on, ms):
+The selector below and 16-bit scores give results identical to strict's, so they went into strict. The other
+approaches weren't kept. C++ prototypes on the benchmark's stereo pair (672x504, range 100, 7x7 region, every check
+on, ms):
 
 | Approach | SAD U8 | census 5x5 | SAD F32 | Why not |
 |----------|--------|------------|---------|---------|
-| strict | 77 | 72 | 83 | |
-| kept: fast's selector, 16-bit integer scores | 37 | 46 | 58 | |
+| strict before | 77 | 72 | 83 | |
+| selector by disparity, 16-bit integer scores | 37 | 46 | 58 | went into strict |
 | row scores as a box sum of shifted errors | 36 | 45 | 65 | F32 score error 1.45e-5 x max(1,\|s\|), outside tolerance. Integers within 3% of the running sum |
 | vertical running sum fused into the row scores | 36 | 45 | | no change |
 | every disparity of a pixel in contiguous 16-bit lanes, vertical sums first, a ring of per pixel errors | 32 | 45 | | only SAD gains, about 10%, and only for 16-bit scores, with more new code |
