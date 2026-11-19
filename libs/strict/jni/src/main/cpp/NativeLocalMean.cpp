@@ -9,19 +9,20 @@ using namespace boofcv;
 extern "C" {
 JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeLocalMean_nativeinit(
     JNIEnv *env, jobject obj, jobject jregionWidth, jdouble scale, jboolean down ) {
+    jni_call(env, [&] {
+        const NativeBaseFields& fields = NativeBaseFields::get(env);
+        jboolean isInteger = env->GetBooleanField(obj, fields.isInteger);
 
-    const NativeBaseFields& fields = NativeBaseFields::get(env);
-    jboolean isInteger = env->GetBooleanField(obj, fields.isInteger);
+        boofcv::ConfigLength region_width = config_from_java<boofcv::ConfigLength>(env,jregionWidth);
 
-    boofcv::ConfigLength region_width = config_from_java<boofcv::ConfigLength>(env,jregionWidth);
-
-    jlong ptr;
-    if( isInteger ) {
-        ptr = (jlong)new LocalMeanBinaryFilter<U8>(region_width,(double)scale,(bool)down);
-    } else {
-        ptr = (jlong)new LocalMeanBinaryFilter<F32>(region_width,(double)scale,(bool)down);
-    }
-    env->SetLongField(obj, fields.nativePtr, ptr);
+        jlong ptr;
+        if( isInteger ) {
+            ptr = (jlong)new LocalMeanBinaryFilter<U8>(region_width,(double)scale,(bool)down);
+        } else {
+            ptr = (jlong)new LocalMeanBinaryFilter<F32>(region_width,(double)scale,(bool)down);
+        }
+        env->SetLongField(obj, fields.nativePtr, ptr);
+    });
 }
 
 JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeLocalMean_nativedestroy(JNIEnv *env, jobject obj) {

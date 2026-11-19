@@ -215,13 +215,17 @@ namespace boofcv
          * @param width Width of square region.
          * @param scale Scale factor used to adjust threshold.  Try 0.95
          * @param down Should it threshold up or down.
-         * @param storage1 Storage for intermediate step.
-         * @param storage2 Storage for intermediate step.
+         * @param storage1 Storage for intermediate step. Not used for U8
+         * @param storage2 Storage for intermediate step. Not used for U8
          */
         template<class T>
         static void localMean( const Gray<T>& input , Gray<U8>& output ,
                                const ConfigLength& width , float scale , bool down ,
                                Gray<T>& storage1 , Gray<T>&  storage2 ) {
+            if constexpr (std::is_same_v<T, U8>) {
+                localMean_U8(input, output, width, scale, down);
+                return;
+            }
 
             output.reshape(input.width, input.height);
             storage1.reshape(input.width, input.height);
@@ -255,6 +259,13 @@ namespace boofcv
                 }
             }
         }
+
+    private:
+        /// localMean() for U8, with the same results, in one pass over the image and without its storage. The
+        /// horizontal means of the rows in the vertical window are kept, and their column sums are updated one row at
+        /// a time
+        static void localMean_U8( const Gray<U8>& input, Gray<U8>& output, const ConfigLength& width, float scale,
+                                  bool down );
     };
 
 
