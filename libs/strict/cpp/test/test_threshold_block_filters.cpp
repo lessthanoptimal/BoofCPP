@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <random>
@@ -160,9 +161,26 @@ namespace reference {
         return output;
     }
 
-    /// The local region's maximum starts at numeric_limits<E>::min(), which for floats is the smallest positive value
+    /// The textureless spread as BoofCV computes it for integer images: -1 if negative, otherwise Math.round saturated
+    /// to an int, with NaN as 0
     template<class E>
-    Gray<U8> min_max( const Gray<E>& input, float minimumSpread, const ConfigLength& requested, bool local,
+    auto spread( double minimumSpread ) {
+        typedef typename TypeInfo<E>::sum_type sum_type;
+        if constexpr (std::is_integral_v<E>) {
+            if (minimumSpread < 0)
+                return (int64_t)-1;
+            if (std::isnan(minimumSpread))
+                return (int64_t)0;
+            // Math.round. x + 0.5 is exact in x86's long double for the doubles tested, so floor rounds ties up
+            const long double v = std::floor((long double)minimumSpread + 0.5L);
+            return (int64_t)std::min(v, (long double)std::numeric_limits<int32_t>::max());
+        } else {
+            return (sum_type)minimumSpread;
+        }
+    }
+
+    template<class E>
+    Gray<U8> min_max( const Gray<E>& input, double minimumSpread, const ConfigLength& requested, bool local,
                       float scale, bool down ) {
         typedef typename TypeInfo<E>::sum_type sum_type;
         Gray<U8> output(input.width, input.height);
@@ -184,17 +202,17 @@ namespace reference {
             maxs[index] = max;
         }, [&]( uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1, const std::vector<uint32_t>& region ) {
             E min = std::numeric_limits<E>::max();
-            E max = std::numeric_limits<E>::min();
+            E max = std::numeric_limits<E>::lowest();
             for (uint32_t i : region) {
                 if (mins[i] < min)
                     min = mins[i];
                 if (maxs[i] > max)
                     max = maxs[i];
             }
-            const auto textureThreshold = static_cast<sum_type>(minimumSpread);
+            const auto textureThreshold = spread<E>(minimumSpread);
             for (uint32_t y = y0; y < y1; y++) {
                 for (uint32_t x = x0; x < x1; x++) {
-                    if (max - min <= textureThreshold) {
+                    if ((decltype(textureThreshold))(max - min) <= textureThreshold) {
                         output.at(x, y) = 1;
                     } else {
                         const auto average = static_cast<sum_type>(scale*((max + min)/2));
@@ -368,6 +386,67 @@ TEST_F(ThresholdBlockMinMaxTest, average_outside_signed_range) {
             }
         }
     }
+}
+
+/// An image with only negative values, whose region maximum is below zero
+TEST_F(ThresholdBlockMinMaxTest, negative_pixels) {
+    Gray<F32> input(12, 8);
+    for (uint32_t y = 0; y < input.height; y++)
+        for (uint32_t x = 0; x < input.width; x++)
+            input.at(x, y) = (x + y)%2 == 0 ? -10.0f : -20.0f;
+    for (bool down : {true, false}) {
+        ThresholdBlockMinMax<F32> alg(1.0f, ConfigLength::fixed(4), true, 1.0f, down);
+        Gray<U8> output(input.width, input.height);
+        alg.process(input, output);
+        // the threshold is (-10 + -20)/2 = -15
+        for (uint32_t y = 0; y < input.height; y++)
+            for (uint32_t x = 0; x < input.width; x++)
+                EXPECT_EQ(down == (input.at(x, y) == -20.0f), output.at(x, y) == 1) << x << " " << y;
+        check_same<F32>(reference::min_max(input, 1.0f, ConfigLength::fixed(4), true, 1.0f, down), alg, input);
+    }
+}
+
+namespace {
+    /// Counts the 1s from thresholding up an image of alternating 'a' and 'b'
+    uint32_t checkerboard_ones( U8 a, U8 b, double spread ) {
+        Gray<U8> input(20, 16);
+        for (uint32_t y = 0; y < input.height; y++)
+            for (uint32_t x = 0; x < input.width; x++)
+                input.at(x, y) = (x + y)%2 == 0 ? a : b;
+        ThresholdBlockMinMax<U8> alg(spread, ConfigLength::fixed(5), true, 1.0f, false);
+        Gray<U8> output(input.width, input.height);
+        alg.process(input, output);
+        check_same<U8>(reference::min_max(input, spread, ConfigLength::fixed(5), true, 1.0f, false), alg, input);
+        uint32_t ones = 0;
+        for (uint32_t y = 0; y < input.height; y++)
+            for (uint32_t x = 0; x < input.width; x++)
+                ones += output.at(x, y);
+        return ones;
+    }
+}
+
+/// Any negative spread disables the textureless check. Thresholding up, a flat image is then all 0, not all 1
+TEST_F(ThresholdBlockMinMaxTest, negative_spread_disables) {
+    for (double spread : {-0.1, -1.0})
+        EXPECT_EQ(0u, checkerboard_ones(128, 128, spread)) << spread;
+    EXPECT_EQ(20u*16u, checkerboard_ones(128, 128, 0.0));
+}
+
+/// Integer images round the spread like Java's Math.round, ties up, then cast it to an int
+TEST_F(ThresholdBlockMinMaxTest, texture_threshold) {
+    auto threshold = []( double minimumSpread ) {
+        return ThresholdBlockMinMax<U8>(minimumSpread, ConfigLength::fixed(5), true, 1.0, false).texture_threshold();
+    };
+    EXPECT_EQ(-1, threshold(-0.1));
+    EXPECT_EQ(-1, threshold(-1e20));
+    EXPECT_EQ(0, threshold(0));
+    EXPECT_EQ(0, threshold(std::nextafter(0.5, 0.0)));
+    EXPECT_EQ(1, threshold(0.5));
+    EXPECT_EQ(2, threshold(2.4999999999));
+    EXPECT_EQ(3, threshold(2.5));
+    EXPECT_EQ(3, threshold(2.9999999999));
+    EXPECT_EQ(std::numeric_limits<int32_t>::max(), threshold(1e20));
+    EXPECT_EQ(0, threshold(std::numeric_limits<double>::quiet_NaN()));
 }
 
 /// Every block filter rejects a block width of zero instead of dividing by it

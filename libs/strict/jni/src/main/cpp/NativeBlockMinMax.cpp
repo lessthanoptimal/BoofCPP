@@ -18,9 +18,9 @@ JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeBlockMinMax_nativeinit(
 
     jlong ptr;
     if( isInteger ) {
-        ptr = (jlong)new ThresholdBlockMinMax<U8>((float)minimumSpread,region_width,(bool)thresholdFromLocalBlocks,(float)scale,(bool)down);
+        ptr = (jlong)new ThresholdBlockMinMax<U8>(minimumSpread,region_width,(bool)thresholdFromLocalBlocks,(float)scale,(bool)down);
     } else {
-        ptr = (jlong)new ThresholdBlockMinMax<F32>((float)minimumSpread,region_width,(bool)thresholdFromLocalBlocks,(float)scale,(bool)down);
+        ptr = (jlong)new ThresholdBlockMinMax<F32>(minimumSpread,region_width,(bool)thresholdFromLocalBlocks,(float)scale,(bool)down);
     }
     env->SetLongField(obj, fields.nativePtr, ptr);
 }
