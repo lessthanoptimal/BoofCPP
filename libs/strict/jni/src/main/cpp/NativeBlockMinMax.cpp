@@ -10,19 +10,20 @@ extern "C" {
 JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeBlockMinMax_nativeinit(
     JNIEnv *env, jobject obj, jobject jregionWidth,
     jdouble scale, jboolean down , jdouble minimumSpread, jboolean thresholdFromLocalBlocks ) {
+    jni_call(env, [&] {
+        const NativeBaseFields& fields = NativeBaseFields::get(env);
+        jboolean isInteger = env->GetBooleanField(obj, fields.isInteger);
 
-    const NativeBaseFields& fields = NativeBaseFields::get(env);
-    jboolean isInteger = env->GetBooleanField(obj, fields.isInteger);
+        boofcv::ConfigLength region_width = config_from_java<boofcv::ConfigLength>(env,jregionWidth);
 
-    boofcv::ConfigLength region_width = config_from_java<boofcv::ConfigLength>(env,jregionWidth);
-
-    jlong ptr;
-    if( isInteger ) {
-        ptr = (jlong)new ThresholdBlockMinMax<U8>(minimumSpread,region_width,(bool)thresholdFromLocalBlocks,(float)scale,(bool)down);
-    } else {
-        ptr = (jlong)new ThresholdBlockMinMax<F32>(minimumSpread,region_width,(bool)thresholdFromLocalBlocks,(float)scale,(bool)down);
-    }
-    env->SetLongField(obj, fields.nativePtr, ptr);
+        jlong ptr;
+        if( isInteger ) {
+            ptr = (jlong)new ThresholdBlockMinMax<U8>(minimumSpread,region_width,(bool)thresholdFromLocalBlocks,scale,(bool)down);
+        } else {
+            ptr = (jlong)new ThresholdBlockMinMax<F32>(minimumSpread,region_width,(bool)thresholdFromLocalBlocks,scale,(bool)down);
+        }
+        env->SetLongField(obj, fields.nativePtr, ptr);
+    });
 }
 
 JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeBlockMinMax_nativedestroy(JNIEnv *env, jobject obj) {

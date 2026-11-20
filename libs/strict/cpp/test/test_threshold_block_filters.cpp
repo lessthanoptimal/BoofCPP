@@ -9,6 +9,7 @@
 #include "testing_utils.h"
 #include "variant_strict.h"
 #include "shared/threshold_checks.h"
+#include "shared/threshold_block_reference.h"
 
 using namespace std;
 using namespace boofcv;
@@ -61,169 +62,7 @@ TEST_F(ThresholdBlockMinMaxTest, standard_tests_F32) {
     threshold_checks::block_all(threshold_checks::block_min_max<F32>());
 }
 
-/// The block filters computed one block at a time, in the order of BoofCV's Java code: each block's statistics, then
-/// each block's threshold from the statistics of its local region
-namespace reference {
-    struct Blocks {
-        uint32_t width, height;  // size of a block, except the last in each row and column
-        uint32_t cols, rows;     // number of blocks
-        bool local;
-
-        Blocks( const ConfigLength& requested, bool local, uint32_t image_width, uint32_t image_height )
-                : local(local) {
-            auto r = (uint32_t)requested.computeI(std::min(image_width, image_height));
-            width = image_width/(image_width/r);
-            height = image_height/(image_height/r);
-            cols = image_width/width;
-            rows = image_height/height;
-        }
-
-        /// Calls stat(index, x0, y0, x1, y1) for each block, then threshold(index, x0, y0, x1, y1, region) where
-        /// region lists the indexes of the blocks in its local region
-        template<class Stat, class Threshold>
-        void process( uint32_t image_width, uint32_t image_height, Stat stat, Threshold threshold ) const {
-            auto x1 = [&]( uint32_t bx ) { return bx == cols - 1 ? image_width : (bx + 1)*width; };
-            auto y1 = [&]( uint32_t by ) { return by == rows - 1 ? image_height : (by + 1)*height; };
-            for (uint32_t by = 0; by < rows; by++)
-                for (uint32_t bx = 0; bx < cols; bx++)
-                    stat(by*cols + bx, bx*width, by*height, x1(bx), y1(by));
-            for (uint32_t by = 0; by < rows; by++) {
-                for (uint32_t bx = 0; bx < cols; bx++) {
-                    std::vector<uint32_t> region;
-                    const uint32_t r = local ? 1 : 0;
-                    for (uint32_t y = by > r ? by - r : 0; y <= std::min(rows - 1, by + r); y++)
-                        for (uint32_t x = bx > r ? bx - r : 0; x <= std::min(cols - 1, bx + r); x++)
-                            region.push_back(y*cols + x);
-                    threshold(bx*width, by*height, x1(bx), y1(by), region);
-                }
-            }
-        }
-    };
-
-    template<class E>
-    Gray<U8> mean( const Gray<E>& input, const ConfigLength& requested, bool local, double scale_d, bool down ) {
-        typedef typename TypeInfo<E>::sum_type sum_type;
-        const auto scale = (float)scale_d;
-        Gray<U8> output(input.width, input.height);
-        Blocks blocks(requested, local, input.width, input.height);
-        std::vector<E> means(blocks.cols*blocks.rows);
-        blocks.process(input.width, input.height, [&]( uint32_t index, uint32_t x0, uint32_t y0, uint32_t x1,
-                                                       uint32_t y1 ) {
-            sum_type sum = 0;
-            for (uint32_t y = y0; y < y1; y++)
-                for (uint32_t x = x0; x < x1; x++)
-                    sum += input.at(x, y);
-            const uint32_t area = (x1 - x0)*(y1 - y0);
-            if (std::is_integral_v<E>)
-                sum = static_cast<sum_type>(scale*sum/area + 0.5f);
-            else
-                sum = static_cast<sum_type>(scale*sum/area);
-            means[index] = static_cast<E>(sum);
-        }, [&]( uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1, const std::vector<uint32_t>& region ) {
-            sum_type sum = 0;
-            for (uint32_t i : region)
-                sum += means[i];
-            const E threshold = sum/(uint32_t)region.size();
-            for (uint32_t y = y0; y < y1; y++)
-                for (uint32_t x = x0; x < x1; x++)
-                    output.at(x, y) = (U8)(down == (input.at(x, y) <= threshold));
-        });
-        return output;
-    }
-
-    template<class E>
-    Gray<U8> otsu( const Gray<E>& input, bool otsu2, const ConfigLength& requested, double tuning, double scale,
-                   bool down, bool local ) {
-        Gray<U8> output(input.width, input.height);
-        Blocks blocks(requested, local, input.width, input.height);
-        std::vector<uint32_t> histograms(blocks.cols*blocks.rows*256, 0);
-        ComputeOtsu otsu(otsu2, tuning, down, scale);
-        blocks.process(input.width, input.height, [&]( uint32_t index, uint32_t x0, uint32_t y0, uint32_t x1,
-                                                       uint32_t y1 ) {
-            for (uint32_t y = y0; y < y1; y++)
-                for (uint32_t x = x0; x < x1; x++)
-                    histograms[index*256 + (U8)input.at(x, y)]++;
-        }, [&]( uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1, const std::vector<uint32_t>& region ) {
-            GrowArray<uint32_t> histogram(256);
-            histogram.fill(0);
-            uint32_t total = 0;
-            for (uint32_t i : region) {
-                for (uint32_t v = 0; v < 256; v++) {
-                    histogram[v] += histograms[i*256 + v];
-                    total += histograms[i*256 + v];
-                }
-            }
-            otsu.compute(histogram, total);
-            for (uint32_t y = y0; y < y1; y++)
-                for (uint32_t x = x0; x < x1; x++)
-                    output.at(x, y) = (U8)(down == ((U8)input.at(x, y) <= otsu.threshold));
-        });
-        return output;
-    }
-
-    /// The textureless spread as BoofCV computes it for integer images: -1 if negative, otherwise Math.round saturated
-    /// to an int, with NaN as 0
-    template<class E>
-    auto spread( double minimumSpread ) {
-        typedef typename TypeInfo<E>::sum_type sum_type;
-        if constexpr (std::is_integral_v<E>) {
-            if (minimumSpread < 0)
-                return (int64_t)-1;
-            if (std::isnan(minimumSpread))
-                return (int64_t)0;
-            // Math.round. x + 0.5 is exact in x86's long double for the doubles tested, so floor rounds ties up
-            const long double v = std::floor((long double)minimumSpread + 0.5L);
-            return (int64_t)std::min(v, (long double)std::numeric_limits<int32_t>::max());
-        } else {
-            return (sum_type)minimumSpread;
-        }
-    }
-
-    template<class E>
-    Gray<U8> min_max( const Gray<E>& input, double minimumSpread, const ConfigLength& requested, bool local,
-                      float scale, bool down ) {
-        typedef typename TypeInfo<E>::sum_type sum_type;
-        Gray<U8> output(input.width, input.height);
-        Blocks blocks(requested, local, input.width, input.height);
-        std::vector<E> mins(blocks.cols*blocks.rows), maxs(blocks.cols*blocks.rows);
-        blocks.process(input.width, input.height, [&]( uint32_t index, uint32_t x0, uint32_t y0, uint32_t x1,
-                                                       uint32_t y1 ) {
-            E min = input.at(x0, y0), max = min;
-            for (uint32_t y = y0; y < y1; y++) {
-                for (uint32_t x = x0; x < x1; x++) {
-                    const E value = input.at(x, y);
-                    if (value < min)
-                        min = value;
-                    else if (value > max)
-                        max = value;
-                }
-            }
-            mins[index] = min;
-            maxs[index] = max;
-        }, [&]( uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1, const std::vector<uint32_t>& region ) {
-            E min = std::numeric_limits<E>::max();
-            E max = std::numeric_limits<E>::lowest();
-            for (uint32_t i : region) {
-                if (mins[i] < min)
-                    min = mins[i];
-                if (maxs[i] > max)
-                    max = maxs[i];
-            }
-            const auto textureThreshold = spread<E>(minimumSpread);
-            for (uint32_t y = y0; y < y1; y++) {
-                for (uint32_t x = x0; x < x1; x++) {
-                    if ((decltype(textureThreshold))(max - min) <= textureThreshold) {
-                        output.at(x, y) = 1;
-                    } else {
-                        const auto average = static_cast<sum_type>(scale*((max + min)/2));
-                        output.at(x, y) = (U8)(down == (input.at(x, y) <= average));
-                    }
-                }
-            }
-        });
-        return output;
-    }
-}
+namespace reference = threshold_block_reference;
 
 namespace {
     enum class Content { UNIFORM, FLAT, SMOOTH, HARD };
@@ -297,7 +136,7 @@ namespace {
         for_each_input<E>(false, [&]( const Gray<E>& input, const ConfigLength& width ) {
             for (bool local : {true, false})
                 for (bool down : {true, false})
-                    for (double scale : {0.95, 1.0, 1.3}) {
+                    for (double scale : {0.95, 1.0, 1.3, 0.82, -0.5}) {
                         ThresholdBlockMean<E> alg(width, local, scale, down);
                         check_same<E>(reference::mean(input, width, local, scale, down), alg, input);
                     }
@@ -326,7 +165,7 @@ namespace {
             for (bool local : {true, false})
                 for (bool down : {true, false})
                     for (float spread : {0.0f, 1.0f, 10.0f})
-                        for (float scale : {0.95f, 1.0f, 1.3f}) {
+                        for (double scale : {0.95, 1.0, 1.3, 0.82, -0.5}) {
                             ThresholdBlockMinMax<E> alg(spread, width, local, scale, down);
                             check_same<E>(reference::min_max(input, spread, width, local, scale, down), alg, input);
                         }
@@ -447,6 +286,62 @@ TEST_F(ThresholdBlockMinMaxTest, texture_threshold) {
     EXPECT_EQ(3, threshold(2.9999999999));
     EXPECT_EQ(std::numeric_limits<int32_t>::max(), threshold(1e20));
     EXPECT_EQ(0, threshold(std::numeric_limits<double>::quiet_NaN()));
+}
+
+/// A double scale: 0.82*300/4 + 0.5 is just below 62, so the mean is 61 and a 62 pixel is above it
+TEST_F(ThresholdBlockMeanTest, scale_in_double) {
+    Gray<U8> input(2, 2);
+    input.at(0, 0) = input.at(1, 0) = 62;
+    input.at(0, 1) = input.at(1, 1) = 88;
+    ThresholdBlockMean<U8> alg(ConfigLength::fixed(2), true, 0.82, true);
+    Gray<U8> output(2, 2);
+    alg.process(input, output);
+    for (uint32_t y = 0; y < 2; y++)
+        for (uint32_t x = 0; x < 2; x++)
+            EXPECT_EQ(0, output.at(x, y)) << x << " " << y;
+}
+
+/// Like Java's (byte), a negative scaled mean keeps its low 8 bits: -49 is 207
+TEST_F(ThresholdBlockMeanTest, negative_scale) {
+    Gray<U8> input(4, 4);
+    ImageMiscOps::fill(input, (U8)100);
+    ThresholdBlockMean<U8> alg(ConfigLength::fixed(2), true, -0.5, true);
+    Gray<U8> output(4, 4);
+    alg.process(input, output);
+    for (uint32_t y = 0; y < 4; y++)
+        for (uint32_t x = 0; x < 4; x++)
+            EXPECT_EQ(1, output.at(x, y)) << x << " " << y;
+}
+
+/// A double scale: 0.82*(45 + 255)/2 is just below 123, so the threshold is 122 and a 123 pixel is above it
+TEST_F(ThresholdBlockMinMaxTest, scale_in_double) {
+    Gray<U8> input(6, 6);
+    const U8 values[] = {45, 123, 255};
+    for (uint32_t y = 0; y < 6; y++)
+        for (uint32_t x = 0; x < 6; x++)
+            input.at(x, y) = values[(x + y)%3];
+    ThresholdBlockMinMax<U8> alg(-1, ConfigLength::fixed(6), true, 0.82, true);
+    Gray<U8> output(6, 6);
+    alg.process(input, output);
+    for (uint32_t y = 0; y < 6; y++)
+        for (uint32_t x = 0; x < 6; x++)
+            EXPECT_EQ(input.at(x, y) == 45, output.at(x, y) == 1) << x << " " << y;
+}
+
+/// A negative scale gives a negative threshold, which no pixel is at or below
+TEST_F(ThresholdBlockMinMaxTest, negative_scale) {
+    Gray<U8> input(6, 6);
+    for (uint32_t y = 0; y < 6; y++)
+        for (uint32_t x = 0; x < 6; x++)
+            input.at(x, y) = (U8)(x*40 + y);
+    for (bool down : {true, false}) {
+        ThresholdBlockMinMax<U8> alg(-1, ConfigLength::fixed(3), true, -0.5, down);
+        Gray<U8> output(6, 6);
+        alg.process(input, output);
+        for (uint32_t y = 0; y < 6; y++)
+            for (uint32_t x = 0; x < 6; x++)
+                EXPECT_EQ(down ? 0 : 1, output.at(x, y)) << down << " " << x << " " << y;
+    }
 }
 
 /// Every block filter rejects a block width of zero instead of dividing by it

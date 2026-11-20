@@ -17,29 +17,27 @@
 
 namespace boofcv
 {
-    /**
-     * <p> Computes image statistics in regularly spaced blocks across the image. Then computes an average
-     *     of the statistics in a block within a local 3x3 grid region. The average statistics in a local 3x3 grid
-     *     region is used to reduce the adverse affects of using a grid.
-     * Ideally a local region around each pixel would be used, but this is expensive to compute.  Since a grid is
-     * used instead of a pixel local region boundary conditions can be an issue.  For example, consider a black square
-     * in the image, if the grid just happens to lie on this black square perfectly then if you look at only a single
-     * grid element it will be considered textureless and the edge lost.  This problem isn't an issue if you consder
-     * a local 3x3 region of blocks.</p>
-     *
-     * <p>The size each block in the grid in pixels is adjusted depending on image size.  This is done to minimize
-     * "squares" in the upper image boundaries from having many more pixels than other blocks.</p>
-     *
-     * <p>The block based approach used here was inspired by a high level description found in AprilTags.</p>
-     *
-     * Statistics are computed one row of blocks at a time, then that row of blocks is thresholded while its pixels
-     * are still in cache, one image row at a time with a threshold per column. With the local 3x3 region a row of
-     * blocks is thresholded once the next one has its statistics.
-     *
-     * @tparam E Type of the input image's pixels.
-     *
-     * @author Peter Abeles
-     */
+    /// Computes image statistics in regularly spaced blocks across the image. Then computes an average
+    /// of the statistics in a block within a local 3x3 grid region. The average statistics in a local 3x3 grid
+    /// region is used to reduce the adverse affects of using a grid.
+    /// Ideally a local region around each pixel would be used, but this is expensive to compute.  Since a grid is
+    /// used instead of a pixel local region boundary conditions can be an issue.  For example, consider a black square
+    /// in the image, if the grid just happens to lie on this black square perfectly then if you look at only a single
+    /// grid element it will be considered textureless and the edge lost.  This problem isn't an issue if you consder
+    /// a local 3x3 region of blocks.
+    ///
+    /// The size each block in the grid in pixels is adjusted depending on image size.  This is done to minimize
+    /// "squares" in the upper image boundaries from having many more pixels than other blocks.
+    ///
+    /// The block based approach used here was inspired by a high level description found in AprilTags.
+    ///
+    /// Statistics are computed one row of blocks at a time, then that row of blocks is thresholded while its pixels
+    /// are still in cache, one image row at a time with a threshold per column. With the local 3x3 region a row of
+    /// blocks is thresholded once the next one has its statistics.
+    ///
+    /// @tparam E Type of the input image's pixels.
+    ///
+    /// @author Peter Abeles
     template<class E>
     class ThresholdBlockCommon : public InputToBinary<Gray<E>> {
     public:
@@ -122,32 +120,28 @@ namespace boofcv
         virtual void threshold_rows( const Gray<E>& input, Gray<U8>& output, uint32_t by ) = 0;
     };
 
-    /**
-     * <p>
-     * Applies a threshold to an image by computing the mean values in a regular grid across
-     * the image.  When thresholding all the pixels inside a box (grid element) the mean values is found
-     * in the surrounding 3x3 grid region.
-     * </p>
-     *
-     * <p>See {@link ThresholdBlockMinMax} for a more detailed discussion of elements of this strategy</p>
-     *
-     * Each block's mean is computed in BoofCV's order. For floats, eight blocks are summed at once so their adds
-     * overlap.
-     *
-     * @author Peter Abeles
-     */
+    /// Applies a threshold to an image by computing the mean values in a regular grid across
+    /// the image.  When thresholding all the pixels inside a box (grid element) the mean values is found
+    /// in the surrounding 3x3 grid region.
+    ///
+    /// See ThresholdBlockMinMax for a more detailed discussion of elements of this strategy
+    ///
+    /// Each block's mean is computed in BoofCV's order. For floats, eight blocks are summed at once so their adds
+    /// overlap.
+    ///
+    /// @author Peter Abeles
     template<class E>
     class ThresholdBlockMean : public ThresholdBlockCommon<E> {
     public:
         using sum_type = typename TypeInfo<E>::sum_type;
 
-        // in the java version U8 uses double and F32 uses float. using double causes slight diff in float results
-        float scale;
+        // BoofCV computes with a double scale for integer images and a float scale otherwise
+        double scale;
         bool down;
 
         ThresholdBlockMean( const ConfigLength& requestedBlockWidth, bool thresholdFromLocalBlocks, double scale,
                             bool down )
-                : ThresholdBlockCommon<E>(requestedBlockWidth, thresholdFromLocalBlocks), scale((float)scale),
+                : ThresholdBlockCommon<E>(requestedBlockWidth, thresholdFromLocalBlocks), scale(scale),
                   down(down) {}
 
     protected:
@@ -182,12 +176,12 @@ namespace boofcv
             }
             for (uint32_t bx = 0; bx < blocks; bx++) {
                 const uint32_t area = (this->block_x1(bx, width) - this->block_x0(bx))*(y1 - y0);
-                sum_type sum = s[bx];
-                if constexpr (std::is_integral_v<E>)
-                    sum = static_cast<sum_type>(scale*sum/area + 0.5f);
-                else
-                    sum = static_cast<sum_type>(scale*sum/area);
-                means[by*blocks + bx] = static_cast<E>(sum);
+                if constexpr (std::is_integral_v<E>) {
+                    // like BoofCV, the int keeps only the bits that fit the pixel type
+                    means[by*blocks + bx] = static_cast<E>(java_int(scale*s[bx]/area + 0.5));
+                } else {
+                    means[by*blocks + bx] = static_cast<float>(scale)*s[bx]/area;
+                }
             }
         }
 
@@ -249,33 +243,29 @@ namespace boofcv
         }
     };
 
-    /**
-     * Block Otsu threshold implementation based on {@link ThresholdBlockCommon}. Computes a histogram in non-overlapping
-     * square regions. Then thresholds a single region by combining histograms from its neighbors to make it less blocky.
-     *
-     * This implementation includes a modification from the traditional Otsu algorithm. The threshold can optionally
-     * be adjusted in low variance regions. See code for details.
-     *
-     * <p>NOTE: This produces visually different results from {@link ThresholdBlockOtsu} because the block algorithm
-     * combines histograms from its neighboring blocks. That's why it appears to have a wider effective block.</p>
-     *
-     * Pixels are converted to U8, as BoofCV does. Histograms are filled one image row at a time into several copies,
-     * so that repeated values don't wait on each other, and Otsu's method only visits the histogram's non-empty bins.
-     * Only the rows of blocks the local region needs are kept.
-     *
-     * @see GThresholdImageOps#computeOtsu(ImageGray, double, double)
-     *
-     * @author Peter Abeles
-     */
+    /// Block Otsu threshold implementation based on ThresholdBlockCommon. Computes a histogram in non-overlapping
+    /// square regions. Then thresholds a single region by combining histograms from its neighbors to make it less blocky.
+    ///
+    /// This implementation includes a modification from the traditional Otsu algorithm. The threshold can optionally
+    /// be adjusted in low variance regions. See code for details.
+    ///
+    /// NOTE: This produces visually different results from ThresholdBlockOtsu because the block algorithm
+    /// combines histograms from its neighboring blocks. That's why it appears to have a wider effective block.
+    ///
+    /// Pixels are converted to U8, as BoofCV does. Histograms are filled one image row at a time into several copies,
+    /// so that repeated values don't wait on each other, and Otsu's method only visits the histogram's non-empty bins.
+    /// Only the rows of blocks the local region needs are kept.
+    ///
+    /// @see GThresholdImageOps#computeOtsu(ImageGray, double, double)
+    ///
+    /// @author Peter Abeles
     template<class E>
     class ThresholdBlockOtsu : public ThresholdBlockCommon<E> {
     public:
         ComputeOtsuNonEmpty otsu;
 
-        /**
-         * @param requestedBlockWidth About how wide and tall you wish a block to be in pixels.
-         * @param tuning Tuning parameter. 0 = standard Otsu. Greater than 0 will penalize zero texture.
-         */
+        /// @param requestedBlockWidth About how wide and tall you wish a block to be in pixels.
+        /// @param tuning Tuning parameter. 0 = standard Otsu. Greater than 0 will penalize zero texture.
         ThresholdBlockOtsu( bool otsu2, ConfigLength requestedBlockWidth, double tuning, double scale, bool down,
                             bool thresholdFromLocalBlocks )
                 : ThresholdBlockCommon<E>(requestedBlockWidth, thresholdFromLocalBlocks),
@@ -383,16 +373,14 @@ namespace boofcv
         }
     };
 
-    /**
-     * Applies a threshold to an image from the minimum and maximum values in a regular grid across the image. The
-     * threshold of a block is the scaled average of the minimum and maximum in its local 3x3 region. See
-     * ThresholdBlockCommon.
-     *
-     * The minimum and maximum of each column over a row of blocks vectorize, then give each block's. Like BoofCV, NaN
-     * is ignored unless it's a block's first pixel.
-     *
-     * @author Peter Abeles
-     */
+    /// Applies a threshold to an image from the minimum and maximum values in a regular grid across the image. The
+    /// threshold of a block is the scaled average of the minimum and maximum in its local 3x3 region. See
+    /// ThresholdBlockCommon.
+    ///
+    /// The minimum and maximum of each column over a row of blocks vectorize, then give each block's. Like BoofCV, NaN
+    /// is ignored unless it's a block's first pixel.
+    ///
+    /// @author Peter Abeles
     template<class E>
     class ThresholdBlockMinMax : public ThresholdBlockCommon<E> {
     public:
@@ -401,23 +389,23 @@ namespace boofcv
         // if the min and max value's difference is <= to this value then it is considered
         // to be textureless and a default value is used
         double minimumSpread;
-        float scale;
+        // BoofCV computes with a double scale for integer images and a float scale otherwise
+        double scale;
         bool down;
 
-        /**
-         * @param minimumSpread If the difference between min max is less than or equal to this
-         *                         value then it is considered textureless. Integer images round it to the
-         *                         nearest integer. Set to a negative value to disable.
-         * @param requestedBlockWidth About how wide and tall you wish a block to be in pixels.
-         */
+        /// @param minimumSpread If the difference between min max is less than or equal to this
+        /// value then it is considered textureless. Integer images round it to the
+        /// nearest integer. Set to a negative value to disable.
+        /// @param requestedBlockWidth About how wide and tall you wish a block to be in pixels.
         ThresholdBlockMinMax( double minimumSpread, const ConfigLength& requestedBlockWidth,
-                              bool thresholdFromLocalBlocks, float scale, bool down )
+                              bool thresholdFromLocalBlocks, double scale, bool down )
                 : ThresholdBlockCommon<E>(requestedBlockWidth, thresholdFromLocalBlocks),
                   minimumSpread(minimumSpread), scale(scale), down(down) {}
 
     protected:
-        /// Type of a pixel's threshold. Unsigned integers compare the same with an average clamped to their largest
-        /// value. A scaled average can be below a signed integer's lowest value, so those keep the sum type
+        /// Unsigned pixels keep 8 or 16 bit thresholds, which compare faster, see threshold_rows()
+        static constexpr bool narrow = std::is_integral_v<E> && std::is_unsigned_v<E>;
+        /// Type of a pixel's threshold. Signed integers hold any int average in the sum type
         using threshold_type = std::conditional_t<std::is_integral_v<E> && std::is_signed_v<E>, sum_type, E>;
 
         std::vector<E> column_min, column_max;  // per column over the rows of a row of blocks
@@ -440,21 +428,17 @@ namespace boofcv
         using spread_type = typename std::conditional_t<std::is_integral_v<E>, std::make_signed<sum_type>,
                                                          std::common_type<sum_type>>::type;
 
-        /// BoofCV's spread. Integers: -1 for a negative spread, otherwise rounded like Java's Math.round and saturated
+        /// BoofCV's spread. Integers: -1 for a negative spread, otherwise rounded like Java's Math.round, then cast to
+        /// an int
         spread_type texture_threshold() const {
             if constexpr (std::is_integral_v<E>) {
-                using limits = std::numeric_limits<spread_type>;
                 if (minimumSpread < 0)
                     return -1;
-                if (!(minimumSpread == minimumSpread))
-                    return 0;
                 // Math.round's ties go up. floor(x + 0.5) would round the double below 0.5 up to 1
                 double rounded = std::floor(minimumSpread);
                 if (minimumSpread - rounded >= 0.5)
                     rounded += 1;
-                if (rounded >= (double)limits::max())
-                    return limits::max();
-                return static_cast<spread_type>(rounded);
+                return java_int(rounded);
             } else {
                 return static_cast<spread_type>(minimumSpread);
             }
@@ -521,12 +505,24 @@ namespace boofcv
                             max = localMax;
                     }
                 }
-                const bool is_flat = max - min <= textureThreshold;
-                const auto average = static_cast<sum_type>(scale*((max + min)/2));
-                threshold_type t = average;
-                if constexpr (std::is_integral_v<E> && std::is_unsigned_v<E>) {
-                    // The comparison is the same for any average above the largest pixel value
-                    t = (E)std::min<sum_type>(average, std::numeric_limits<E>::max());
+                bool is_flat = max - min <= textureThreshold;
+                threshold_type t;
+                if constexpr (narrow) {
+                    // An average outside the pixel range marks every pixel the same, and where that's 1 the block is
+                    // marked like a textureless one. Down compares pixel < average + 1, so an average of -1 fits
+                    const int64_t average = java_int(scale*(((int64_t)max + min)/2));
+                    const int64_t largest = std::numeric_limits<E>::max();
+                    if (down) {
+                        is_flat |= average >= largest;
+                        t = (E)(std::clamp<int64_t>(average, -1, largest - 1) + 1);
+                    } else {
+                        is_flat |= average < 0;
+                        t = (E)std::clamp<int64_t>(average, 0, largest);
+                    }
+                } else if constexpr (std::is_integral_v<E>) {
+                    t = java_int(scale*(((int64_t)max + min)/2));
+                } else {
+                    t = static_cast<float>(scale)*(max + min)/2.0f;
                 }
                 const uint32_t x0 = this->block_x0(bx), x1 = this->block_x1(bx, width);
                 std::fill(threshold + x0, threshold + x1, t);
@@ -536,8 +532,13 @@ namespace boofcv
                 const E* in = &input.data[input.offset + y*input.stride];
                 U8* out = &output.data[output.offset + y*output.stride];
                 if (down) {
-                    for (uint32_t x = 0; x < width; x++)
-                        out[x] = flat[x] | static_cast<U8>(in[x] <= threshold[x]);
+                    if constexpr (narrow) {
+                        for (uint32_t x = 0; x < width; x++)
+                            out[x] = flat[x] | static_cast<U8>(in[x] < threshold[x]);
+                    } else {
+                        for (uint32_t x = 0; x < width; x++)
+                            out[x] = flat[x] | static_cast<U8>(in[x] <= threshold[x]);
+                    }
                 } else {
                     for (uint32_t x = 0; x < width; x++)
                         out[x] = flat[x] | static_cast<U8>(!(in[x] <= threshold[x]));

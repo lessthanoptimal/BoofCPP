@@ -86,6 +86,19 @@ void boofcv::BinaryImageOps::dilate4(const Gray<U8>& input, Gray<U8>& output) {
     }
 }
 
+namespace {
+    /// Otsu's last step in BoofCV: penalizes regions with little texture by 'tuning', then scales the threshold.
+    /// The int casts are Java's, which saturate where a C++ cast is undefined. That only happens for an absurd tuning
+    /// or scale, whose binary image is useless either way
+    void otsu_tune_and_scale( double& threshold, double& variance, double tuning, bool down, double scale ) {
+        variance += 0.001; // avoid divide by zero
+        // multiply by threshold twice in an effort to have the image's scaling not effect the tuning parameter
+        const int32_t adjustment = boofcv::java_int(tuning*threshold*tuning*threshold/variance + 0.5);
+        threshold += down ? -(double)adjustment : (double)adjustment;
+        threshold = boofcv::java_int(scale*std::max(threshold, 0.0) + 0.5);
+    }
+}
+
 boofcv::ComputeOtsu::ComputeOtsu(bool useOtsu2, double tuning, bool down, double scale) {
     this->useOtsu2 = useOtsu2;
     this->tuning = tuning;
@@ -103,12 +116,7 @@ void boofcv::ComputeOtsu::compute(const GrowArray<uint32_t>&histogram , uint32_t
         computeOtsu(histogram,totalPixels);
     }
 
-    // apply optional penalty to low texture regions
-    variance += 0.001; // avoid divide by zero
-    // multiply by threshold twice in an effort to have the image's scaling not effect the tuning parameter
-    int adjustment =  (int)(tuning*threshold*tuning*threshold/variance+0.5);
-    threshold += down ? -adjustment : adjustment;
-    threshold = (int)(scale*std::max(threshold,0.0)+0.5);
+    otsu_tune_and_scale(threshold, variance, tuning, down, scale);
 }
 
 void boofcv::ComputeOtsu::computeOtsu(const GrowArray<uint32_t>& histogram , uint32_t totalPixels ) {
@@ -236,11 +244,7 @@ namespace boofcv {
         if (useOtsu2)
             threshold = length*(selectedMB + selectedMF)/2.0;
 
-        // Same as ComputeOtsu::compute()
-        variance += 0.001;
-        int adjustment = (int)(tuning*threshold*tuning*threshold/variance + 0.5);
-        threshold += down ? -adjustment : adjustment;
-        threshold = (int)(scale*std::max(threshold, 0.0) + 0.5);
+        otsu_tune_and_scale(threshold, variance, tuning, down, scale);
     }
 
     namespace {

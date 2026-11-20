@@ -186,6 +186,19 @@ TEST_F(ComputeOtsuTest, ComputeOtsu) {
     // Test of the class ComputeOtsu is intentionally omitted. Done by comparing results to Java
 }
 
+class JavaIntTest : public boofcv::BoofCPPTest {};
+
+TEST_F(JavaIntTest, like_java) {
+    using limits = std::numeric_limits<int32_t>;
+    EXPECT_EQ(2, java_int(2.9));
+    EXPECT_EQ(-2, java_int(-2.9));
+    EXPECT_EQ(0, java_int(std::numeric_limits<double>::quiet_NaN()));
+    EXPECT_EQ(limits::max(), java_int(1e20));
+    EXPECT_EQ(limits::max(), java_int(limits::max() + 0.5));
+    EXPECT_EQ(limits::min(), java_int(-1e20));
+    EXPECT_EQ(limits::min(), java_int(limits::min() - 0.5));
+}
+
 class ComputeOtsuNonEmptyTest : public boofcv::BoofCPPTest {};
 
 /// Same results as ComputeOtsu on random histograms, sparse and dense
