@@ -2,6 +2,7 @@
 #define BOOFCPP_THRESHOLD_BLOCK_FILTERS_H
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
@@ -399,16 +400,17 @@ namespace boofcv
 
         // if the min and max value's difference is <= to this value then it is considered
         // to be textureless and a default value is used
-        float minimumSpread;
+        double minimumSpread;
         float scale;
         bool down;
 
         /**
          * @param minimumSpread If the difference between min max is less than or equal to this
-         *                         value then it is considered textureless.  Set to &le; -1 to disable.
+         *                         value then it is considered textureless. Integer images round it to the
+         *                         nearest integer. Set to a negative value to disable.
          * @param requestedBlockWidth About how wide and tall you wish a block to be in pixels.
          */
-        ThresholdBlockMinMax( float minimumSpread, const ConfigLength& requestedBlockWidth,
+        ThresholdBlockMinMax( double minimumSpread, const ConfigLength& requestedBlockWidth,
                               bool thresholdFromLocalBlocks, float scale, bool down )
                 : ThresholdBlockCommon<E>(requestedBlockWidth, thresholdFromLocalBlocks),
                   minimumSpread(minimumSpread), scale(scale), down(down) {}
@@ -433,6 +435,32 @@ namespace boofcv
                                                         : std::numeric_limits<E>::lowest();
         }
 
+    public:
+        /// Type of the textureless spread: BoofCV's int for integer images and the pixel type otherwise
+        using spread_type = typename std::conditional_t<std::is_integral_v<E>, std::make_signed<sum_type>,
+                                                         std::common_type<sum_type>>::type;
+
+        /// BoofCV's spread. Integers: -1 for a negative spread, otherwise rounded like Java's Math.round and saturated
+        spread_type texture_threshold() const {
+            if constexpr (std::is_integral_v<E>) {
+                using limits = std::numeric_limits<spread_type>;
+                if (minimumSpread < 0)
+                    return -1;
+                if (!(minimumSpread == minimumSpread))
+                    return 0;
+                // Math.round's ties go up. floor(x + 0.5) would round the double below 0.5 up to 1
+                double rounded = std::floor(minimumSpread);
+                if (minimumSpread - rounded >= 0.5)
+                    rounded += 1;
+                if (rounded >= (double)limits::max())
+                    return limits::max();
+                return static_cast<spread_type>(rounded);
+            } else {
+                return static_cast<spread_type>(minimumSpread);
+            }
+        }
+
+    protected:
         void begin( uint32_t width ) override {
             column_min.resize(width);
             column_max.resize(width);
@@ -474,14 +502,15 @@ namespace boofcv
 
         void threshold_rows( const Gray<E>& input, Gray<U8>& output, uint32_t by ) override {
             const uint32_t width = input.width;
-            const auto textureThreshold = static_cast<sum_type>(minimumSpread);
+            const spread_type textureThreshold = texture_threshold();
             threshold_type* threshold = column.data();
             U8* flat = textureless.data();
             for (uint32_t bx = 0; bx < this->blocksX; bx++) {
                 uint32_t bx0, by0, bx1, by1;
                 this->region(bx, by, bx0, by0, bx1, by1);
+                // BoofCV's start values. Unlike highest() and lowest(), they aren't infinite for floats
                 E min = std::numeric_limits<E>::max();
-                E max = std::numeric_limits<E>::min();
+                E max = std::numeric_limits<E>::lowest();
                 for (uint32_t y = by0; y <= by1; y++) {
                     for (uint32_t x = bx0; x <= bx1; x++) {
                         E localMin = mins[y*this->blocksX + x];
