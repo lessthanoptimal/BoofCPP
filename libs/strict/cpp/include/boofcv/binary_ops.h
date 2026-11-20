@@ -14,6 +14,19 @@
 
 namespace boofcv
 {
+    /// Java's (int) cast of a double: truncates, saturates, and NaN becomes 0. A C++ cast of a value outside int's
+    /// range is undefined
+    inline int32_t java_int( double value ) {
+        using limits = std::numeric_limits<int32_t>;
+        if (!(value == value))
+            return 0;
+        if (value <= (double)limits::min())
+            return limits::min();
+        if (value >= (double)limits::max())
+            return limits::max();
+        return static_cast<int32_t>(value);
+    }
+
     class BinaryImageOps {
     public:
         /**

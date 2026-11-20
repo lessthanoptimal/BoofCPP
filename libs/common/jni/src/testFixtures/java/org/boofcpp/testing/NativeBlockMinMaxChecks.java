@@ -71,4 +71,18 @@ public abstract class NativeBlockMinMaxChecks extends ThresholdChecks {
             }
         }
     }
+
+    /// Scales whose double and float products round differently, and negative scales
+    @Test
+    public void unusualScales() {
+        forEachInput(input -> {
+            for (double scale : new double[]{0.82, -0.5}) {
+                for (boolean down : new boolean[]{true, false}) {
+                    compare(input, () -> hook.handle(ConfigLength.fixed(2), scale, down, -1, true, input.getClass()),
+                            () -> FactoryThresholdBinary.blockMinMax(ConfigLength.fixed(2), scale, down, true, -1,
+                                    input.getClass()));
+                }
+            }
+        });
+    }
 }
