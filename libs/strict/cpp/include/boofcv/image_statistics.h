@@ -65,8 +65,10 @@ namespace boofcv {
 
         /// Histogram of pixel values. Bin i counts pixels equal to minValue + i, where minValue can be outside the
         /// pixel type's range, same as BoofCV's int. Throws std::out_of_range if a pixel doesn't have a bin, same as
-        /// BoofCV. To avoid a branch per pixel, bins are clamped to one bin past the histogram, which is checked at
-        /// the end, except for U8, see histogram_U8(). For unsigned integers
+        /// BoofCV. For unsigned integers. U8 uses histogram_U8(). The others avoid a branch per pixel:
+        ///
+        ///     for each pixel:  guarded[min(value - minValue, size)]++, where values below minValue wrap past size
+        ///     throw if guarded[size] isn't 0
         template<class T, std::enable_if_t<std::is_integral_v<T> && std::is_unsigned_v<T>, int> = 0>
         static void histogram( const Gray<T>& input , int32_t minValue , GrowArray<uint32_t>& histogram ) {
             if constexpr (std::is_same_v<T, U8>) {
@@ -98,9 +100,12 @@ namespace boofcv {
 
         /// Histogram of pixel values. A pixel's bin is (int)(value - minValue), truncated toward zero, same as BoofCV.
         /// So values less than 1 outside the histogram are counted in its first or last bin, and NaN in the first.
-        /// Throws std::out_of_range for other values. To avoid a branch per pixel, bins are clamped to [-1, size] and
-        /// counted with a guard bin on each side. Only if a guard bin was used are pixels checked one by one.
-        /// For F32 and F64
+        /// Throws std::out_of_range for other values. For F32 and F64. Avoids a branch per pixel:
+        ///
+        ///     for each pixel:  guarded[clamp(value - minValue, -1, size)]++, where NaN goes to -1
+        ///     throw if guarded[size] isn't 0
+        ///     if guarded[-1] isn't 0:  for each pixel:  count NaN, throw for other values below the histogram
+        ///     bin 0 += NaN count
         template<class T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
         static void histogram( const Gray<T>& input , T minValue , GrowArray<uint32_t>& histogram ) {
             const uint32_t size = histogram.size;
@@ -145,8 +150,10 @@ namespace boofcv {
         }
 
     private:
-        /// histogram() for U8. Pixels are counted in several histograms, so that repeated values don't wait on each
-        /// other, then the counts of each value are added up and moved to its bin
+        /// histogram() for U8. Several histograms keep repeated values from waiting on each other:
+        ///
+        ///     for each row:  pixel x counted in copy x%4, the row's last pixels in copy 0
+        ///     for each value:  count = sum of its copies; if it isn't 0, throw if it has no bin, else move it there
         static void histogram_U8( const Gray<U8>& input, int32_t minValue, GrowArray<uint32_t>& histogram ) {
             constexpr uint32_t COPIES = 4;
             std::vector<uint32_t> copies(256*COPIES, 0);
