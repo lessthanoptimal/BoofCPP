@@ -33,6 +33,10 @@
   - C++ uses Doxygen style comments with ///
   - Java uses Markdown Javadoc
   - Comments describe the code as it is, not its history
+  - Provide pseudo code when an implementation is mathematically the same but deviates from the straightforward
+    approach, e.g. working by block or 4 rows at a time. Show only the high-level flow of how the math is performed.
+    When several implementations share a flow, state it once in the class documentation or refer to it. Don't restate
+    intentional algorithm changes in BoofCV
 - Configurations
   - C++ configurations have the same field names (in snake case) and default values as the Java configuration
   - They implement `visit_fields()`, which lists every field with its Java name

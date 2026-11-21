@@ -401,8 +401,13 @@ namespace boofcv {
     /// disparity is refined to subpixel precision, same as BoofCV's SelectErrorSubpixel.
     ///
     /// Each loop goes over every column for one disparity at a time, which is contiguous in the score layout
-    /// scores[width*(d - disparity_min) + x], so the compiler vectorizes it. Starting from each column's first
-    /// disparity and replacing it only with a strictly smaller score selects the first minimum, the same as BoofCV.
+    /// scores[width*(d - disparity_min) + x], so the compiler vectorizes it:
+    ///
+    ///     for each disparity d:  for each column:  best = d if its score is lower, which keeps the first minimum
+    ///     with right to left:  the same for each right image column, see select_right_to_left()
+    ///     for each column:  invalid if the score is above max_error or right to left disagrees
+    ///     with texture:  for each disparity d:  for each column:  second = lowest score not next to or at best
+    ///     for each column:  invalid if second isn't enough above the score, then write the disparity
     ///
     /// @tparam S Score type: int32_t, uint16_t or F32. With uint16_t the scores and the disparity range must be below
     /// 65535. The results are the same as with int32_t
