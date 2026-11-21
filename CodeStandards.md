@@ -17,12 +17,19 @@
   - Secondary goal and for now isn't fully fleshed out
 - Two C++ libraries are provided, `strict` and `fast`. See [Directory Layout](#directory-layout)
   - Strict reproduces exact same results of BoofCV, warts and all. Namespace `boofcv`
+  - Strict's multithreaded implementation must produce same output as single thread, even if BoofCV does not.
   - Fast reproduces BoofCV up to floating point tolerance and can produce different results depending on architecture.
     Namespace `boofcv::fast`. See [Fast](#fast)
 - C++ standard is specified in the root `CMakeLists.txt`
 - Java version will match BoofCV
 - BoofCV's single-threaded Java code is the ground truth for results
   - Don't use multi-threaded BoofCV code for accuracy tests
+- Multi-threaded / Concurrent Code
+  - Has a code base separate from single threaded code
+  - File names have the suffix `_mt` and class names `_MT`
+  - Can and should share code with single threaded code, if it doesn't make that code substantially more complex
+  - Unit tests compare its results with the single threaded version and run with multiple threads
+  - Number of threads is controlled centrally, similar to BoofCV's Java approach
 - Library version will match BoofCV's version
 - Templates are only used when they greatly simplify the code, e.g. image data types
 - Use virtual functions for polymorphism is preferred over templates except in hot loops or when it makes it more complex
@@ -107,7 +114,15 @@ results/    Accuracy records, see Accuracy
 - Integer results are identical to strict
 - No intrinsics. Code targeting a specific instruction set belongs in its own variant
 - Must be at least 1.3x faster than strict's native code, measured with JMH. Otherwise use strict's
-- Deterministic: the same input, CPU and build always give the same output, single or multi-threaded
+- Determinism
+  - The same input, CPU and build always give the same output for single threaded code
+  - Multithreaded code will ideally be deterministic, but can be non-deterministic if it's 1.3x faster than the
+    deterministic version
+    - Non-deterministic file names have the suffix `_mt_nd` and class names `_MT_ND`
+  - If there is a non-deterministic multithreaded variant, there must be a deterministic one in `strict` or `fast` to
+    compare its speed against
+  - A central flag selects non-deterministic multithreaded code, if there is an implementation. It's off by default,
+    so deterministic multithreaded code is used
 
 ## Testing Fast
 
@@ -132,6 +147,8 @@ results/    Accuracy records, see Accuracy
 - Fast's tests check its results. Fast's benchmarks call BoofCV after `BoofCPP.initialize()`, so they show if fast
   isn't hooked in
 - When fast adds an op, the op is added to the accuracy tool of strict and fast
+- Non-deterministic multithreaded code is run 10 times with more threads than cores. Each result must be within
+  floating point tolerance of the single threaded implementation
 - `libs/fast/CLAUDE.md` has instructions for AI agents working on fast
 
 # Accuracy
