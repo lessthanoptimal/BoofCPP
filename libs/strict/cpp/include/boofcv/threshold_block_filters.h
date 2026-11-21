@@ -31,9 +31,19 @@ namespace boofcv
     ///
     /// The block based approach used here was inspired by a high level description found in AprilTags.
     ///
-    /// Statistics are computed one row of blocks at a time, then that row of blocks is thresholded while its pixels
-    /// are still in cache, one image row at a time with a threshold per column. With the local 3x3 region a row of
-    /// blocks is thresholded once the next one has its statistics.
+    /// A row of blocks is thresholded while its pixels are still in cache:
+    ///
+    ///     for each row of blocks r:
+    ///         statistics(r): the statistics of every block in r
+    ///         threshold_rows(r), or with local blocks threshold_rows(r - 1) once r > 0
+    ///     with local blocks: threshold_rows(last row of blocks)
+    ///
+    ///     threshold_rows(r):
+    ///         for each block b in r:  column[x] = threshold from the statistics of region(b), for b's columns x
+    ///         for each image row in r:  out[x] = down ? in[x] <= column[x] : in[x] > column[x]
+    ///
+    /// region(b) is b and its neighbors in a 3x3 grid of blocks with local blocks, otherwise only b. The last block of
+    /// each row and column extends to the image's edge.
     ///
     /// @tparam E Type of the input image's pixels.
     ///
@@ -126,8 +136,10 @@ namespace boofcv
     ///
     /// See ThresholdBlockMinMax for a more detailed discussion of elements of this strategy
     ///
-    /// Each block's mean is computed in BoofCV's order. For floats, eight blocks are summed at once so their adds
-    /// overlap.
+    ///     statistics(r):
+    ///         for each image row in r:  sum[b] += b's pixels in the row, left to right  (floats: 8 blocks at once)
+    ///         mean[b] = scale*sum[b]/area
+    ///     threshold of b:  the average of mean[] over region(b)
     ///
     /// @author Peter Abeles
     template<class E>
@@ -252,9 +264,13 @@ namespace boofcv
     /// NOTE: This produces visually different results from ThresholdBlockOtsu because the block algorithm
     /// combines histograms from its neighboring blocks. That's why it appears to have a wider effective block.
     ///
-    /// Pixels are converted to U8, as BoofCV does. Histograms are filled one image row at a time into several copies,
-    /// so that repeated values don't wait on each other, and Otsu's method only visits the histogram's non-empty bins.
-    /// Only the rows of blocks the local region needs are kept.
+    ///     statistics(r):
+    ///         for each image row in r:  add the row's pixels, as U8, to b's COPIES histograms, cycling through them
+    ///         histogram[b] = the sum of b's copies
+    ///     threshold of b:  ComputeOtsuNonEmpty over the non-empty bins of the sum of histogram[] over region(b)
+    ///     pixels are compared as U8
+    ///
+    /// The copies keep repeated values from waiting on each other. Only the last ROWS rows of blocks are kept.
     ///
     /// @see GThresholdImageOps#computeOtsu(ImageGray, double, double)
     ///
@@ -377,8 +393,14 @@ namespace boofcv
     /// threshold of a block is the scaled average of the minimum and maximum in its local 3x3 region. See
     /// ThresholdBlockCommon.
     ///
-    /// The minimum and maximum of each column over a row of blocks vectorize, then give each block's. Like BoofCV, NaN
-    /// is ignored unless it's a block's first pixel.
+    ///     statistics(r):
+    ///         for each image row in r:  column min and max of every column x
+    ///         min[b], max[b] = min and max of b's column values, or NaN if b's first pixel is NaN
+    ///     threshold of b:
+    ///         min, max = smallest min[] and largest max[] over region(b)
+    ///         t = scale*(max + min)/2
+    ///         flat = max - min <= texture_threshold()
+    ///     out[x] = flat or the comparison with t
     ///
     /// @author Peter Abeles
     template<class E>

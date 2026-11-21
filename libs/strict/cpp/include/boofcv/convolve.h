@@ -93,17 +93,16 @@ namespace boofcv {
     }
 
     /// The image border of a normalized convolution. Each border pixel is the sum of the kernel weights inside the
-    /// image times their pixels, divided by the sum of those weights. Integers round the division:
+    /// image times their pixels, divided by the sum of those weights. Same results as BoofCV's
+    /// ConvolveNormalized_JustBorder_SB, including the order of every sum, arranged so the rows vectorize:
     ///
-    ///     total = 0, weight = 0
-    ///     for each kernel element k whose pixel p is inside the image:
-    ///         weight += k
-    ///         total  += p*k
-    ///     output = total/weight              (integers: (total + weight/2)/weight)
-    ///
-    /// Same results as BoofCV's ConvolveNormalized_JustBorder_SB, including the order of every sum. The work is
-    /// arranged to vectorize without changing that order: border rows are summed many pixels at a time, and a weight
-    /// shared by a whole row or column is computed once
+    ///     horizontal:  for each border column:  weight = the previous column's, updated by one kernel element
+    ///                      for each row:  out = sum of the kernel elements inside times their pixels / weight
+    ///     vertical:    for each border row:  weight of the kernel elements inside
+    ///                      sum_row(): the row's pixels in blocks, as in ConvolveImage_Inner
+    ///     convolve:    for each left and right border column, with the corners:  one weight away from the corners
+    ///                      for each row:  out = the sum over the kernel window inside / weight
+    ///                  for each top and bottom border row:  one weight, the row by sum_row()
     class ConvolveNormalized_JustBorder {
     public:
         /// Left and right borders. BoofCV updates the float weight incrementally from column to column, which is done
@@ -268,7 +267,7 @@ namespace boofcv {
         }
 
         /// out[x] = (sum of src[x]*w over the terms)/weight for x < n. terms(add) calls add(src, w) once per term,
-        /// in the order they're summed. Done CHUNK pixels at a time, so the sums vectorize along the row
+        /// in the order they're summed. Done CHUNK pixels at a time, as in ConvolveImage_Inner
         template<class E, class K, class Terms>
         static void sum_row( E* out, uint32_t n, K weight, Terms terms ) {
             for (uint32_t x0 = 0; x0 < n; x0 += CHUNK) {
@@ -290,11 +289,19 @@ namespace boofcv {
     };
 
 
-    /**
-     * Optimized convolution code which processes the inner portion of the image
-     * and doesn't handle the border. if the function has a divisor then the sum
-     * resulting from the convolution is divided by the divisor
-     */
+    /// Optimized convolution code which processes the inner portion of the image and doesn't handle the border. If
+    /// the function has a divisor then the sum resulting from the convolution is divided by the divisor.
+    ///
+    /// Horizontal kernels whose width is only known at run time, vertical kernels and 2D kernels sum a block of
+    /// pixels at once, so the compiler vectorizes across pixels:
+    ///
+    ///     for each output row:
+    ///         for each block of 256 pixels:
+    ///             totals = 0
+    ///             for each kernel element k, in the order of one sum per pixel:  totals[x] += pixel(x, k)*weight[k]
+    ///             out[x] = result(totals[x])
+    ///
+    /// Each pixel's sum adds the same terms in the same order as one sum per pixel, so the results are identical.
     class ConvolveImage_Inner {
     public:
 
@@ -370,9 +377,8 @@ namespace boofcv {
             }
         }
 
-        /// Kernels whose width is only known at run time. Each weight is added to a block of sums at once, so the
-        /// compiler can vectorize across pixels. Each sum adds the weights in the same order as one sum per pixel
-        /// would, so the results are identical. ConvolveNaive::horizontal is the simple equivalent
+        /// Kernels whose width is only known at run time, by blocks of pixels, see ConvolveImage_Inner.
+        /// ConvolveNaive::horizontal is the simple equivalent
         template<class E, class R, class Result>
         static void horizontal_rows_blocked( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
                                              const Gray<E>& input, Gray<R>& output, Result result )
@@ -498,7 +504,8 @@ namespace boofcv {
             }
         }
 
-        /// Convolution along each column, where 'result' turns each sum into the output pixel
+        /// Convolution along each column, where 'result' turns each sum into the output pixel. By blocks of pixels, see
+        /// ConvolveImage_Inner
         template<int W, class E, class R, class Result>
         static void vertical_rows( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
                                    const Gray<E>& input, Gray<R>& output, Result result )
@@ -515,8 +522,6 @@ namespace boofcv {
                 R* output_ptr = &output.data[output.offset+y*output.stride];
                 const E* input_row_ptr = &input.data[input.offset + (y-kernel.offset)*input.stride];
 
-                // Columns are processed in blocks. Each column's sum adds the rows in the same order as one sum
-                // per pixel would, while each row is read for many columns at once
                 for( uint32_t x0 = 0; x0 < input.width; x0 += BLOCK ) {
                     const uint32_t n = std::min(BLOCK, input.width - x0);
                     signed_type totals[BLOCK];
@@ -700,9 +705,8 @@ namespace boofcv {
             convolve_blocked(kernel, input, output, []( signed_type total ) { return (R)total; });
         }
 
-        /// 2D convolution where 'result' turns each sum into the output pixel. Each sum adds the kernel's rows, then
-        /// columns, in the same order as one sum per pixel would, but for a block of pixels at once, so the compiler
-        /// can vectorize across pixels. ConvolveNaive::convolve is the simple equivalent
+        /// 2D convolution where 'result' turns each sum into the output pixel. By blocks of pixels, see
+        /// ConvolveImage_Inner, with the kernel's rows, then columns. ConvolveNaive::convolve is the simple equivalent
         template<class E, class R, class Result>
         static void convolve_blocked( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel ,
                                       const Gray<E>& input, Gray<R>& output, Result result )

@@ -38,6 +38,15 @@ namespace boofcv {
     /// masks. Same as BoofCV's CensusTransform.
     ///
     /// Bits are assigned to the neighbors in row-major order, skipping the center pixel.
+    ///
+    /// Every transform, with bit k comparing sample k with the center:
+    ///
+    ///     inner image, for each row:
+    ///         for each group of 8 samples:  a byte row of the group's bits, for every pixel of the row
+    ///         out[x] = the group bytes combined, group g in bits 8g to 8g + 7  (one group: the byte row is out)
+    ///     with a border:  each pixel within the largest sample distance of an edge, through the border
+    ///
+    /// The F32 5x5 inner image instead compares all 24 samples of a pixel in one pass, see fused_5x5().
     class CensusTransform {
     public:
         /// Census transform of the 3x3 region around each pixel. 8 bits.
@@ -217,8 +226,7 @@ namespace boofcv {
             }
         }
 
-        /// Inner image census from groups of 8 samples, each group's bits in a byte row, then the rows combined into
-        /// the output. 'radius' is the largest x or y of a sample
+        /// Inner image census, see CensusTransform. 'radius' is the largest x or y of a sample
         template<class E, class C>
         static void byte_rows( const Gray<E>& input, const std::vector<Point2D<int32_t>>& samples, int32_t radius,
                                Gray<C>& output ) {

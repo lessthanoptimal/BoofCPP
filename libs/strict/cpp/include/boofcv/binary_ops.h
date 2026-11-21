@@ -301,9 +301,14 @@ namespace boofcv
         }
 
     private:
-        /// localMean() for U8, with the same results, in one pass over the image and without its storage. The
-        /// horizontal means of the rows in the vertical window are kept, and their column sums are updated one row at
-        /// a time
+        /// localMean() for U8, with the same results, in one pass over the image and without its storage:
+        ///
+        ///     for each row y:
+        ///         horizontal means of the rows that enter the window next, 4 rows at a time, from prefix sums
+        ///         sums[x] += the horizontal mean of the row entering the window - that of the row leaving it
+        ///         out[x] = threshold of in[x] with sums[x]/(rows in the window)
+        ///
+        /// Only the horizontal means of the rows in the window, the row leaving it and those computed ahead are kept
         static void localMean_U8( const Gray<U8>& input, Gray<U8>& output, const ConfigLength& width, float scale,
                                   bool down );
     };
