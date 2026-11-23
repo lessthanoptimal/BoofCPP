@@ -13,11 +13,12 @@ namespace fs = std::filesystem;
 
 class CodeStandardsTest : public boofcv::BoofCPPTest {};
 
-/// Every test uses TEST_F with a fixture derived from BoofCPPTest, declared in the same file
+/// Every test uses TEST_F with a fixture derived from BoofCPPTest, or ConcurrentTest which extends it, declared in
+/// the same file
 TEST_F(CodeStandardsTest, tests_use_standard_fixture) {
     const std::regex plain_test(R"(^\s*TEST\s*\()");
     const std::regex test_f(R"(^\s*TEST_F\s*\(\s*(\w+)\s*,)");
-    const std::regex fixture(R"(class\s+(\w+)\s*:\s*public\s+(boofcv::)?BoofCPPTest\b)");
+    const std::regex fixture(R"(class\s+(\w+)\s*:\s*public\s+(boofcv::)?(BoofCPPTest|ConcurrentTest)\b)");
 
     uint32_t files = 0;
     for (const auto& library : fs::directory_iterator(BOOFCPP_LIBS_DIR)) {

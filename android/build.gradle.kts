@@ -23,6 +23,8 @@ android {
         externalNativeBuild {
             cmake {
                 cppFlags += listOf("-std=c++17", "-fexceptions", "-frtti")
+                // The JNI libraries share BoofCPPCommon, so they must also share one C++ runtime
+                arguments += "-DANDROID_STL=c++_shared"
                 // 16 KB page size support, required for Android 15+ devices (default starting with NDK r28)
                 arguments += "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
             }

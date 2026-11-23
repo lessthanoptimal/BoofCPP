@@ -2,6 +2,7 @@
 #include <cstring>
 #include <stdexcept>
 #include <string>
+#include "boofcv/concurrency.h"
 #include "boofcv/packed_sets.h"
 
 using namespace boofcv;
@@ -524,4 +525,33 @@ jstring native_build_info( JNIEnv* env ) {
 #endif
     std::string info = std::string(compiler) + ", " + BOOFCPP_BUILD_TYPE + ", " + BOOFCPP_CXX_FLAGS;
     return env->NewStringUTF(info.c_str());
+}
+
+// NativeConcurrency. Every JNI library has them, and they all control the one thread pool in the common library
+extern "C" {
+
+JNIEXPORT jint JNICALL Java_org_boofcpp_NativeConcurrency_nativeGetMaxThreads( JNIEnv*, jclass ) {
+    return (jint)boofcv::BoofConcurrency::max_threads();
+}
+
+JNIEXPORT void JNICALL Java_org_boofcpp_NativeConcurrency_nativeSetMaxThreads( JNIEnv* env, jclass, jint threads ) {
+    jni_call(env, [&] {
+        if (threads < 1)
+            throw std::invalid_argument("Number of threads must be at least 1");
+        boofcv::BoofConcurrency::set_max_threads((uint32_t)threads);
+    });
+}
+
+JNIEXPORT jint JNICALL Java_org_boofcpp_NativeConcurrency_nativeGetTestingBlocks( JNIEnv*, jclass ) {
+    return (jint)boofcv::BoofConcurrency::testing_blocks();
+}
+
+JNIEXPORT void JNICALL Java_org_boofcpp_NativeConcurrency_nativeSetTestingBlocks( JNIEnv* env, jclass, jint blocks ) {
+    jni_call(env, [&] {
+        if (blocks < 0)
+            throw std::invalid_argument("Number of blocks can't be negative");
+        boofcv::BoofConcurrency::set_testing_blocks((uint32_t)blocks);
+    });
+}
+
 }
