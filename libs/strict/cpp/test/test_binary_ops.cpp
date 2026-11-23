@@ -171,7 +171,7 @@ TEST_F(GlobalFixedBinaryFilterTest, double_threshold) { threshold_checks::global
 
 class LocalMeanBinaryFilterTest : public boofcv::BoofCPPTest {};
 
-TEST_F(LocalMeanBinaryFilterTest, naive) { threshold_checks::local_mean_naive(); }
+TEST_F(LocalMeanBinaryFilterTest, naive) { threshold_checks::local_mean_naive(rng); }
 TEST_F(LocalMeanBinaryFilterTest, zero_radius_U8) { threshold_checks::local_mean_zero_radius<U8>(); }
 TEST_F(LocalMeanBinaryFilterTest, zero_radius_F32) { threshold_checks::local_mean_zero_radius<F32>(); }
 
@@ -203,7 +203,6 @@ class ComputeOtsuNonEmptyTest : public boofcv::BoofCPPTest {};
 
 /// Same results as ComputeOtsu on random histograms, sparse and dense
 TEST_F(ComputeOtsuNonEmptyTest, same_as_ComputeOtsu) {
-    std::mt19937 gen(0xBEEF);
     for (uint32_t length : {1u, 2u, 10u, 256u, 1000u}) {
         for (double fill : {0.02, 0.3, 1.0}) {
             for (int trial = 0; trial < 20; trial++) {
@@ -211,7 +210,7 @@ TEST_F(ComputeOtsuNonEmptyTest, same_as_ComputeOtsu) {
                 std::vector<uint32_t> bins, counts;
                 uint32_t total = 0;
                 for (uint32_t i = 0; i < length; i++) {
-                    histogram[i] = std::uniform_real_distribution<double>(0, 1)(gen) < fill ? gen()%1000 : 0;
+                    histogram[i] = std::uniform_real_distribution<double>(0, 1)(rng) < fill ? rng()%1000 : 0;
                     total += histogram[i];
                     if (histogram[i] != 0) {
                         bins.push_back(i);

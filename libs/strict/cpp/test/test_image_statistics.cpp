@@ -177,11 +177,10 @@ TEST_F(ImageStatisticsTest, histogram_F64_outside) {
 /// U8 against a pixel by pixel count: widths that aren't a multiple of the 4 histogram copies, a sub-image, values
 /// from a few to all 256, and minValue below, at and above the smallest pixel
 TEST_F(ImageStatisticsTest, histogram_U8_counts) {
-    std::mt19937 gen(0xBEEF);
     for( uint32_t width : {1u, 3u, 4u, 7u, 37u} ) {
         for( auto values : {std::pair<int, int>{0, 255}, {20, 23}, {90, 90}} ) {
             Gray<U8> parent(width + 3, 9);
-            ImageMiscOps::fill_uniform(parent, (U8)values.first, (U8)values.second, gen);
+            ImageMiscOps::fill_uniform(parent, (U8)values.first, (U8)values.second, rng);
             Gray<U8> image = parent.makeSubimage(1, 2, 1 + width, 9);
             for( int32_t minValue : {-3, 0, values.first, values.first + 1} ) {
                 GrowArray<uint32_t> histogram(300);

@@ -37,13 +37,12 @@ void naive_down( const Gray<E>& input, uint32_t width, Gray<E>& output ) {
 
 /// Compares against naive_down for several image sizes and region widths, including regions larger than the image
 template<class E>
-void compare_to_naive( E min_value, E max_value ) {
-    std::mt19937 gen(0xBEEF);
+void compare_to_naive( std::mt19937& rng, E min_value, E max_value ) {
 
     for (uint32_t height : {1, 7, 15, 16}) {
         for (uint32_t width : {1, 6, 20, 21}) {
             Gray<E> input(width, height);
-            ImageMiscOps::fill_uniform(input, min_value, max_value, gen);
+            ImageMiscOps::fill_uniform(input, min_value, max_value, rng);
 
             for (uint32_t region = 1; region <= 6; region++) {
                 Gray<E> found(1, 1), expected(1, 1);
@@ -57,13 +56,13 @@ void compare_to_naive( E min_value, E max_value ) {
 
 class AverageDownSampleOpsTest : public boofcv::BoofCPPTest {};
 
-TEST_F(AverageDownSampleOpsTest, down_compare_to_naive_U8) { compare_to_naive<U8>(0, 255); }
-TEST_F(AverageDownSampleOpsTest, down_compare_to_naive_S8) { compare_to_naive<S8>(-128, 127); }
-TEST_F(AverageDownSampleOpsTest, down_compare_to_naive_U16) { compare_to_naive<U16>(0, 65535); }
-TEST_F(AverageDownSampleOpsTest, down_compare_to_naive_S16) { compare_to_naive<S16>(-32768, 32767); }
-TEST_F(AverageDownSampleOpsTest, down_compare_to_naive_S32) { compare_to_naive<S32>(-1000000, 1000000); }
-TEST_F(AverageDownSampleOpsTest, down_compare_to_naive_F32) { compare_to_naive<F32>(-100, 100); }
-TEST_F(AverageDownSampleOpsTest, down_compare_to_naive_F64) { compare_to_naive<F64>(-100, 100); }
+TEST_F(AverageDownSampleOpsTest, down_compare_to_naive_U8) { compare_to_naive<U8>(rng, 0, 255); }
+TEST_F(AverageDownSampleOpsTest, down_compare_to_naive_S8) { compare_to_naive<S8>(rng, -128, 127); }
+TEST_F(AverageDownSampleOpsTest, down_compare_to_naive_U16) { compare_to_naive<U16>(rng, 0, 65535); }
+TEST_F(AverageDownSampleOpsTest, down_compare_to_naive_S16) { compare_to_naive<S16>(rng, -32768, 32767); }
+TEST_F(AverageDownSampleOpsTest, down_compare_to_naive_S32) { compare_to_naive<S32>(rng, -1000000, 1000000); }
+TEST_F(AverageDownSampleOpsTest, down_compare_to_naive_F32) { compare_to_naive<F32>(rng, -100, 100); }
+TEST_F(AverageDownSampleOpsTest, down_compare_to_naive_F64) { compare_to_naive<F64>(rng, -100, 100); }
 
 /// Every pixel is the largest value, the largest sum MeanDivisor must divide exactly
 template<class E>
@@ -100,9 +99,8 @@ TEST_F(AverageDownSampleOpsTest, down_signed_rounding) {
 
 /// Input and output are sub-images
 TEST_F(AverageDownSampleOpsTest, down_subimage) {
-    std::mt19937 gen(0xBEEF);
     Gray<U8> input(21, 15);
-    ImageMiscOps::fill_uniform(input, (U8)0, (U8)255, gen);
+    ImageMiscOps::fill_uniform(input, (U8)0, (U8)255, rng);
     Gray<U8> sub_input = create_subimage(input);
 
     for (uint32_t region : {2, 3}) {
@@ -179,10 +177,9 @@ void check_general( const std::vector<double>& expected, const Gray<E>& found ) 
 const std::vector<std::pair<uint32_t, uint32_t>> GENERAL_SHAPES = {{21, 16}, {10, 8}, {7, 5}, {6, 11}, {3, 2}, {2, 1}};
 
 template<class E>
-void general_compare_to_naive() {
-    std::mt19937 gen(0xBEEF);
+void general_compare_to_naive( std::mt19937& rng ) {
     Gray<E> input(21, 16);
-    ImageMiscOps::fill_uniform(input, (E)0, (E)255, gen);
+    ImageMiscOps::fill_uniform(input, (E)0, (E)255, rng);
     Gray<E> sub_input = create_subimage(input);
 
     for (bool centered : {false, true}) {
@@ -195,16 +192,15 @@ void general_compare_to_naive() {
     }
 }
 
-TEST_F(AverageDownSampleOpsTest, general_compare_to_naive_U8) { general_compare_to_naive<U8>(); }
-TEST_F(AverageDownSampleOpsTest, general_compare_to_naive_U16) { general_compare_to_naive<U16>(); }
-TEST_F(AverageDownSampleOpsTest, general_compare_to_naive_F32) { general_compare_to_naive<F32>(); }
-TEST_F(AverageDownSampleOpsTest, general_compare_to_naive_F64) { general_compare_to_naive<F64>(); }
+TEST_F(AverageDownSampleOpsTest, general_compare_to_naive_U8) { general_compare_to_naive<U8>(rng); }
+TEST_F(AverageDownSampleOpsTest, general_compare_to_naive_U16) { general_compare_to_naive<U16>(rng); }
+TEST_F(AverageDownSampleOpsTest, general_compare_to_naive_F32) { general_compare_to_naive<F32>(rng); }
+TEST_F(AverageDownSampleOpsTest, general_compare_to_naive_F64) { general_compare_to_naive<F64>(rng); }
 
 /// The horizontal pass alone is the general down sample with the input's height
 TEST_F(AverageDownSampleOpsTest, horizontal) {
-    std::mt19937 gen(0xBEEF);
     Gray<U8> input(21, 16);
-    ImageMiscOps::fill_uniform(input, (U8)0, (U8)255, gen);
+    ImageMiscOps::fill_uniform(input, (U8)0, (U8)255, rng);
 
     for (bool centered : {false, true}) {
         for (uint32_t width : {21, 10, 7, 2}) {
@@ -217,9 +213,8 @@ TEST_F(AverageDownSampleOpsTest, horizontal) {
 
 /// The vertical pass alone is the general down sample with the input's width. Integer outputs round
 TEST_F(AverageDownSampleOpsTest, vertical) {
-    std::mt19937 gen(0xBEEF);
     Gray<F32> input(21, 16);
-    ImageMiscOps::fill_uniform(input, 0.0f, 255.0f, gen);
+    ImageMiscOps::fill_uniform(input, 0.0f, 255.0f, rng);
 
     for (bool centered : {false, true}) {
         for (uint32_t height : {16, 8, 5, 1}) {
@@ -319,14 +314,14 @@ F boofcv_general_pixel( Pixel pixel, uint32_t along, uint32_t count, bool center
 /// Random pixels. Floats also get values which are hard for floating point: large magnitudes next to small ones,
 /// which cancel, tiny magnitudes and signed zeros. Integers use the type's whole range, so S32 sums wrap
 template<class E>
-Gray<E> create_hard_image( uint32_t width, uint32_t height, std::mt19937& gen ) {
+Gray<E> create_hard_image( uint32_t width, uint32_t height, std::mt19937& rng ) {
     Gray<E> image(width, height);
     std::uniform_real_distribution<double> uniform(0, 1);
     const double lo = std::is_floating_point_v<E> ? -100.0 : (double)std::numeric_limits<E>::lowest();
     const double hi = std::is_floating_point_v<E> ? 100.0 : (double)std::numeric_limits<E>::max();
     for (uint32_t y = 0; y < height; y++) {
         for (uint32_t x = 0; x < width; x++) {
-            double v = lo + (hi - lo)*uniform(gen);
+            double v = lo + (hi - lo)*uniform(rng);
             if constexpr (std::is_floating_point_v<E>) {
                 switch ((x/3 + y/2)%6) {
                     case 0: v = (x%2 == 0 ? 1e7 : -1e7) + v; break;
@@ -347,10 +342,9 @@ const std::vector<std::pair<uint32_t, uint32_t>> HARD_SHAPES = {{1, 1}, {7, 3}, 
 
 /// Bit identical to BoofCV's order of operations for every region width, for the whole image and a sub-image
 template<class E>
-void down_same_as_boofcv() {
-    std::mt19937 gen(0xBEEF);
+void down_same_as_boofcv( std::mt19937& rng ) {
     for (auto shape : HARD_SHAPES) {
-        Gray<E> input = create_hard_image<E>(shape.first, shape.second, gen);
+        Gray<E> input = create_hard_image<E>(shape.first, shape.second, rng);
         Gray<E> sub_input = create_subimage(input);
         for (uint32_t width : {1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 70}) {
             Gray<E> expected(1, 1), found(1, 1);
@@ -367,13 +361,13 @@ void down_same_as_boofcv() {
     }
 }
 
-TEST_F(AverageDownSampleOpsTest, down_same_as_boofcv_U8) { down_same_as_boofcv<U8>(); }
-TEST_F(AverageDownSampleOpsTest, down_same_as_boofcv_S8) { down_same_as_boofcv<S8>(); }
-TEST_F(AverageDownSampleOpsTest, down_same_as_boofcv_U16) { down_same_as_boofcv<U16>(); }
-TEST_F(AverageDownSampleOpsTest, down_same_as_boofcv_S16) { down_same_as_boofcv<S16>(); }
-TEST_F(AverageDownSampleOpsTest, down_same_as_boofcv_S32) { down_same_as_boofcv<S32>(); }
-TEST_F(AverageDownSampleOpsTest, down_same_as_boofcv_F32) { down_same_as_boofcv<F32>(); }
-TEST_F(AverageDownSampleOpsTest, down_same_as_boofcv_F64) { down_same_as_boofcv<F64>(); }
+TEST_F(AverageDownSampleOpsTest, down_same_as_boofcv_U8) { down_same_as_boofcv<U8>(rng); }
+TEST_F(AverageDownSampleOpsTest, down_same_as_boofcv_S8) { down_same_as_boofcv<S8>(rng); }
+TEST_F(AverageDownSampleOpsTest, down_same_as_boofcv_U16) { down_same_as_boofcv<U16>(rng); }
+TEST_F(AverageDownSampleOpsTest, down_same_as_boofcv_S16) { down_same_as_boofcv<S16>(rng); }
+TEST_F(AverageDownSampleOpsTest, down_same_as_boofcv_S32) { down_same_as_boofcv<S32>(rng); }
+TEST_F(AverageDownSampleOpsTest, down_same_as_boofcv_F32) { down_same_as_boofcv<F32>(rng); }
+TEST_F(AverageDownSampleOpsTest, down_same_as_boofcv_F64) { down_same_as_boofcv<F64>(rng); }
 
 /// Output sizes with integer and non-integer scales, the input's size and one pixel
 std::vector<uint32_t> general_lengths( uint32_t length ) {
@@ -382,11 +376,10 @@ std::vector<uint32_t> general_lengths( uint32_t length ) {
 
 /// The horizontal and vertical passes and the general down sample are bit identical to BoofCV's order of operations
 template<class E>
-void general_same_as_boofcv() {
+void general_same_as_boofcv( std::mt19937& rng ) {
     typedef AverageDownSampleOps::middle_type<E> F;
-    std::mt19937 gen(0xBEEF);
     for (auto shape : HARD_SHAPES) {
-        Gray<E> input = create_hard_image<E>(shape.first, shape.second, gen);
+        Gray<E> input = create_hard_image<E>(shape.first, shape.second, rng);
         Gray<E> sub_input = create_subimage(input);
         for (uint32_t width : general_lengths(input.width)) {
             for (uint32_t height : general_lengths(input.height)) {
@@ -424,7 +417,7 @@ void general_same_as_boofcv() {
     }
 }
 
-TEST_F(AverageDownSampleOpsTest, general_same_as_boofcv_U8) { general_same_as_boofcv<U8>(); }
-TEST_F(AverageDownSampleOpsTest, general_same_as_boofcv_U16) { general_same_as_boofcv<U16>(); }
-TEST_F(AverageDownSampleOpsTest, general_same_as_boofcv_F32) { general_same_as_boofcv<F32>(); }
-TEST_F(AverageDownSampleOpsTest, general_same_as_boofcv_F64) { general_same_as_boofcv<F64>(); }
+TEST_F(AverageDownSampleOpsTest, general_same_as_boofcv_U8) { general_same_as_boofcv<U8>(rng); }
+TEST_F(AverageDownSampleOpsTest, general_same_as_boofcv_U16) { general_same_as_boofcv<U16>(rng); }
+TEST_F(AverageDownSampleOpsTest, general_same_as_boofcv_F32) { general_same_as_boofcv<F32>(rng); }
+TEST_F(AverageDownSampleOpsTest, general_same_as_boofcv_F64) { general_same_as_boofcv<F64>(rng); }

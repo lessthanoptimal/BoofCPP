@@ -21,13 +21,12 @@ namespace blur_gaussian_checks {
     ///
     /// Tolerance scale: the Gaussian is a weighted average, so its rounding error grows with max(|pixel|)
     template<class E>
-    void check( uint32_t width, uint32_t height, double sigma_x, int32_t width_x, double sigma_y, int32_t width_y,
-                double lo, double hi ) {
+    void check( std::mt19937& rng, uint32_t width, uint32_t height, double sigma_x, int32_t width_x, double sigma_y,
+                int32_t width_y, double lo, double hi ) {
         typedef typename TypeInfo<E>::signed_type K;
-        std::mt19937 gen(0xBEEF + width*31 + height);
         Gray<E> parent(width + 4, height + 6);
         Gray<E> input = parent.makeSubimage(2, 3, 2 + width, 3 + height);
-        ImageMiscOps::fill_uniform(input, (E)lo, (E)hi, gen);
+        ImageMiscOps::fill_uniform(input, (E)lo, (E)hi, rng);
 
         Kernel1D<K> kernel_x = FactoryKernel::gaussian1D<K>(sigma_x, width_x);
         Kernel1D<K> kernel_y = FactoryKernel::gaussian1D<K>(sigma_y, width_y);
@@ -41,22 +40,22 @@ namespace blur_gaussian_checks {
     /// Kernels larger than the image, different kernels along x and y. Floats also get inputs which are hard for
     /// floating point: cancellation, long rows and columns, and large values
     template<class E>
-    void check_all() {
+    void check_all( std::mt19937& rng ) {
         for (uint32_t i = 0; i < 3; i++) {
             for (int32_t w : {3, 5, 7, 4})
-                check<E>(3 + i, 4 + i, -1, w, -1, w, 0, 50);
+                check<E>(rng, 3 + i, 4 + i, -1, w, -1, w, 0, 50);
         }
         for (uint32_t size : {4u, 9u, 30u}) {
-            check<E>(size + 3, size, -1, 3, -1, 7, 0, 50);
-            check<E>(size + 3, size, 1.5, -1, 0.8, -1, 0, 50);
-            check<E>(size + 3, size, 2.0, 9, -1, 5, 0, 50);
-            check<E>(size + 3, size, -1, 25, 1.0, 3, 0, 50);
+            check<E>(rng, size + 3, size, -1, 3, -1, 7, 0, 50);
+            check<E>(rng, size + 3, size, 1.5, -1, 0.8, -1, 0, 50);
+            check<E>(rng, size + 3, size, 2.0, 9, -1, 5, 0, 50);
+            check<E>(rng, size + 3, size, -1, 25, 1.0, 3, 0, 50);
         }
         if constexpr (std::is_floating_point<E>::value) {
-            check<E>(31, 29, -1, 7, -1, 9, -50, 50);
-            check<E>(2001, 7, -1, 31, -1, 5, -50, 50);
-            check<E>(7, 2001, -1, 5, -1, 31, -50, 50);
-            check<E>(40, 37, -1, 9, -1, 9, 0, 1e5);
+            check<E>(rng, 31, 29, -1, 7, -1, 9, -50, 50);
+            check<E>(rng, 2001, 7, -1, 31, -1, 5, -50, 50);
+            check<E>(rng, 7, 2001, -1, 5, -1, 31, -50, 50);
+            check<E>(rng, 40, 37, -1, 9, -1, 9, 0, 1e5);
         }
     }
 }

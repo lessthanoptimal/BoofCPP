@@ -65,10 +65,10 @@ namespace blur_mean_border_checks {
     /// Tolerance scale: the mean is a running sum of pixel values, so its rounding error grows with the largest
     /// magnitude, max(|min_value|, |max_value|)
     template<class E>
-    void check( uint32_t width, uint32_t height, int32_t rx, int32_t ry, double min_value, double max_value ) {
+    void check( std::mt19937& rng, uint32_t width, uint32_t height, int32_t rx, int32_t ry, double min_value,
+                double max_value ) {
         Gray<E> input(width, height);
-        std::mt19937 gen(0xBEEF + width*31 + height);
-        ImageMiscOps::fill_uniform(input, (E)min_value, (E)max_value, gen);
+        ImageMiscOps::fill_uniform(input, (E)min_value, (E)max_value, rng);
         const double tol = float_tolerance<E>()*std::max(std::abs(min_value), std::abs(max_value));
 
         for (BorderType type : {REFLECT, EXTENDED, WRAP, ZERO}) {
@@ -109,10 +109,9 @@ namespace blur_mean_border_checks {
 
     /// The output is the input
     template<class E>
-    void check_in_place( double max_value ) {
+    void check_in_place( std::mt19937& rng, double max_value ) {
         Gray<E> image(31, 23), output(1, 1), storage(1, 1);
-        std::mt19937 gen(0xBEEF);
-        ImageMiscOps::fill_uniform(image, (E)0, (E)max_value, gen);
+        ImageMiscOps::fill_uniform(image, (E)0, (E)max_value, rng);
         std::vector<typename TypeInfo<E>::sum_type> totals;
         auto border = FactoryImageBorder::create_SB<E>(REFLECT);
         tested::BlurImageOps::mean_border(image, output, 2, 3, *border, storage, totals);
@@ -123,20 +122,20 @@ namespace blur_mean_border_checks {
     /// The inner image, the border, and images smaller than the region. Floats also get inputs which are hard for
     /// floating point: cancellation, long running sums and large values
     template<class E>
-    void check_all( double min_value, double max_value ) {
+    void check_all( std::mt19937& rng, double min_value, double max_value ) {
         for (auto shape : {std::pair{30u, 25u}, {8u, 9u}, {5u, 3u}, {2u, 7u}, {1u, 1u}}) {
-            check<E>(shape.first, shape.second, 1, 1, min_value, max_value);
-            check<E>(shape.first, shape.second, 3, 2, min_value, max_value);
-            check<E>(shape.first, shape.second, 2, 4, min_value, max_value);
+            check<E>(rng, shape.first, shape.second, 1, 1, min_value, max_value);
+            check<E>(rng, shape.first, shape.second, 3, 2, min_value, max_value);
+            check<E>(rng, shape.first, shape.second, 2, 4, min_value, max_value);
         }
-        check_in_place<E>(max_value);
+        check_in_place<E>(rng, max_value);
         if constexpr (std::is_floating_point<E>::value) {
-            check<E>(31, 29, 3, 2, -1e4, 1e4);
+            check<E>(rng, 31, 29, 3, 2, -1e4, 1e4);
             for (int32_t radius : {1, 30}) {
-                check<E>(2001, 7, radius, 2, 0, 50);
-                check<E>(7, 2001, 2, radius, 0, 50);
+                check<E>(rng, 2001, 7, radius, 2, 0, 50);
+                check<E>(rng, 7, 2001, 2, radius, 0, 50);
             }
-            check<E>(203, 101, 3, 4, 0, 1e5);
+            check<E>(rng, 203, 101, 3, 4, 0, 1e5);
         }
     }
 

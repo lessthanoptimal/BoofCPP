@@ -27,11 +27,10 @@ U8 horizontal_norm(uint32_t x , uint32_t y , const Kernel1D<S32>& kernel , const
 class ConvolveNormalizedNaiveTest : public boofcv::BoofCPPTest {};
 
 TEST_F(ConvolveNormalizedNaiveTest, horizontal_1D_int) {
-    std::mt19937 gen(0xBEEF);
     Kernel1D<S32> kernel(4,{1,2,3,4,5,6});
 
     Gray<U8> input(15,16);
-    ImageMiscOps::fill_uniform(input, (U8)0, (U8)50, gen);
+    ImageMiscOps::fill_uniform(input, (U8)0, (U8)50, rng);
     Gray<U8> output(15,16);
 
     ConvolveNormalizedNaive::horizontal(kernel,input,output);
@@ -64,11 +63,10 @@ F32 horizontal_norm(uint32_t x , uint32_t y , const Kernel1D<F32>& kernel , cons
 }
 
 TEST_F(ConvolveNormalizedNaiveTest, horizontal_1D_float) {
-    std::mt19937 gen(0xBEEF);
     Kernel1D<F32> kernel(4,{1,2,3,4,5,6});
 
     Gray<F32> input(15,16);
-    ImageMiscOps::fill_uniform(input, (F32)0, (F32)50, gen);
+    ImageMiscOps::fill_uniform(input, (F32)0, (F32)50, rng);
     Gray<F32> output(15,16);
 
     ConvolveNormalizedNaive::horizontal(kernel,input,output);
@@ -101,11 +99,10 @@ U8 vertical_norm(uint32_t x , uint32_t y , const Kernel1D<S32>& kernel , const G
 }
 
 TEST_F(ConvolveNormalizedNaiveTest, vertical_1D_int) {
-    std::mt19937 gen(0xBEEF);
     Kernel1D<S32> kernel(4,{1,2,3,4,5,6});
 
     Gray<U8> input(15,16);
-    ImageMiscOps::fill_uniform(input, (U8)0, (U8)50,gen);
+    ImageMiscOps::fill_uniform(input, (U8)0, (U8)50,rng);
     Gray<U8> output(15,16);
 
     ConvolveNormalizedNaive::vertical(kernel, input, output);
@@ -139,11 +136,10 @@ F32 vertical_norm(uint32_t x , uint32_t y , const Kernel1D<F32>& kernel , const 
 }
 
 TEST_F(ConvolveNormalizedNaiveTest, vertical_1D_float) {
-    std::mt19937 gen(0xBEEF);
     Kernel1D<F32> kernel(4,{1,2,3,4,5,6});
 
     Gray<F32> input(15,16);
-    ImageMiscOps::fill_uniform(input, (F32)0, (F32)50,gen);
+    ImageMiscOps::fill_uniform(input, (F32)0, (F32)50,rng);
     Gray<F32> output(15,16);
 
     ConvolveNormalizedNaive::vertical(kernel, input, output);
@@ -177,11 +173,10 @@ U8 horizontal(uint32_t x , uint32_t y , const Kernel1D<S32>& kernel , const Imag
 class ConvolveNaiveTest : public boofcv::BoofCPPTest {};
 
 TEST_F(ConvolveNaiveTest, horizontal_1D_int) {
-    std::mt19937 gen(0xBEEF);
     Kernel1D<S32> kernel(4,{1,2,3,4,5,6});
 
     Gray<U8> input(15,16);
-    ImageMiscOps::fill_uniform(input, (U8)0, (U8)50, gen);
+    ImageMiscOps::fill_uniform(input, (U8)0, (U8)50, rng);
     Gray<U8> output(15,16);
 
     ImageBorderValue<U8> border(5);
@@ -216,11 +211,10 @@ U8 vertical(uint32_t x , uint32_t y , const Kernel1D<S32>& kernel , const ImageB
 }
 
 TEST_F(ConvolveNaiveTest, vertical_1D_int) {
-    std::mt19937 gen(0xBEEF);
     Kernel1D<S32> kernel(4,{1,2,3,4,5,6});
 
     Gray<U8> input(15,16);
-    ImageMiscOps::fill_uniform(input, (U8)0, (U8)50, gen);
+    ImageMiscOps::fill_uniform(input, (U8)0, (U8)50, rng);
     Gray<U8> output(15,16);
 
     ImageBorderValue<U8> border(5);
@@ -258,11 +252,10 @@ U8 convolve2D(uint32_t x , uint32_t y , const Kernel2D<S32>& kernel , const Imag
 }
 
 TEST_F(ConvolveNaiveTest, convolve_2D_int) {
-    std::mt19937 gen(0xBEEF);
     Kernel2D<S32> kernel(3,{{1,2,3,4},{5,6,7,8},{4,0,5,6},{4,-1,3,-9}});
 
     Gray<U8> input(15,16);
-    ImageMiscOps::fill_uniform(input, (U8)0, (U8)50, gen);
+    ImageMiscOps::fill_uniform(input, (U8)0, (U8)50, rng);
     Gray<U8> output(15,16);
 
     ImageBorderValue<U8> border(5);
@@ -300,11 +293,10 @@ F32 convolve2D(uint32_t x , uint32_t y , const Kernel2D<F32>& kernel , const Ima
 }
 
 TEST_F(ConvolveNaiveTest, convolve_2D_float) {
-    std::mt19937 gen(0xBEEF);
     Kernel2D<F32> kernel(3,{{1,2,3,4},{5,6,7,8},{4,0,5,6},{4,-1,3,-9}});
 
     Gray<F32> input(15,16);
-    ImageMiscOps::fill_uniform(input, (F32)0, (F32)50, gen);
+    ImageMiscOps::fill_uniform(input, (F32)0, (F32)50, rng);
     Gray<F32> output(15,16);
 
     ImageBorderValue<F32> border(5);
@@ -339,11 +331,10 @@ U8 horizontal_divide(uint32_t x , uint32_t y , const Kernel1D<S32>& kernel , con
 }
 
 TEST_F(ConvolveNaiveTest, horizontal_divide_1D_int) {
-    std::mt19937 gen(0xBEEF);
     Kernel1D<S32> kernel(4,{1,2,3,4,5,6});
 
     Gray<U8> input(15,16);
-    ImageMiscOps::fill_uniform(input, (U8)0, (U8)50, gen);
+    ImageMiscOps::fill_uniform(input, (U8)0, (U8)50, rng);
     Gray<U8> output(15,16);
 
     ImageBorderValue<U8> border(5);
@@ -380,11 +371,10 @@ F32 horizontal_divide(uint32_t x , uint32_t y , const Kernel1D<F32>& kernel , co
 }
 
 TEST_F(ConvolveNaiveTest, horizontal_divide_1D_float) {
-    std::mt19937 gen(0xBEEF);
     Kernel1D<F32> kernel(4,{1,2,3,4,5,6});
 
     Gray<F32> input(15,16);
-    ImageMiscOps::fill_uniform(input, (F32)0, (F32)50, gen);
+    ImageMiscOps::fill_uniform(input, (F32)0, (F32)50, rng);
     Gray<F32> output(15,16);
 
     ImageBorderValue<F32> border(5);
@@ -425,11 +415,10 @@ S32 convolve2D_divide(uint32_t x , uint32_t y , const Kernel2D<S32>& kernel , co
 
 
 TEST_F(ConvolveNaiveTest, convolve2D_divide_int) {
-    std::mt19937 gen(0xBEEF);
     Kernel2D<S32> kernel(3,{{1,2,3,4},{5,6,7,8},{4,0,5,6},{4,-1,3,-9}});
 
     Gray<U8> input(15,16);
-    ImageMiscOps::fill_uniform(input, (U8)0, (U8)50, gen);
+    ImageMiscOps::fill_uniform(input, (U8)0, (U8)50, rng);
     Gray<U8> output(15,16);
 
     ImageBorderValue<U8> border(5);
@@ -469,11 +458,10 @@ F32 convolve2D_divide(uint32_t x , uint32_t y , const Kernel2D<F32>& kernel , co
 }
 
 TEST_F(ConvolveNaiveTest, convolve2D_divide_float) {
-    std::mt19937 gen(0xBEEF);
     Kernel2D<F32> kernel(3,{{1,2,3,4},{5,6,7,8},{4,0,5,6},{4,-1,3,-9}});
 
     Gray<F32> input(15,16);
-    ImageMiscOps::fill_uniform(input, (F32)0, (F32)50, gen);
+    ImageMiscOps::fill_uniform(input, (F32)0, (F32)50, rng);
     Gray<F32> output(15,16);
 
     ImageBorderValue<F32> border(5);
@@ -510,11 +498,10 @@ U8 vertical_divide(uint32_t x , uint32_t y , const Kernel1D<S32>& kernel , const
 }
 
 TEST_F(ConvolveNaiveTest, vertical_divide_1D_int) {
-    std::mt19937 gen(0xBEEF);
     Kernel1D<S32> kernel(4,{1,2,3,4,5,6});
 
     Gray<U8> input(15,16);
-    ImageMiscOps::fill_uniform(input, (U8)0, (U8)50, gen);
+    ImageMiscOps::fill_uniform(input, (U8)0, (U8)50, rng);
     Gray<U8> output(15,16);
 
     ImageBorderValue<U8> border(5);
@@ -551,11 +538,10 @@ F32 vertical_divide(uint32_t x , uint32_t y , const Kernel1D<F32>& kernel , cons
 }
 
 TEST_F(ConvolveNaiveTest, vertical_divide_1D_float) {
-    std::mt19937 gen(0xBEEF);
     Kernel1D<F32> kernel(4,{1,2,3,4,5,6});
 
     Gray<F32> input(15,16);
-    ImageMiscOps::fill_uniform(input, (F32)0, (F32)50, gen);
+    ImageMiscOps::fill_uniform(input, (F32)0, (F32)50, rng);
     Gray<F32> output(15,16);
 
     ImageBorderValue<F32> border(5);

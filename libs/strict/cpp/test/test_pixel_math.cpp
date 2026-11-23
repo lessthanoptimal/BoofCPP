@@ -10,16 +10,14 @@
 using namespace std;
 using namespace boofcv;
 
-namespace {
+class PixelMathTest : public boofcv::BoofCPPTest {
+protected:
     Gray<F32> random_F32( uint32_t width, uint32_t height, F32 min_value, F32 max_value ) {
         Gray<F32> image(width, height);
-        std::mt19937 gen(0xBEEF + width);
-        ImageMiscOps::fill_uniform(image, min_value, max_value, gen);
+        ImageMiscOps::fill_uniform(image, min_value, max_value, rng);
         return image;
     }
-}
-
-class PixelMathTest : public boofcv::BoofCPPTest {};
+};
 
 TEST_F(PixelMathTest, pow2) {
     Gray<F32> input = random_F32(12, 9, -5.0f, 5.0f);
@@ -71,8 +69,7 @@ TEST_F(PixelMathTest, stdev) {
 
 TEST_F(PixelMathTest, plus_minus_multiply) {
     Gray<U8> input(12, 9);
-    std::mt19937 gen(0xBEEF);
-    ImageMiscOps::fill_uniform(input, (U8)0, (U8)255, gen);
+    ImageMiscOps::fill_uniform(input, (U8)0, (U8)255, rng);
     for (bool sub : {false, true}) {
         Gray<U8> in = sub ? create_subimage(input) : input.makeSubimage(0, 0, 12, 9);
         Gray<F32> plus(1, 1), minus(1, 1), multiply(1, 1);

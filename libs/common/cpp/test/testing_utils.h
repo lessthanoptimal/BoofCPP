@@ -138,17 +138,16 @@ namespace boofcv {
 
     /// Synthetic rectified stereo pair. The left image is random and the right image is the left shifted by 'shift'
     /// pixels plus uniform noise in [-10,10], so there are real matches at disparity 'shift'.
-    inline void create_stereo_pair( Gray<U8>& left, Gray<U8>& right, uint32_t width, uint32_t height, int32_t shift,
-                                    uint32_t seed = 0xBEEF ) {
-        std::mt19937 gen(seed);
+    inline void create_stereo_pair( std::mt19937& rng, Gray<U8>& left, Gray<U8>& right, uint32_t width, uint32_t height,
+                                    int32_t shift ) {
         left.reshape(width, height);
         right.reshape(width, height);
-        ImageMiscOps::fill_uniform(left, (U8)0, (U8)255, gen);
+        ImageMiscOps::fill_uniform(left, (U8)0, (U8)255, rng);
         std::uniform_int_distribution<int32_t> noise(-10, 10);
         for (uint32_t y = 0; y < height; y++) {
             for (uint32_t x = 0; x < width; x++) {
                 int32_t src = std::min<int32_t>(width - 1, std::max<int32_t>(0, (int32_t)x + shift));
-                int32_t v = (int32_t)left.at(src, y) + noise(gen);
+                int32_t v = (int32_t)left.at(src, y) + noise(rng);
                 right.at(x, y) = (U8)std::max(0, std::min(255, v));
             }
         }

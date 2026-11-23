@@ -15,43 +15,43 @@ class FactoryCensusTransformTest : public boofcv::BoofCPPTest {};
 class StereoDisparityBlockMatchTest : public boofcv::BoofCPPTest {};
 
 TEST_F(FactoryStereoDisparityTest, block_match_same_as_hand_built) {
-    factory_stereo_disparity_block_match_same_as_hand_built();
+    factory_stereo_disparity_block_match_same_as_hand_built(rng);
 }
 TEST_F(FactoryStereoDisparityTest, block_match_census_same_as_hand_built) {
-    factory_stereo_disparity_block_match_census_same_as_hand_built();
+    factory_stereo_disparity_block_match_census_same_as_hand_built(rng);
 }
 TEST_F(FactoryStereoDisparityTest, block_match_census_F32_same_as_hand_built) {
-    factory_stereo_disparity_block_match_census_F32_same_as_hand_built();
+    factory_stereo_disparity_block_match_census_F32_same_as_hand_built(rng);
 }
 TEST_F(FactoryStereoDisparityTest, block_match_errors_same_as_hand_built_U8) {
-    factory_stereo_disparity_block_match_errors_same_as_hand_built_U8();
+    factory_stereo_disparity_block_match_errors_same_as_hand_built_U8(rng);
 }
 TEST_F(FactoryStereoDisparityTest, block_match_errors_same_as_hand_built_F32) {
-    factory_stereo_disparity_block_match_errors_same_as_hand_built_F32();
+    factory_stereo_disparity_block_match_errors_same_as_hand_built_F32(rng);
 }
 TEST_F(FactoryStereoDisparityTest, block_match_zssd_ncc_zero_radius) {
-    factory_stereo_disparity_block_match_zssd_ncc_zero_radius();
+    factory_stereo_disparity_block_match_zssd_ncc_zero_radius(rng);
 }
 TEST_F(FactoryCensusTransformTest, variant) { factory_census_transform_variant(); }
 TEST_F(FactoryCensusTransformTest, samples) { factory_census_transform_samples(); }
-TEST_F(FactoryCensusTransformTest, variant_skip_border) { factory_census_transform_variant_skip_border(); }
+TEST_F(FactoryCensusTransformTest, variant_skip_border) { factory_census_transform_variant_skip_border(rng); }
 TEST_F(FactoryStereoDisparityTest, block_match_unsupported) { factory_stereo_disparity_block_match_unsupported(); }
 TEST_F(StereoDisparityBlockMatchTest, getters) { stereo_disparity_block_match_getters(); }
-TEST_F(StereoDisparityBlockMatchTest, score_enabled) { stereo_disparity_block_match_score_enabled(); }
+TEST_F(StereoDisparityBlockMatchTest, score_enabled) { stereo_disparity_block_match_score_enabled(rng); }
 TEST_F(StereoDisparityBlockMatchTest, basic_select_score_not_written) {
-    stereo_disparity_block_match_basic_select_score_not_written();
+    stereo_disparity_block_match_basic_select_score_not_written(rng);
 }
 TEST_F(StereoDisparityBlockMatchTest, caller_owned_images_must_match_shape) {
-    stereo_disparity_block_match_caller_owned_images_must_match_shape();
+    stereo_disparity_block_match_caller_owned_images_must_match_shape(rng);
 }
 
 namespace {
     /// Pair of type E. A small max_value gives low texture, with many equal scores
     template<class E>
-    void create_pair( Gray<E>& left, Gray<E>& right, uint32_t width, uint32_t height, int32_t max_value,
-                      uint32_t seed ) {
+    void create_pair( std::mt19937& rng, Gray<E>& left, Gray<E>& right, uint32_t width, uint32_t height,
+                      int32_t max_value ) {
         Gray<U8> left8(1, 1), right8(1, 1);
-        create_stereo_pair(left8, right8, width, height, 3, seed);
+        create_stereo_pair(rng, left8, right8, width, height, 3);
         left.reshape(width, height);
         right.reshape(width, height);
         for (uint32_t i = 0; i < left8.data_length; i++) {
@@ -80,7 +80,7 @@ namespace {
 
     /// Every error type, with settings that change which score type and which selector paths are used
     template<class E>
-    void compare_every_config_to_reference() {
+    void compare_every_config_to_reference( std::mt19937& rng ) {
         // {radius x, radius y}: small, and 9x9 where SAD's largest score doesn't fit 16 bits
         const int32_t radii[][2] = {{1, 1}, {3, 2}, {4, 4}};
         // {min, range}: positive, negative, only negative, a range of 3, and larger than the image
@@ -92,8 +92,8 @@ namespace {
         const CensusVariants variants[] = {CensusVariants::BLOCK_3_3, CensusVariants::BLOCK_5_5,
                                            CensusVariants::BLOCK_13_5};
         Gray<E> textured_l(1, 1), textured_r(1, 1), flat_l(1, 1), flat_r(1, 1);
-        create_pair(textured_l, textured_r, 37, 29, 255, 0xBEEF);
-        create_pair(flat_l, flat_r, 37, 29, 3, 0xCAFE);
+        create_pair(rng, textured_l, textured_r, 37, 29, 255);
+        create_pair(rng, flat_l, flat_r, 37, 29, 3);
         for (DisparityError error : errors)
         for (CensusVariants variant : variants)
         for (const auto& radius : radii)
@@ -138,9 +138,9 @@ namespace {
 }
 
 /// The selectors and 16-bit scores where they fit give the reference's results
-TEST_F(FactoryStereoDisparityTest, block_match_same_as_reference_U8) { compare_every_config_to_reference<U8>(); }
+TEST_F(FactoryStereoDisparityTest, block_match_same_as_reference_U8) { compare_every_config_to_reference<U8>(rng); }
 TEST_F(FactoryStereoDisparityTest, block_match_same_as_reference_F32) {
-    compare_every_config_to_reference<F32>();
+    compare_every_config_to_reference<F32>(rng);
 }
 
 /// 16-bit scores are used only when the region's largest score and the range are below 65535
