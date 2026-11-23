@@ -10,7 +10,7 @@ else()
 endif()
 
 # JNI helpers every variant shares: critical arrays, exceptions, enums, configurations and Java images. Compiled into
-# each variant's JNI library
+# each variant's JNI library. They have no state that the variants need to share
 file(GLOB JNI_COMMON_SRC "src/main/cpp/*.cpp")
 
 add_library(JNIBoofCPPCommon OBJECT ${JNI_COMMON_SRC})
@@ -26,5 +26,5 @@ target_compile_definitions(JNIBoofCPPCommon PRIVATE BOOFCPP_BUILD_TYPE="${CMAKE_
 
 # Test-only JNI library for common's Java tests, e.g. NativeConfigs. Not packaged in any jar
 add_library(JNIBoofCPPCommonTest SHARED src/test/cpp/ConfigTestsJNI.cpp)
-target_link_libraries(JNIBoofCPPCommonTest BoofCPPCommon JNIBoofCPPCommon)
+target_link_libraries(JNIBoofCPPCommonTest JNIBoofCPPCommon)
 set_target_properties(JNIBoofCPPCommonTest PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/boofcpp-common-test)

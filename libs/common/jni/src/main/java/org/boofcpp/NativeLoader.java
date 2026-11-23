@@ -5,12 +5,21 @@ import cz.adamh.utils.NativeUtils;
 import java.io.File;
 
 /// Loads a variant's JNI library from the library path, the native build directory when run inside the repository, or
-/// the native jar
+/// the native jar. The JNI libraries link the common library, which has the thread pool that every variant shares, so
+/// it's loaded first from the same places. The JNI library then uses the loaded one wherever it came from
 public class NativeLoader {
+    private static boolean commonLoaded = false;
+
     /// @param name Base name of the library, e.g. JNIBoofCPP
     /// @param directory Its directory inside the native build directory, e.g. boofcpp-jni
     /// @return true if it loaded
     public static synchronized boolean load( String name, String directory ) {
+        if (!commonLoaded)
+            commonLoaded = loadLibrary("BoofCPPCommon", "boofcpp-common");
+        return loadLibrary(name, directory);
+    }
+
+    private static boolean loadLibrary( String name, String directory ) {
         try {
             System.loadLibrary(name);
             return true;

@@ -51,6 +51,14 @@ add_subdirectory(libs/common/jni)
 add_subdirectory(libs/strict/jni)
 add_subdirectory(libs/fast/jni)
 
+# Every variant's libraries share the thread pool in BoofCPPCommon instead of having their own
+if(test AND CMAKE_NM AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    add_test(NAME shared_thread_pool COMMAND ${CMAKE_COMMAND} -DNM=${CMAKE_NM}
+            "-DLIBRARIES=$<TARGET_FILE:BoofCPP>;$<TARGET_FILE:BoofCPPFast>"
+            "-DJNI_LIBRARIES=$<TARGET_FILE:JNIBoofCPP>;$<TARGET_FILE:JNIBoofCPPFast>"
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/libs/common/cpp/test/check_shared_pool.cmake)
+endif()
+
 # Only googletest is needed, not googlemock, and it shouldn't be installed with BoofCPP
 set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
 set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
