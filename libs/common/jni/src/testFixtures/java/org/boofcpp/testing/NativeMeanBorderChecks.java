@@ -1,9 +1,7 @@
 package org.boofcpp.testing;
 
-import boofcv.BoofTesting;
 import boofcv.alg.filter.blur.BOverrideBlurImageOps;
 import boofcv.alg.filter.blur.GBlurImageOps;
-import boofcv.alg.misc.GImageMiscOps;
 import boofcv.core.image.GeneralizedImageOps;
 import boofcv.core.image.border.BorderIndex1D_Extend;
 import boofcv.core.image.border.BorderIndex1D_Wrap;
@@ -143,11 +141,9 @@ public abstract class NativeMeanBorderChecks extends BoofCPPStandardJUnit {
 
     /// Random sub-image. Integers are in [0, maxValue], floats in [-maxValue, maxValue]
     private ImageGray randomImage( Class type, int width, int height ) {
-        ImageGray input = GeneralizedImageOps.createSingleBand(type, width, height);
         double max = NativeMeanBlurChecks.maxValue(type);
         boolean isFloat = type == GrayF32.class || type == GrayF64.class;
-        GImageMiscOps.fillUniform(input, rand, isFloat ? -max : 0, max);
-        return BoofTesting.createSubImageOf(input);
+        return randomSubImage(type, width, height, isFloat ? -max : 0, max);
     }
 
     /// Mean along x over 2*radiusX+1 pixels, then along y over 2*radiusY+1 pixels, of every pixel read through the

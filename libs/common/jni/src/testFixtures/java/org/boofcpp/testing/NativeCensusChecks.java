@@ -1,7 +1,6 @@
 package org.boofcpp.testing;
 
 import boofcv.BoofTesting;
-import boofcv.alg.misc.GImageMiscOps;
 import boofcv.alg.transform.census.BOverrideCensusTransform;
 import boofcv.alg.transform.census.CensusTransform;
 import boofcv.alg.transform.census.GCensusTransform;
@@ -178,14 +177,13 @@ public abstract class NativeCensusChecks extends BoofCPPStandardJUnit {
     /// Random sub-image with values in [0, 20], so neighbors are often equal. Floats have negative values and NaN,
     /// which compares false
     private ImageGray randomImage( Class type, int width, int height ) {
-        ImageGray input = GeneralizedImageOps.createSingleBand(type, width, height);
-        if (type == GrayF32.class) {
-            GImageMiscOps.fillUniform(input, rand, -20, 20);
-            ((GrayF32)input).data[rand.nextInt(width*height)] = Float.NaN;
-        } else {
-            GImageMiscOps.fillUniform(input, rand, 0, 20);
+        boolean isFloat = type == GrayF32.class;
+        ImageGray input = randomSubImage(type, width, height, isFloat ? -20 : 0, 20);
+        if (isFloat) {
+            int i = rand.nextInt(width*height);
+            ((GrayF32)input).set(i%width, i/width, Float.NaN);
         }
-        return BoofTesting.createSubImageOf(input);
+        return input;
     }
 
     /// Runs 'op' with 'census' registered with BoofCV. Null for BoofCV's Java code

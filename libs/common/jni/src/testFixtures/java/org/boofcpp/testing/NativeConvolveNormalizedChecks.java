@@ -1,9 +1,7 @@
 package org.boofcpp.testing;
 
-import boofcv.BoofTesting;
 import boofcv.alg.filter.convolve.BOverrideConvolveImageNormalized;
 import boofcv.alg.filter.convolve.GConvolveImageOps;
-import boofcv.alg.misc.GImageMiscOps;
 import boofcv.core.image.GeneralizedImageOps;
 import boofcv.factory.filter.kernel.FactoryKernelGaussian;
 import boofcv.struct.convolve.Kernel1D;
@@ -81,7 +79,8 @@ public abstract class NativeConvolveNormalizedChecks extends BoofCPPStandardJUni
     @Test
     public void compareConvolve() {
         for (Class type : imageTypes) {
-            for (ImageGray input : new ImageGray[]{randomImage(type), randomImage(type, 40, 30), randomImage(type, 60, 30)}) {
+            for (ImageGray input : new ImageGray[]{randomImage(type), randomSubImage(type, 40, 30, 0, MAX_PIXEL),
+                    randomSubImage(type, 60, 30, 0, MAX_PIXEL)}) {
                 for (int radius : RADII) {
                     for (int scale : new int[]{1, 2}) {
                         Kernel2D kernel = scaled(FactoryKernelGaussian.gaussian2D(type, -1, radius), scale);
@@ -156,13 +155,6 @@ public abstract class NativeConvolveNormalizedChecks extends BoofCPPStandardJUni
     }
 
     private ImageGray randomImage( Class type ) {
-        return randomImage(type, 400, 300);
-    }
-
-    /// Random sub-image, so that its offset and stride aren't the defaults
-    private ImageGray randomImage( Class type, int width, int height ) {
-        ImageGray input = GeneralizedImageOps.createSingleBand(type, width, height);
-        GImageMiscOps.fillUniform(input, rand, 0, MAX_PIXEL);
-        return BoofTesting.createSubImageOf(input);
+        return randomSubImage(type, 400, 300, 0, MAX_PIXEL);
     }
 }

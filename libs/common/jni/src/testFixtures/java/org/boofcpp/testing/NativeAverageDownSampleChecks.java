@@ -4,7 +4,6 @@ import boofcv.BoofTesting;
 import boofcv.alg.filter.misc.AverageDownSampleOps;
 import boofcv.alg.filter.misc.BOverrideAverageDownSampleOps;
 import boofcv.alg.misc.GImageMiscOps;
-import boofcv.concurrency.BoofConcurrency;
 import boofcv.core.image.GeneralizedImageOps;
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayF64;
@@ -202,7 +201,6 @@ public abstract class NativeAverageDownSampleChecks extends BoofCPPStandardJUnit
 
     /// Random sub-image, so that its offset and stride aren't the defaults. Signed images have negative values
     ImageGray randomImage( Class type, int width, int height ) {
-        ImageGray input = GeneralizedImageOps.createSingleBand(type, width, height);
         double min = 0, max = 255;
         if (type == GrayS8.class) {
             min = -128; max = 127;
@@ -215,8 +213,7 @@ public abstract class NativeAverageDownSampleChecks extends BoofCPPStandardJUnit
         } else if (type == GrayF32.class || type == GrayF64.class) {
             min = -100; max = 100;
         }
-        GImageMiscOps.fillUniform(input, rand, min, max);
-        return BoofTesting.createSubImageOf(input);
+        return randomSubImage(type, width, height, min, max);
     }
 
     static ImageGray createOutput( ImageGray input, int width ) {
@@ -227,15 +224,11 @@ public abstract class NativeAverageDownSampleChecks extends BoofCPPStandardJUnit
 
     /// Calls BoofCV single threaded with the variant's hooks, or without them
     void callBoofCV( boolean useNative, Runnable call ) {
-        boolean previousConcurrent = BoofConcurrency.USE_CONCURRENT;
-        try {
-            BoofConcurrency.USE_CONCURRENT = false;
+        BoofCPPTesting.singleThreaded(() -> {
             if (useNative)
                 AverageDownSampleHooks.run(square, general, horizontal, vertical, call);
             else
                 AverageDownSampleHooks.withoutHooks(call);
-        } finally {
-            BoofConcurrency.USE_CONCURRENT = previousConcurrent;
-        }
+        });
     }
 }
