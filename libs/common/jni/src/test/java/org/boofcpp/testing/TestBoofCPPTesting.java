@@ -1,5 +1,6 @@
 package org.boofcpp.testing;
 
+import boofcv.concurrency.BoofConcurrency;
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayF64;
 import boofcv.struct.image.GrayU8;
@@ -7,7 +8,10 @@ import boofcv.struct.image.ImageGray;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestBoofCPPTesting extends BoofCPPStandardJUnit {
     @Test
@@ -100,6 +104,31 @@ public class TestBoofCPPTesting extends BoofCPPStandardJUnit {
         // Shapes must match
         assertThrows(AssertionFailedError.class, () -> BoofCPPTesting.assertDisparityScoresMatch(disparity, score,
                 new GrayU8(2, 1), score, 5, Tolerance.FLOAT, 1.0, 1.0));
+    }
+
+    /// Concurrency is off during the call and restored afterwards, even if it throws
+    @Test
+    public void singleThreaded() {
+        boolean previous = BoofConcurrency.USE_CONCURRENT;
+        try {
+            BoofConcurrency.USE_CONCURRENT = true;
+            assertEquals(5, BoofCPPTesting.singleThreaded(() -> {
+                assertFalse(BoofConcurrency.USE_CONCURRENT);
+                return 5;
+            }));
+            assertTrue(BoofConcurrency.USE_CONCURRENT);
+            assertThrows(IllegalStateException.class, () -> BoofCPPTesting.singleThreaded((Runnable)() -> {
+                throw new IllegalStateException();
+            }));
+            assertTrue(BoofConcurrency.USE_CONCURRENT);
+
+            // An off setting stays off
+            BoofConcurrency.USE_CONCURRENT = false;
+            BoofCPPTesting.singleThreaded(() -> assertFalse(BoofConcurrency.USE_CONCURRENT));
+            assertFalse(BoofConcurrency.USE_CONCURRENT);
+        } finally {
+            BoofConcurrency.USE_CONCURRENT = previous;
+        }
     }
 
     private static GrayU8 u8row( int... values ) {

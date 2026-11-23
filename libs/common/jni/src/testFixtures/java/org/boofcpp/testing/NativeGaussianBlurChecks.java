@@ -4,7 +4,6 @@ import boofcv.BoofTesting;
 import boofcv.alg.filter.blur.BOverrideBlurImageOps;
 import boofcv.alg.filter.blur.GBlurImageOps;
 import boofcv.alg.misc.GImageMiscOps;
-import boofcv.concurrency.BoofConcurrency;
 import boofcv.core.image.GeneralizedImageOps;
 import boofcv.struct.image.ImageGray;
 import boofcv.struct.image.InterleavedU8;
@@ -38,7 +37,7 @@ public abstract class NativeGaussianBlurChecks extends BoofCPPStandardJUnit {
                 for (double[] p : params) {
                     double sigmaX = p[0], sigmaY = p[2];
                     int radiusX = (int)p[1], radiusY = (int)p[3];
-                    ImageGray input = randomImage(type, shape[0], shape[1]);
+                    ImageGray input = randomSubImage(type, shape[0], shape[1], 0, NativeMeanBlurChecks.maxValue(type));
                     ImageGray expected = callBoofCV(null, () ->
                             GBlurImageOps.gaussian(input, null, sigmaX, radiusX, sigmaY, radiusY, null));
 
@@ -68,24 +67,14 @@ public abstract class NativeGaussianBlurChecks extends BoofCPPStandardJUnit {
         BoofTesting.assertEquals(expected, found, 0);
     }
 
-    /// Random sub-image, so that its offset and stride aren't the defaults
-    private ImageGray randomImage( Class type, int width, int height ) {
-        ImageGray input = GeneralizedImageOps.createSingleBand(type, width, height);
-        GImageMiscOps.fillUniform(input, rand, 0, NativeMeanBlurChecks.maxValue(type));
-        return BoofTesting.createSubImageOf(input);
-    }
-
     /// Calls BoofCV single threaded with 'hook' as its Gaussian blur, or with its Java code if 'hook' is null
     private static <R> R callBoofCV( BOverrideBlurImageOps.Gaussian hook, Supplier<R> call ) {
         BOverrideBlurImageOps.Gaussian previous = BOverrideBlurImageOps.gaussian;
-        boolean previousConcurrent = BoofConcurrency.USE_CONCURRENT;
         try {
             BOverrideBlurImageOps.gaussian = hook;
-            BoofConcurrency.USE_CONCURRENT = false;
-            return call.get();
+            return BoofCPPTesting.singleThreaded(call);
         } finally {
             BOverrideBlurImageOps.gaussian = previous;
-            BoofConcurrency.USE_CONCURRENT = previousConcurrent;
         }
     }
 }

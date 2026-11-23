@@ -1,10 +1,8 @@
 package org.boofcpp.testing;
 
-import boofcv.BoofTesting;
 import boofcv.alg.filter.convolve.BOverrideConvolveImage;
 import boofcv.alg.filter.convolve.GConvolveImageOps;
 import boofcv.alg.filter.derivative.GImageDerivativeOps;
-import boofcv.alg.misc.GImageMiscOps;
 import boofcv.core.image.GeneralizedImageOps;
 import boofcv.core.image.border.FactoryImageBorder;
 import boofcv.factory.filter.kernel.FactoryKernel;
@@ -28,11 +26,12 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.boofcpp.testing.BoofCPPTesting.singleThreaded;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-/// Checks of a variant's ConvolveImage hooks against BoofCV's Java code, shared by every variant. A variant's test
-/// class extends this, passes its hook and the input image types it supports, and sets its tolerance. Output images
-/// have BoofCV's derivative type, e.g. GrayS16 for GrayU8
+/// Checks of a variant's ConvolveImage hooks against BoofCV's single threaded Java code, shared by every variant. A
+/// variant's test class extends this, passes its hook and the input image types it supports, and sets its tolerance.
+/// Output images have BoofCV's derivative type, e.g. GrayS16 for GrayU8
 @SuppressWarnings({"rawtypes", "unchecked"})
 public abstract class NativeConvolveImageChecks extends BoofCPPStandardJUnit {
     private static final BorderType[] BORDERS =
@@ -56,12 +55,12 @@ public abstract class NativeConvolveImageChecks extends BoofCPPStandardJUnit {
     @Test
     public void compareHorizontal() {
         for (Class type : imageTypes) {
-            ImageGray input = randomImage(type, 200, 150);
+            ImageGray input = randomSubImage(type, 200, 150, 0, MAX_PIXEL);
             for (Kernel1D kernel : kernels1D(type)) {
                 for (BorderType borderType : BORDERS) {
                     ImageBorder border = FactoryImageBorder.single(borderType, type);
                     ImageGray expected = createOutput(input), found = createOutput(input);
-                    GConvolveImageOps.horizontal(kernel, input, expected, border);
+                    singleThreaded(() -> GConvolveImageOps.horizontal(kernel, input, expected, border));
                     horizontal.horizontal(kernel, input, found, border);
                     assertMatches(expected, found, scale(kernel));
                 }
@@ -72,12 +71,12 @@ public abstract class NativeConvolveImageChecks extends BoofCPPStandardJUnit {
     @Test
     public void compareVertical() {
         for (Class type : imageTypes) {
-            ImageGray input = randomImage(type, 200, 150);
+            ImageGray input = randomSubImage(type, 200, 150, 0, MAX_PIXEL);
             for (Kernel1D kernel : kernels1D(type)) {
                 for (BorderType borderType : BORDERS) {
                     ImageBorder border = FactoryImageBorder.single(borderType, type);
                     ImageGray expected = createOutput(input), found = createOutput(input);
-                    GConvolveImageOps.vertical(kernel, input, expected, border);
+                    singleThreaded(() -> GConvolveImageOps.vertical(kernel, input, expected, border));
                     vertical.vertical(kernel, input, found, border);
                     assertMatches(expected, found, scale(kernel));
                 }
@@ -88,12 +87,12 @@ public abstract class NativeConvolveImageChecks extends BoofCPPStandardJUnit {
     @Test
     public void compareConvolve() {
         for (Class type : imageTypes) {
-            ImageGray input = randomImage(type, 100, 75);
+            ImageGray input = randomSubImage(type, 100, 75, 0, MAX_PIXEL);
             for (Kernel2D kernel : kernels2D(type)) {
                 for (BorderType borderType : BORDERS) {
                     ImageBorder border = FactoryImageBorder.single(borderType, type);
                     ImageGray expected = createOutput(input), found = createOutput(input);
-                    GConvolveImageOps.convolve(kernel, input, expected, border);
+                    singleThreaded(() -> GConvolveImageOps.convolve(kernel, input, expected, border));
                     convolve.convolve(kernel, input, found, border);
                     assertMatches(expected, found, scale(kernel));
                 }
@@ -158,13 +157,6 @@ public abstract class NativeConvolveImageChecks extends BoofCPPStandardJUnit {
                     sum += Math.abs(((Kernel2D)kernel).getDouble(x, y));
         }
         return sum*MAX_PIXEL;
-    }
-
-    /// Random sub-image, so that its offset and stride aren't the defaults
-    private ImageGray randomImage( Class type, int width, int height ) {
-        ImageGray input = GeneralizedImageOps.createSingleBand(type, width, height);
-        GImageMiscOps.fillUniform(input, rand, 0, MAX_PIXEL);
-        return BoofTesting.createSubImageOf(input);
     }
 
     private static ImageGray createOutput( ImageGray input ) {

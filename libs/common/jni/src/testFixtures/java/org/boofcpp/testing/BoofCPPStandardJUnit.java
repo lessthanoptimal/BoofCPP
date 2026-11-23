@@ -1,5 +1,8 @@
 package org.boofcpp.testing;
 
+import boofcv.BoofTesting;
+import boofcv.alg.misc.GImageMiscOps;
+import boofcv.core.image.GeneralizedImageOps;
 import boofcv.struct.image.ImageGray;
 
 import java.util.Random;
@@ -20,5 +23,12 @@ public class BoofCPPStandardJUnit {
     /// the scale
     protected void assertMatches( ImageGray<?> expected, ImageGray<?> found, double scale ) {
         BoofCPPTesting.assertMatches(expected, found, tolerance, scale);
+    }
+
+    /// Image with uniform random values in [min, max]. It's a sub-image, so its offset and stride aren't the defaults
+    protected ImageGray randomSubImage( Class type, int width, int height, double min, double max ) {
+        ImageGray input = GeneralizedImageOps.createSingleBand(type, width, height);
+        GImageMiscOps.fillUniform(input, rand, min, max);
+        return BoofTesting.createSubImageOf(input);
     }
 }

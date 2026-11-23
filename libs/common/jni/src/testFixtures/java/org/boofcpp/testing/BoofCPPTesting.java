@@ -1,11 +1,13 @@
 package org.boofcpp.testing;
 
+import boofcv.concurrency.BoofConcurrency;
 import boofcv.core.image.GeneralizedImageOps;
 import boofcv.struct.image.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -93,6 +95,26 @@ public class BoofCPPTesting {
             fail(disagreeValid + " of " + pixels + " pixels don't agree on being valid");
         if (scoreExpected == null && pixels - disagreeDisparity < minDisparity*pixels)
             fail(disagreeDisparity + " of " + pixels + " pixels have a different disparity");
+    }
+
+    /// Runs 'call' with BoofCV's concurrency off, so its Java code is single threaded, as expected results are. The
+    /// setting is restored afterwards
+    public static <R> R singleThreaded( Supplier<R> call ) {
+        boolean previous = BoofConcurrency.USE_CONCURRENT;
+        try {
+            BoofConcurrency.USE_CONCURRENT = false;
+            return call.get();
+        } finally {
+            BoofConcurrency.USE_CONCURRENT = previous;
+        }
+    }
+
+    /// [#singleThreaded(Supplier)] for a call without a result
+    public static void singleThreaded( Runnable call ) {
+        singleThreaded(() -> {
+            call.run();
+            return null;
+        });
     }
 
     /// Pixel values must be identical. Floats are compared by their bits, so NaN must match NaN
