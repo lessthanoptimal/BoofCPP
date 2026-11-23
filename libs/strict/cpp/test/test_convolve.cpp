@@ -776,6 +776,40 @@ TEST_F(ConvolveImage_BorderTest, convolve2D_U8) {
     }
 }
 
+/// The overloads with a range compute only the pixels inside the rectangle, the same as the naive convolution. The
+/// rectangles are anywhere in the image, including where the kernel is inside it
+TEST_F(ConvolveImage_BorderTest, region_U8) {
+    const uint32_t w = 23, h = 19;
+    Gray<U8> input(w, h);
+    ImageMiscOps::fill_uniform(input, (U8)0, (U8)100, rng);
+    ImageBorderExtend<U8> border;
+    border.setImage(input);
+    Kernel1D<S32> kernel1(7, 2);
+    Kernel2D<S32> kernel2(5, 3);
+    KernelOps::fill_uniform(kernel1, -10, 10, rng);
+    KernelOps::fill_uniform(kernel2, -10, 10, rng);
+
+    Gray<S32> expected(w, h), found(w, h);
+    const uint32_t rects[][4] = {{0, w, 0, h}, {0, 2, 0, h}, {3, 11, 4, 9}, {20, 23, 15, 19}, {5, 5, 0, h}};
+    for (int op = 0; op < 3; op++) {
+        if (op == 0) ConvolveNaive::horizontal(kernel1, border, expected);
+        if (op == 1) ConvolveNaive::vertical(kernel1, border, expected);
+        if (op == 2) ConvolveNaive::convolve(kernel2, border, expected);
+        for (auto& r : rects) {
+            ImageMiscOps::fill(found, -12345);
+            if (op == 0) ConvolveImage_Border::horizontal(kernel1, border, found, r[0], r[1], r[2], r[3]);
+            if (op == 1) ConvolveImage_Border::vertical(kernel1, border, found, r[0], r[1], r[2], r[3]);
+            if (op == 2) ConvolveImage_Border::convolve(kernel2, border, found, r[0], r[1], r[2], r[3]);
+            for (uint32_t y = 0; y < h; y++) {
+                for (uint32_t x = 0; x < w; x++) {
+                    bool inside = x >= r[0] && x < r[1] && y >= r[2] && y < r[3];
+                    ASSERT_EQ(inside ? expected.at(x, y) : -12345, found.at(x, y)) << op << " " << x << " " << y;
+                }
+            }
+        }
+    }
+}
+
 
 class ConvolveNormalizedTest : public boofcv::BoofCPPTest {};
 

@@ -1,5 +1,6 @@
 #include <jni.h>
 #include "boofcv/convolve.h"
+#include "boofcv/convolve_mt.h"
 #include "JNIBoofCPP.h"
 #include "KernelJNI.h"
 
@@ -8,6 +9,31 @@
 #include <stdio.h>
 
 using namespace boofcv;
+
+/// ConvolveImage_MT if BoofConcurrency allows more than one thread, otherwise ConvolveImage
+template<class K, class E, class R>
+static void horizontal( const Kernel1D<K>& kernel, const ImageBorder<E>& input, Gray<R>& output ) {
+    if( BoofConcurrency::max_threads() > 1 )
+        ConvolveImage_MT::horizontal(kernel, input, output);
+    else
+        ConvolveImage::horizontal(kernel, input, output);
+}
+
+template<class K, class E, class R>
+static void vertical( const Kernel1D<K>& kernel, const ImageBorder<E>& input, Gray<R>& output ) {
+    if( BoofConcurrency::max_threads() > 1 )
+        ConvolveImage_MT::vertical(kernel, input, output);
+    else
+        ConvolveImage::vertical(kernel, input, output);
+}
+
+template<class K, class E, class R>
+static void convolve( const Kernel2D<K>& kernel, const ImageBorder<E>& input, Gray<R>& output ) {
+    if( BoofConcurrency::max_threads() > 1 )
+        ConvolveImage_MT::convolve(kernel, input, output);
+    else
+        ConvolveImage::convolve(kernel, input, output);
+}
 
 extern "C" {
 
@@ -55,7 +81,7 @@ static void nativeHorizontal( JNIEnv *env, jobject obj, jobject jkernel, jobject
             // JNI overhead appears to be negligible based on the printed times below
 //            clock_t t;
 //            t = clock();
-            ConvolveImage::horizontal(*kernel, *border.get(),output.image);
+            horizontal(*kernel, *border.get(), output.image);
 //            t = clock() - t;
 //            printf("horizontal time %f kernel %d\n",(float)1000*t/CLOCKS_PER_SEC,kernel->width);
 
@@ -65,7 +91,7 @@ static void nativeHorizontal( JNIEnv *env, jobject obj, jobject jkernel, jobject
             input.image.data = (U8*)env->GetPrimitiveArrayCritical((jarray)input.info.jdata, 0);
             output.image.data = (S32*)env->GetPrimitiveArrayCritical((jarray)output.info.jdata, 0);
 
-            ConvolveImage::horizontal(*kernel, *border.get(),output.image);
+            horizontal(*kernel, *border.get(), output.image);
 
             env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.image.data, 0);
         } else {
@@ -87,7 +113,7 @@ static void nativeHorizontal( JNIEnv *env, jobject obj, jobject jkernel, jobject
         input.image.data = (F32*)env->GetPrimitiveArrayCritical((jarray)input.info.jdata, 0);
         output.image.data = (F32*)env->GetPrimitiveArrayCritical((jarray)output.info.jdata, 0);
 
-        ConvolveImage::horizontal(*kernel, *border.get(),output.image);
+        horizontal(*kernel, *border.get(), output.image);
 
         env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, JNI_ABORT);
         env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.image.data, 0);
@@ -123,7 +149,7 @@ static void nativeVertical( JNIEnv *env, jobject obj, jobject jkernel, jobject j
             input.image.data = (U8*)env->GetPrimitiveArrayCritical((jarray)input.info.jdata, 0);
             output.image.data = (S16*)env->GetPrimitiveArrayCritical((jarray)output.info.jdata, 0);
 
-            ConvolveImage::vertical(*kernel, *border.get(),output.image);
+            vertical(*kernel, *border.get(), output.image);
 
             env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.image.data, 0);
         } else if( outputBits == 32 ) {
@@ -131,7 +157,7 @@ static void nativeVertical( JNIEnv *env, jobject obj, jobject jkernel, jobject j
             input.image.data = (U8*)env->GetPrimitiveArrayCritical((jarray)input.info.jdata, 0);
             output.image.data = (S32*)env->GetPrimitiveArrayCritical((jarray)output.info.jdata, 0);
 
-            ConvolveImage::vertical(*kernel, *border.get(),output.image);
+            vertical(*kernel, *border.get(), output.image);
 
             env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.image.data, 0);
         } else {
@@ -153,7 +179,7 @@ static void nativeVertical( JNIEnv *env, jobject obj, jobject jkernel, jobject j
         input.image.data = (F32*)env->GetPrimitiveArrayCritical((jarray)input.info.jdata, 0);
         output.image.data = (F32*)env->GetPrimitiveArrayCritical((jarray)output.info.jdata, 0);
 
-        ConvolveImage::vertical(*kernel, *border.get(),output.image);
+        vertical(*kernel, *border.get(), output.image);
 
         env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, JNI_ABORT);
         env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.image.data, 0);
@@ -189,7 +215,7 @@ static void nativeConvolve( JNIEnv *env, jobject obj, jobject jkernel, jobject j
             input.image.data = (U8*)env->GetPrimitiveArrayCritical((jarray)input.info.jdata, 0);
             output.image.data = (S16*)env->GetPrimitiveArrayCritical((jarray)output.info.jdata, 0);
 
-            ConvolveImage::convolve(*kernel, *border.get(),output.image);
+            convolve(*kernel, *border.get(), output.image);
 
             env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.image.data, 0);
         } else if( outputBits == 32 ) {
@@ -197,7 +223,7 @@ static void nativeConvolve( JNIEnv *env, jobject obj, jobject jkernel, jobject j
             input.image.data = (U8*)env->GetPrimitiveArrayCritical((jarray)input.info.jdata, 0);
             output.image.data = (S32*)env->GetPrimitiveArrayCritical((jarray)output.info.jdata, 0);
 
-            ConvolveImage::convolve(*kernel, *border.get(),output.image);
+            convolve(*kernel, *border.get(), output.image);
 
             env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.image.data, 0);
         } else {
@@ -219,7 +245,7 @@ static void nativeConvolve( JNIEnv *env, jobject obj, jobject jkernel, jobject j
         input.image.data = (F32*)env->GetPrimitiveArrayCritical((jarray)input.info.jdata, 0);
         output.image.data = (F32*)env->GetPrimitiveArrayCritical((jarray)output.info.jdata, 0);
 
-        ConvolveImage::convolve(*kernel, *border.get(),output.image);
+        convolve(*kernel, *border.get(), output.image);
 
         env->ReleasePrimitiveArrayCritical((jarray)input.info.jdata, input.image.data, JNI_ABORT);
         env->ReleasePrimitiveArrayCritical((jarray)output.info.jdata, output.image.data, 0);
