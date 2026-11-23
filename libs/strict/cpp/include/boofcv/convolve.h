@@ -683,143 +683,105 @@ namespace boofcv {
         }
     };
 
-    /**
-     * Convolution code which can handle the image border. This code is difficult to optimize
-     * because of the special case which need to be handled. Which is why it's handled
-     * seperately from the inner image which can be highly optimized.
-     */
+    /// Convolution of the image border, where the kernel extends outside the image and pixels are read through
+    /// ImageBorder. The functions without a range call the overload with a range, which computes a rectangle of output
+    /// pixels, on each border strip. Concurrent code splits the strips
     class ConvolveImage_Border {
     public:
+        /// Left and right borders of every row
         template<class E, class R>
         static void horizontal( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
                                 const ImageBorder<E>& input, Gray<R>& output )
         {
+            const uint32_t borderRight = kernel.width-kernel.offset-1;
+            horizontal(kernel, input, output, 0, kernel.offset, 0, output.height);
+            horizontal(kernel, input, output, output.width-borderRight, output.width, 0, output.height);
+        }
+
+        /// Output pixels x0 <= x < x1 and y0 <= y < y1
+        template<class E, class R>
+        static void horizontal( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
+                                const ImageBorder<E>& input, Gray<R>& output,
+                                uint32_t x0, uint32_t x1, uint32_t y0, uint32_t y1 )
+        {
             typedef typename TypeInfo<E>::signed_type signed_type;
+            const int32_t offset = kernel.offset;
 
-            int32_t offset = kernel.offset;
-            int32_t borderRight = kernel.width-offset-1;
-
-            for (uint32_t y = 0; y < output.height; y++)
-            {
-                R* output_ptr = &output.data[output.offset + y * output.stride];
-                for ( int32_t x = 0; x < offset; x++ ) {
+            for( uint32_t y = y0; y < y1; y++ ) {
+                R* output_row = &output.data[output.offset + y*output.stride];
+                for( int32_t x = x0; x < (int32_t)x1; x++ ) {
                     signed_type total = 0;
-                    signed_type *kernel_ptr = kernel.data.data;
-                    for (int32_t k = 0; k < kernel.width; k++) {
-                        total += input.get(x+k-offset,y) * *kernel_ptr++;
-                    }
-                    *output_ptr++ = static_cast<R>(total);
-                }
-
-                output_ptr = &output.data[output.offset + y * output.stride + output.width-borderRight];
-                for ( int32_t x = output.width-borderRight; x < output.width; x++ ) {
-                    signed_type total = 0;
-                    signed_type *kernel_ptr = kernel.data.data;
-                    int32_t xx = x-offset; // No noticeable change. Keeping it here to avoid doing it again.
-                    int32_t xx_end = xx + kernel.width;
-                    while( xx != xx_end ) {
-                        total += input.get(xx++,y) * *kernel_ptr++;
-                    }
-                    *output_ptr++ = static_cast<R>(total);
+                    for( int32_t k = 0; k < (int32_t)kernel.width; k++ )
+                        total += input.get(x+k-offset,y) * kernel.data[k];
+                    output_row[x] = static_cast<R>(total);
                 }
             }
         }
 
+        /// Top and bottom borders of every column
         template<class E, class R>
         static void vertical( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
                               const ImageBorder<E>& input, Gray<R>& output )
         {
+            const uint32_t borderBottom = kernel.width-kernel.offset-1;
+            vertical(kernel, input, output, 0, output.width, 0, kernel.offset);
+            vertical(kernel, input, output, 0, output.width, output.height-borderBottom, output.height);
+        }
+
+        /// Output pixels x0 <= x < x1 and y0 <= y < y1
+        template<class E, class R>
+        static void vertical( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
+                              const ImageBorder<E>& input, Gray<R>& output,
+                              uint32_t x0, uint32_t x1, uint32_t y0, uint32_t y1 )
+        {
             typedef typename TypeInfo<E>::signed_type signed_type;
+            const int32_t offset = kernel.offset;
 
-            int32_t borderBottom = kernel.width-kernel.offset-1;
-
-            for ( uint32_t x = 0; x < output.width; x++ ) {
-                uint32_t indexDest = output.offset + x;
-
-                for (uint32_t y = 0; y < kernel.offset; y++, indexDest += output.stride) {
+            for( int32_t y = y0; y < (int32_t)y1; y++ ) {
+                R* output_row = &output.data[output.offset + y*output.stride];
+                for( uint32_t x = x0; x < x1; x++ ) {
                     signed_type total = 0;
-                    signed_type *kernel_ptr = kernel.data.data;
-                    for (uint32_t k = 0; k < kernel.width; k++) {
-                        total += input.get(x,y+k-kernel.offset) * *kernel_ptr++;
-                    }
-                    output.data[indexDest] = static_cast<R>(total);
-                }
-
-                indexDest = output.offset + (output.height-borderBottom) * output.stride + x;
-                for (int32_t y = output.height-borderBottom; y < output.height; y++, indexDest += output.stride) {
-                    signed_type total = 0;
-                    signed_type *kernel_ptr = kernel.data.data;
-                    for (uint32_t k = 0; k < kernel.width; k++ ) {
-                        total += input.get(x,y+k-kernel.offset) * *kernel_ptr++;
-                    }
-                    output.data[indexDest] = static_cast<R>(total);
+                    for( int32_t k = 0; k < (int32_t)kernel.width; k++ )
+                        total += input.get(x,y+k-offset) * kernel.data[k];
+                    output_row[x] = static_cast<R>(total);
                 }
             }
         }
 
+        /// Left and right borders of every row, then the top and bottom borders between them
         template<class E, class R>
         static void convolve( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel ,
                               const ImageBorder<E>& input, Gray<R>& output )
         {
+            const uint32_t offsetL = kernel.offset;
+            const uint32_t offsetR = kernel.width-offsetL-1;
+            const uint32_t width = output.width, height = output.height;
+            convolve(kernel, input, output, 0, offsetL, 0, height);
+            convolve(kernel, input, output, width-offsetR, width, 0, height);
+            convolve(kernel, input, output, offsetL, width-offsetR, 0, offsetL);
+            convolve(kernel, input, output, offsetL, width-offsetR, height-offsetR, height);
+        }
+
+        /// Output pixels x0 <= x < x1 and y0 <= y < y1
+        template<class E, class R>
+        static void convolve( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel ,
+                              const ImageBorder<E>& input, Gray<R>& output,
+                              uint32_t x0, uint32_t x1, uint32_t y0, uint32_t y1 )
+        {
             typedef typename TypeInfo<E>::signed_type signed_type;
+            const int32_t offsetL = kernel.offset;
+            const int32_t offsetR = kernel.width-offsetL-1;
 
-            // signed so that logic of inner loops isn't messed up
-            int32_t offsetL = kernel.offset;
-            int32_t offsetR = kernel.width-offsetL-1;
-
-            // convolve along the left and right borders
-            for (uint32_t y = 0; y < output.height; y++) {
-                uint32_t indexDest = output.offset + y * output.stride;
-
-                for ( int32_t x = 0; x < offsetL; x++ ) {
+            for( int32_t y = y0; y < (int32_t)y1; y++ ) {
+                R* output_row = &output.data[output.offset + y*output.stride];
+                for( int32_t x = x0; x < (int32_t)x1; x++ ) {
                     signed_type total = 0;
-                    signed_type *kernel_ptr = kernel.data.data;
+                    const signed_type* kernel_ptr = kernel.data.data;
                     for( int32_t i = -offsetL; i <= offsetR; i++ ) {
-                        for (int32_t j = -offsetL; j <= offsetR; j++) {
+                        for( int32_t j = -offsetL; j <= offsetR; j++ )
                             total += input.get(x+j,y+i) * *kernel_ptr++;
-                        }
                     }
-                    output.data[indexDest++] = static_cast<R>(total);
-                }
-
-                indexDest = output.offset + y * output.stride + output.width-offsetR;
-                for ( int32_t x = output.width-offsetR; x < output.width; x++ ) {
-                    signed_type total = 0;
-                    signed_type *kernel_ptr = kernel.data.data;
-                    for( int32_t i = -offsetL; i <= offsetR; i++ ) {
-                        for (int32_t j = -offsetL; j <= offsetR; j++) {
-                            total += input.get(x+j,y+i) * *kernel_ptr++;
-                        }
-                    }
-                    output.data[indexDest++] = static_cast<R>(total);
-                }
-            }
-
-            // convolve along the top and bottom borders
-            for ( uint32_t x = offsetL; x < output.width-offsetR; x++ ) {
-                uint32_t indexDest = output.offset + x;
-
-                for (int32_t y = 0; y < offsetL; y++, indexDest += output.stride) {
-                    signed_type total = 0;
-                    signed_type *kernel_ptr = kernel.data.data;
-                    for( int32_t i = -offsetL; i <= offsetR; i++ ) {
-                        for (int32_t j = -offsetL; j <= offsetR; j++) {
-                            total += input.get(x+j,y+i) * *kernel_ptr++;
-                        }
-                    }
-                    output.data[indexDest] = static_cast<R>(total);
-                }
-
-                indexDest = output.offset + (output.height-offsetR) * output.stride + x;
-                for (int32_t y = output.height-offsetR; y < output.height; y++, indexDest += output.stride) {
-                    signed_type total = 0;
-                    signed_type *kernel_ptr = kernel.data.data;
-                    for( int32_t i = -offsetL; i <= offsetR; i++ ) {
-                        for (int32_t j = -offsetL; j <= offsetR; j++) {
-                            total += input.get(x+j,y+i) * *kernel_ptr++;
-                        }
-                    }
-                    output.data[indexDest] = static_cast<R>(total);
+                    output_row[x] = static_cast<R>(total);
                 }
             }
         }
