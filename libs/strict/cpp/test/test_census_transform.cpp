@@ -17,9 +17,8 @@ TEST_F(CensusTransformTest, hamming) {
     EXPECT_EQ(1, hamming(0x80000000u));
     EXPECT_EQ(24, hamming(0xFFFFFFu));
     EXPECT_EQ(32, hamming(0xFFFFFFFFu));
-    std::mt19937 gen(0xBEEF);
     for (int i = 0; i < 1000; i++) {
-        uint32_t v = gen();
+        uint32_t v = rng();
         int32_t expected = 0;
         for (int b = 0; b < 32; b++)
             expected += (v >> b) & 1;
@@ -31,9 +30,8 @@ TEST_F(CensusTransformTest, hamming_64) {
     EXPECT_EQ(0, hamming((uint64_t)0));
     EXPECT_EQ(1, hamming((uint64_t)1 << 63));
     EXPECT_EQ(64, hamming(~(uint64_t)0));
-    std::mt19937_64 gen(0xBEEF);
     for (int i = 0; i < 1000; i++) {
-        uint64_t v = gen();
+        uint64_t v = ((uint64_t)rng() << 32) | rng();
         int32_t expected = 0;
         for (int b = 0; b < 64; b++)
             expected += (v >> b) & 1;
@@ -75,17 +73,16 @@ TEST_F(CensusTransformTest, create_circle_samples) {
     }
 }
 
-TEST_F(CensusTransformTest, U8) { census_checks::check_all<U8>(); }
-TEST_F(CensusTransformTest, U16) { census_checks::check_all<U16>(); }
-TEST_F(CensusTransformTest, F32) { census_checks::check_all<F32>(); }
+TEST_F(CensusTransformTest, U8) { census_checks::check_all<U8>(rng); }
+TEST_F(CensusTransformTest, U16) { census_checks::check_all<U16>(rng); }
+TEST_F(CensusTransformTest, F32) { census_checks::check_all<F32>(rng); }
 TEST_F(CensusTransformTest, too_many_samples) { census_checks::check_too_many_samples<U8>(); }
 
 class FilterCensusTransformTest : public boofcv::BoofCPPTest {};
 
 TEST_F(FilterCensusTransformTest, same_as_census_transform) {
     Gray<U8> input(20, 15);
-    std::mt19937 gen(0xBEEF);
-    ImageMiscOps::fill_uniform(input, (U8)0, (U8)255, gen);
+    ImageMiscOps::fill_uniform(input, (U8)0, (U8)255, rng);
     auto border = FactoryImageBorder::create_SB<U8>(WRAP);
 
     Gray<U8> expected3(1, 1), found3(1, 1);

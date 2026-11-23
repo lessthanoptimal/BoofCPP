@@ -72,8 +72,7 @@ TEST_F(ImageMiscOpsTest, fill_uniform_INTEGER) {
     U8 min_value = 5;
     U8 max_value = 10;
 
-    std::mt19937 gen(0xBEEF);
-    ImageMiscOps::fill_uniform(image,min_value,max_value,gen);
+    ImageMiscOps::fill_uniform(image,min_value,max_value,rng);
 
     int N = max_value-min_value;
     int histogram[N];
@@ -98,8 +97,7 @@ TEST_F(ImageMiscOpsTest, fill_uniform_FLOAT) {
     F32 min_value = 5;
     F32 max_value = 10;
 
-    std::mt19937 gen(0xBEEF);
-    ImageMiscOps::fill_uniform(image,min_value,max_value,gen);
+    ImageMiscOps::fill_uniform(image,min_value,max_value,rng);
 
     for( uint32_t y = 0; y < image.height; y++ ) {
         for( uint32_t x = 0; x < image.width; x++ ) {

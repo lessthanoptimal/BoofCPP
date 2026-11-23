@@ -46,8 +46,7 @@ class ImageNormalizationTest : public boofcv::BoofCPPTest {};
 
 TEST_F(ImageNormalizationTest, zero_mean_max_one_U8) {
     Gray<U8> input(20, 15);
-    std::mt19937 gen(0xBEEF);
-    ImageMiscOps::fill_uniform(input, (U8)10, (U8)200, gen);
+    ImageMiscOps::fill_uniform(input, (U8)10, (U8)200, rng);
     check_zero_mean_max_one(input);
     check_zero_mean_max_one(create_subimage(input));
 
@@ -69,8 +68,7 @@ TEST_F(ImageNormalizationTest, zero_mean_max_one_U8) {
 
 TEST_F(ImageNormalizationTest, zero_mean_max_one_F32) {
     Gray<F32> input(20, 15);
-    std::mt19937 gen(0xBEEF);
-    ImageMiscOps::fill_uniform(input, -3.0f, 7.0f, gen);
+    ImageMiscOps::fill_uniform(input, -3.0f, 7.0f, rng);
     check_zero_mean_max_one(input);
     check_zero_mean_max_one(create_subimage(input));
 }
@@ -105,8 +103,7 @@ TEST_F(ImageNormalizationTest, max_abs) {
 /// Summed in a single float in row major order, like BoofCV
 TEST_F(ImageNormalizationTest, mean_F32) {
     Gray<F32> image(7, 3);
-    std::mt19937 gen(0xBEEF);
-    ImageMiscOps::fill_uniform(image, 0.0f, 1.0f, gen);
+    ImageMiscOps::fill_uniform(image, 0.0f, 1.0f, rng);
     F32 total = 0;
     for (uint32_t y = 0; y < 3; y++) {
         for (uint32_t x = 0; x < 7; x++)

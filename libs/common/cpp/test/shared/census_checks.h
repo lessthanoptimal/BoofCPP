@@ -71,16 +71,16 @@ namespace census_checks {
     /// Values in [0, 4], so many neighbors are equal and must not set a bit. Floats have a fractional part and a NaN,
     /// which compares false
     template<class E>
-    Gray<E> random_image( uint32_t width, uint32_t height, std::mt19937& gen ) {
+    Gray<E> random_image( uint32_t width, uint32_t height, std::mt19937& rng ) {
         Gray<E> image(width, height);
         if constexpr (std::is_floating_point<E>::value) {
             std::uniform_int_distribution<int> value(0, 8);
             for (uint32_t y = 0; y < height; y++)
                 for (uint32_t x = 0; x < width; x++)
-                    image.at(x, y) = (E)(value(gen)*0.5);
+                    image.at(x, y) = (E)(value(rng)*0.5);
             image.at(width/2, height/2) = std::numeric_limits<E>::quiet_NaN();
         } else {
-            ImageMiscOps::fill_uniform(image, (E)0, (E)4, gen);
+            ImageMiscOps::fill_uniform(image, (E)0, (E)4, rng);
         }
         return image;
     }
@@ -124,10 +124,10 @@ namespace census_checks {
 
     /// Every pixel against the brute force census, for every border type, a whole image and a sub-image
     template<class E>
-    void compare( Op op, uint32_t width, uint32_t height, const std::vector<Point2D<int32_t>>& sample_points = {} ) {
+    void compare( std::mt19937& rng, Op op, uint32_t width, uint32_t height,
+                  const std::vector<Point2D<int32_t>>& sample_points = {} ) {
         const std::vector<Point2D<int32_t>> samples = op_samples(op, sample_points);
-        std::mt19937 gen(0xBEEF + width*31 + height);
-        Gray<E> input = random_image<E>(width, height, gen);
+        Gray<E> input = random_image<E>(width, height, rng);
 
         for (BorderType type : {REFLECT, EXTENDED, WRAP, ZERO}) {
             for (bool sub : {false, true}) {
@@ -152,14 +152,13 @@ namespace census_checks {
 
     /// Without a border, only pixels farther than the largest x or y of a sample from every edge are written
     template<class E>
-    void no_border( Op op, const std::vector<Point2D<int32_t>>& sample_points = {} ) {
+    void no_border( std::mt19937& rng, Op op, const std::vector<Point2D<int32_t>>& sample_points = {} ) {
         const std::vector<Point2D<int32_t>> samples = op_samples(op, sample_points);
         int32_t radius = 0;
         for (const auto& p : samples)
             radius = std::max(radius, std::max(std::abs(p.x), std::abs(p.y)));
         const int32_t width = 20 + 2*radius, height = 9 + 2*radius;
-        std::mt19937 gen(0xBEEF);
-        Gray<E> input = random_image<E>(width, height, gen);
+        Gray<E> input = random_image<E>(width, height, rng);
         // pixels which must not be written keep 0x55
         Gray<S64> found = transform(op, input, samples, (ImageBorder<E>*)nullptr, 0x55);
 
@@ -176,19 +175,19 @@ namespace census_checks {
 
     /// Images with and without an inner image, those as small as one pixel, and every sampled region
     template<class E>
-    void check_all() {
+    void check_all( std::mt19937& rng ) {
         for (auto shape : {std::pair{30u, 25u}, {31u, 4u}, {3u, 20u}, {2u, 2u}, {2u, 7u}, {1u, 1u}, {1u, 5u}, {5u, 1u}})
-            compare<E>(Op::DENSE_3X3, shape.first, shape.second);
+            compare<E>(rng, Op::DENSE_3X3, shape.first, shape.second);
         for (auto shape : {std::pair{30u, 25u}, {31u, 6u}, {5u, 20u}, {3u, 3u}, {4u, 9u}, {1u, 1u}, {2u, 5u}, {5u, 2u},
                            {1u, 7u}})
-            compare<E>(Op::DENSE_5X5, shape.first, shape.second);
+            compare<E>(rng, Op::DENSE_5X5, shape.first, shape.second);
         for (const auto& samples : sample_sets()) {
             for (auto shape : {std::pair{40u, 30u}, {41u, 9u}, {13u, 20u}, {12u, 12u}, {1u, 1u}, {3u, 15u}, {15u, 2u}})
-                compare<E>(Op::SAMPLE_S64, shape.first, shape.second, samples);
-            no_border<E>(Op::SAMPLE_S64, samples);
+                compare<E>(rng, Op::SAMPLE_S64, shape.first, shape.second, samples);
+            no_border<E>(rng, Op::SAMPLE_S64, samples);
         }
-        no_border<E>(Op::DENSE_3X3);
-        no_border<E>(Op::DENSE_5X5);
+        no_border<E>(rng, Op::DENSE_3X3);
+        no_border<E>(rng, Op::DENSE_5X5);
     }
 
     /// sample_S64 has at most 64 bits

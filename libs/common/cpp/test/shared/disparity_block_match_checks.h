@@ -144,9 +144,9 @@ namespace disparity_block_match_checks {
     };
 
     template<class D>
-    void compare_to_naive( const Config& c, bool save_score ) {
+    void compare_to_naive( std::mt19937& rng, const Config& c, bool save_score ) {
         Gray<U8> left(1, 1), right(1, 1);
-        create_stereo_pair(left, right, c.width, c.height, 4);
+        create_stereo_pair(rng, left, right, c.width, c.height, 4);
 
         auto select = make_shared<tested::SelectErrorWithChecks_S32<D>>(c.max_error, c.r2l, c.texture);
         tested::DisparityBlockMatchRowFormat<U8, int32_t> alg(c.rx, c.ry, make_shared<tested::BlockRowScoreSad<U8>>(),
@@ -202,10 +202,9 @@ namespace disparity_block_match_checks {
             {31, 23, 3, 2, -3, 15, 600, 1, 0.15, EXTENDED} // everything, odd sizes
     };
 
-    inline void grow_row_compare_to_border() {
+    inline void grow_row_compare_to_border( std::mt19937& rng ) {
         Gray<U8> image(7, 5);
-        std::mt19937 gen(0xBEEF);
-        ImageMiscOps::fill_uniform(image, (U8)0, (U8)255, gen);
+        ImageMiscOps::fill_uniform(image, (U8)0, (U8)255, rng);
         for (BorderType type : {EXTENDED, REFLECT, WRAP, ZERO}) {
             auto border = FactoryImageBorder::create_SB<U8>(type);
             border->setImage(image);
@@ -220,12 +219,11 @@ namespace disparity_block_match_checks {
         }
     }
 
-    inline void block_row_score_sad_compare_to_naive() {
+    inline void block_row_score_sad_compare_to_naive( std::mt19937& rng ) {
         const uint32_t width = 20, r = 2, region = 2*r + 1;
         Gray<U8> left(width, 1), right(width, 1);
-        std::mt19937 gen(0xBEEF);
-        ImageMiscOps::fill_uniform(left, (U8)0, (U8)255, gen);
-        ImageMiscOps::fill_uniform(right, (U8)0, (U8)255, gen);
+        ImageMiscOps::fill_uniform(left, (U8)0, (U8)255, rng);
+        ImageMiscOps::fill_uniform(right, (U8)0, (U8)255, rng);
         auto bl = FactoryImageBorder::create_SB<U8>(REFLECT);
         auto br = FactoryImageBorder::create_SB<U8>(REFLECT);
         bl->setImage(left);
@@ -260,18 +258,17 @@ namespace disparity_block_match_checks {
 
     /// Census scores against a brute force hamming distance, for every disparity
     template<class E>
-    void census_row_compare_to_naive( E max_value ) {
+    void census_row_compare_to_naive( std::mt19937& rng, E max_value ) {
         const uint32_t width = 20, r = 2, region = 2*r + 1;
         Gray<E> left(width, 1), right(width, 1);
-        std::mt19937 gen(0xBEEF);
         if constexpr (std::is_same<E, S64>::value) {
             // every bit, including the sign bit
             for (Gray<E>* image : {&left, &right})
                 for (uint32_t x = 0; x < width; x++)
-                    image->at(x, 0) = (S64)(((uint64_t)gen() << 32) | gen());
+                    image->at(x, 0) = (S64)(((uint64_t)rng() << 32) | rng());
         } else {
-            ImageMiscOps::fill_uniform(left, (E)0, max_value, gen);
-            ImageMiscOps::fill_uniform(right, (E)0, max_value, gen);
+            ImageMiscOps::fill_uniform(left, (E)0, max_value, rng);
+            ImageMiscOps::fill_uniform(right, (E)0, max_value, rng);
         }
         auto bl = FactoryImageBorder::create_SB<E>(REFLECT);
         auto br = FactoryImageBorder::create_SB<E>(REFLECT);
@@ -307,28 +304,28 @@ namespace disparity_block_match_checks {
         }
     }
 
-    inline void block_row_score_census_compare_to_naive() {
-        census_row_compare_to_naive<U8>((U8)255);
-        census_row_compare_to_naive<S32>((S32)0xFFFFFF);
-        census_row_compare_to_naive<S64>((S64)0);
+    inline void block_row_score_census_compare_to_naive( std::mt19937& rng ) {
+        census_row_compare_to_naive<U8>(rng, (U8)255);
+        census_row_compare_to_naive<S32>(rng, (S32)0xFFFFFF);
+        census_row_compare_to_naive<S64>(rng, (S64)0);
     }
 
-    inline void disparity_block_match_row_format_compare_to_naive_U8() {
+    inline void disparity_block_match_row_format_compare_to_naive_U8( std::mt19937& rng ) {
         for (const auto& c : CONFIGS) {
-            compare_to_naive<U8>(c, true);
-            compare_to_naive<U8>(c, false);
+            compare_to_naive<U8>(rng, c, true);
+            compare_to_naive<U8>(rng, c, false);
         }
     }
 
-    inline void disparity_block_match_row_format_compare_to_naive_subpixel() {
+    inline void disparity_block_match_row_format_compare_to_naive_subpixel( std::mt19937& rng ) {
         for (const auto& c : CONFIGS) {
-            compare_to_naive<F32>(c, true);
+            compare_to_naive<F32>(rng, c, true);
         }
     }
 
-    inline void disparity_block_match_row_format_run_twice_same_result() {
+    inline void disparity_block_match_row_format_run_twice_same_result( std::mt19937& rng ) {
         Gray<U8> left(1, 1), right(1, 1);
-        create_stereo_pair(left, right, 30, 25, 4);
+        create_stereo_pair(rng, left, right, 30, 25, 4);
         auto select = make_shared<tested::SelectErrorWithChecks_S32<F32>>(0, 1, 0.15);
         tested::DisparityBlockMatchRowFormat<U8, int32_t> alg(2, 2, make_shared<tested::BlockRowScoreSad<U8>>(),
                                                               select);
@@ -365,13 +362,12 @@ namespace disparity_block_match_checks {
 
     /// Row scores against a brute force sum of the per pixel error, for every disparity
     template<class E, class Alg, class Error>
-    void row_compare_to_naive( const Alg& alg, Error error, E max_value ) {
+    void row_compare_to_naive( std::mt19937& rng, const Alg& alg, Error error, E max_value ) {
         using S = tested::BlockScoreType<E>;
         const uint32_t width = 20, r = 2, region = 2*r + 1;
         Gray<E> left(width, 1), right(width, 1);
-        std::mt19937 gen(0xBEEF);
-        ImageMiscOps::fill_uniform(left, (E)0, max_value, gen);
-        ImageMiscOps::fill_uniform(right, (E)0, max_value, gen);
+        ImageMiscOps::fill_uniform(left, (E)0, max_value, rng);
+        ImageMiscOps::fill_uniform(right, (E)0, max_value, rng);
         auto bl = FactoryImageBorder::create_SB<E>(REFLECT);
         auto br = FactoryImageBorder::create_SB<E>(REFLECT);
         bl->setImage(left);
@@ -401,19 +397,19 @@ namespace disparity_block_match_checks {
         }
     }
 
-    inline void block_row_score_sad_compare_to_naive_F32() {
+    inline void block_row_score_sad_compare_to_naive_F32( std::mt19937& rng ) {
         tested::BlockRowScoreSad<F32> alg;
         EXPECT_EQ(-1, alg.max_per_pixel_error());
-        row_compare_to_naive<F32>(alg, []( double a, double b ) { return std::abs(a - b); }, 1.0f);
+        row_compare_to_naive<F32>(rng, alg, []( double a, double b ) { return std::abs(a - b); }, 1.0f);
     }
 
-    inline void block_row_score_ssd_compare_to_naive() {
+    inline void block_row_score_ssd_compare_to_naive( std::mt19937& rng ) {
         tested::BlockRowScoreSsd<U8> alg_u8;
         EXPECT_EQ(255*255, alg_u8.max_per_pixel_error());
-        row_compare_to_naive<U8>(alg_u8, []( double a, double b ) { return (a - b)*(a - b); }, (U8)255);
+        row_compare_to_naive<U8>(rng, alg_u8, []( double a, double b ) { return (a - b)*(a - b); }, (U8)255);
         tested::BlockRowScoreSsd<F32> alg_f32;
         EXPECT_EQ(-1, alg_f32.max_per_pixel_error());
-        row_compare_to_naive<F32>(alg_f32, []( double a, double b ) { return (a - b)*(a - b); }, 1.0f);
+        row_compare_to_naive<F32>(rng, alg_f32, []( double a, double b ) { return (a - b)*(a - b); }, 1.0f);
     }
 
     /// Saves the region scores of every row it's given
@@ -461,12 +457,11 @@ namespace disparity_block_match_checks {
 
     /// Runs block matching with ZSSD or NCC and compares the normalized region scores to brute force
     template<class RowScore>
-    void normalized_compare_to_naive( bool ncc, uint32_t width, uint32_t height, int32_t rx, int32_t ry,
-                                      int32_t dmin, int32_t range, BorderType border, int32_t reset ) {
+    void normalized_compare_to_naive( std::mt19937& rng, bool ncc, uint32_t width, uint32_t height, int32_t rx,
+                                      int32_t ry, int32_t dmin, int32_t range, BorderType border, int32_t reset ) {
         Gray<F32> left(width, height), right(width, height);
-        std::mt19937 gen(0xBEEF + width + rx);
-        ImageMiscOps::fill_uniform(left, 0.0f, 1.0f, gen);
-        ImageMiscOps::fill_uniform(right, 0.0f, 1.0f, gen);
+        ImageMiscOps::fill_uniform(left, 0.0f, 1.0f, rng);
+        ImageMiscOps::fill_uniform(right, 0.0f, 1.0f, rng);
         const F32 eps = 1e-4f;
 
         std::shared_ptr<tested::BlockRowScore<F32, F32>> row_score;
@@ -513,29 +508,29 @@ namespace disparity_block_match_checks {
         }
     }
 
-    inline void block_row_score_zssd_block_match_compare_to_naive() {
+    inline void block_row_score_zssd_block_match_compare_to_naive( std::mt19937& rng ) {
         for (BorderType border : {REFLECT, EXTENDED, WRAP, ZERO}) {
-            normalized_compare_to_naive<tested::BlockRowScoreZssd>(false, 30, 25, 2, 2, -3, 10, border, 25);
-            normalized_compare_to_naive<tested::BlockRowScoreZssd>(false, 31, 23, 3, 1, 0, 40, border, 4);
+            normalized_compare_to_naive<tested::BlockRowScoreZssd>(rng, false, 30, 25, 2, 2, -3, 10, border, 25);
+            normalized_compare_to_naive<tested::BlockRowScoreZssd>(rng, false, 31, 23, 3, 1, 0, 40, border, 4);
         }
         // smaller than the region
-        normalized_compare_to_naive<tested::BlockRowScoreZssd>(false, 3, 2, 2, 3, -1, 3, REFLECT, 25);
+        normalized_compare_to_naive<tested::BlockRowScoreZssd>(rng, false, 3, 2, 2, 3, -1, 3, REFLECT, 25);
     }
 
-    inline void block_row_score_ncc_block_match_compare_to_naive() {
+    inline void block_row_score_ncc_block_match_compare_to_naive( std::mt19937& rng ) {
         for (BorderType border : {REFLECT, EXTENDED, WRAP, ZERO}) {
-            normalized_compare_to_naive<tested::BlockRowScoreNcc>(true, 30, 25, 2, 2, -3, 10, border, 25);
-            normalized_compare_to_naive<tested::BlockRowScoreNcc>(true, 31, 23, 3, 1, 0, 40, border, 4);
+            normalized_compare_to_naive<tested::BlockRowScoreNcc>(rng, true, 30, 25, 2, 2, -3, 10, border, 25);
+            normalized_compare_to_naive<tested::BlockRowScoreNcc>(rng, true, 31, 23, 3, 1, 0, 40, border, 4);
         }
-        normalized_compare_to_naive<tested::BlockRowScoreNcc>(true, 3, 2, 2, 3, -1, 3, REFLECT, 25);
+        normalized_compare_to_naive<tested::BlockRowScoreNcc>(rng, true, 3, 2, 2, 3, -1, 3, REFLECT, 25);
     }
 
     /// With integer valued images the floating point scores are exact, so F32 images must select the same
     /// disparity and score as U8 images
     template<class D, class RowScoreU8, class RowScoreF32>
-    void f32_same_as_u8( const Config& c, bool squared ) {
+    void f32_same_as_u8( std::mt19937& rng, const Config& c, bool squared ) {
         Gray<U8> left(1, 1), right(1, 1);
-        create_stereo_pair(left, right, c.width, c.height, 4);
+        create_stereo_pair(rng, left, right, c.width, c.height, 4);
         Gray<F32> left_f(c.width, c.height), right_f(c.width, c.height);
         for (uint32_t i = 0; i < left.data_length; i++) {
             left_f.data[i] = left.data[i];
@@ -566,15 +561,15 @@ namespace disparity_block_match_checks {
         check_equals(score_u8, score_f32, 0.0f);
     }
 
-    inline void disparity_block_match_row_format_F32_same_as_U8() {
+    inline void disparity_block_match_row_format_F32_same_as_U8( std::mt19937& rng ) {
         for (const auto& c : CONFIGS) {
-            f32_same_as_u8<U8, tested::BlockRowScoreSad<U8>, tested::BlockRowScoreSad<F32>>(c, false);
-            f32_same_as_u8<F32, tested::BlockRowScoreSad<U8>, tested::BlockRowScoreSad<F32>>(c, false);
+            f32_same_as_u8<U8, tested::BlockRowScoreSad<U8>, tested::BlockRowScoreSad<F32>>(rng, c, false);
+            f32_same_as_u8<F32, tested::BlockRowScoreSad<U8>, tested::BlockRowScoreSad<F32>>(rng, c, false);
             // SSD with the max error scaled to its units
             Config ssd = c;
             ssd.max_error = c.max_error*c.max_error;
-            f32_same_as_u8<U8, tested::BlockRowScoreSsd<U8>, tested::BlockRowScoreSsd<F32>>(ssd, true);
-            f32_same_as_u8<F32, tested::BlockRowScoreSsd<U8>, tested::BlockRowScoreSsd<F32>>(ssd, true);
+            f32_same_as_u8<U8, tested::BlockRowScoreSsd<U8>, tested::BlockRowScoreSsd<F32>>(rng, ssd, true);
+            f32_same_as_u8<F32, tested::BlockRowScoreSsd<U8>, tested::BlockRowScoreSsd<F32>>(rng, ssd, true);
         }
     }
 
@@ -655,16 +650,16 @@ namespace disparity_block_match_checks {
     };
 
     template<class D>
-    void correlation_compare_to_naive( int32_t width, int32_t dmin, int32_t range, int32_t r2l, float texture ) {
+    void correlation_compare_to_naive( std::mt19937& rng, int32_t width, int32_t dmin, int32_t range, int32_t r2l,
+                                       float texture ) {
         NaiveCorrelation naive{width, dmin, dmin + range - 1, r2l, texture, {}};
-        std::mt19937 gen(0xBEEF + width + range);
         std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
         naive.volume.resize(width*range);
         // scores in the selector's layout, scores[width*(d - dmin) + x]
         vector<float> scores(width*range);
         for (int32_t x = 0; x < width; x++) {
             for (int32_t d = dmin; d < dmin + range; d++) {
-                float v = dist(gen);
+                float v = dist(rng);
                 naive.volume[x*range + d - dmin] = v;
                 scores[width*(d - dmin) + x] = v;
             }
@@ -696,13 +691,13 @@ namespace disparity_block_match_checks {
         ASSERT_GT(valid, 0u);
     }
 
-    inline void select_correlation_with_checks_f32_compare_to_naive() {
+    inline void select_correlation_with_checks_f32_compare_to_naive( std::mt19937& rng ) {
         // width, dmin, range, r2l, texture
         for (auto c : {std::tuple{30, 0, 10, -1, 0.0f}, {30, -4, 12, -1, 0.0f}, {30, 3, 8, 1, 0.0f},
                        {30, -5, 12, 0, 0.0f}, {30, 0, 10, -1, 0.3f}, {12, 0, 20, 1, 0.1f}, {31, -3, 15, 1, 0.15f}}) {
             auto [width, dmin, range, r2l, texture] = c;
-            correlation_compare_to_naive<U8>(width, dmin, range, r2l, texture);
-            correlation_compare_to_naive<F32>(width, dmin, range, r2l, texture);
+            correlation_compare_to_naive<U8>(rng, width, dmin, range, r2l, texture);
+            correlation_compare_to_naive<F32>(rng, width, dmin, range, r2l, texture);
         }
     }
 

@@ -23,9 +23,9 @@ namespace stereo_disparity_checks {
 
     /// Stereo pair of type E. F32 images get a fractional part so that floating point rounding matters
     template<class E>
-    void create_pair( Gray<E>& left, Gray<E>& right ) {
+    void create_pair( std::mt19937& rng, Gray<E>& left, Gray<E>& right ) {
         Gray<U8> left8(1, 1), right8(1, 1);
-        create_stereo_pair(left8, right8, 30, 20, 3);
+        create_stereo_pair(rng, left8, right8, 30, 20, 3);
         left.reshape(30, 20);
         right.reshape(30, 20);
         for (uint32_t i = 0; i < left8.data_length; i++) {
@@ -67,9 +67,9 @@ namespace stereo_disparity_checks {
 
     /// Builds the same pipeline by hand and compares the results
     template<class D>
-    void compare_to_hand_built( const ConfigDisparityBM& config ) {
+    void compare_to_hand_built( std::mt19937& rng, const ConfigDisparityBM& config ) {
         Gray<U8> left(1, 1), right(1, 1);
-        create_stereo_pair(left, right, 30, 20, 3);
+        create_stereo_pair(rng, left, right, 30, 20, 3);
 
         auto alg = tested::FactoryStereoDisparity::block_match<U8, D>(config);
         alg->process(left, right);
@@ -91,17 +91,17 @@ namespace stereo_disparity_checks {
         check_equals(score, *alg->get_score(), 0.0f);
     }
 
-    inline void factory_stereo_disparity_block_match_same_as_hand_built() {
-        compare_to_hand_built<U8>(create_sad_config(false));
-        compare_to_hand_built<F32>(create_sad_config(true));
+    inline void factory_stereo_disparity_block_match_same_as_hand_built( std::mt19937& rng ) {
+        compare_to_hand_built<U8>(rng, create_sad_config(false));
+        compare_to_hand_built<F32>(rng, create_sad_config(true));
     }
 
     /// Census transform both images with the configuration's border, then block matching on the census images
     /// with the same border
     template<class C, class D, class E = U8>
-    void compare_census_to_hand_built( CensusVariants variant, BorderType border ) {
+    void compare_census_to_hand_built( std::mt19937& rng, CensusVariants variant, BorderType border ) {
         Gray<E> left(1, 1), right(1, 1);
-        create_pair(left, right);
+        create_pair(rng, left, right);
 
         ConfigDisparityBM config = create_sad_config(std::is_same<D, F32>::value);
         config.error_type = DisparityError::CENSUS;
@@ -147,30 +147,31 @@ namespace stereo_disparity_checks {
         check_equals(census_right, census.get_census_right(), (C)0);
     }
 
-    inline void factory_stereo_disparity_block_match_census_same_as_hand_built() {
-        compare_census_to_hand_built<U8, U8>(CensusVariants::BLOCK_3_3, REFLECT);
-        compare_census_to_hand_built<U8, F32>(CensusVariants::BLOCK_3_3, REFLECT);
-        compare_census_to_hand_built<S32, U8>(CensusVariants::BLOCK_5_5, REFLECT);
-        compare_census_to_hand_built<S32, F32>(CensusVariants::BLOCK_5_5, REFLECT);
-        compare_census_to_hand_built<S32, F32>(CensusVariants::BLOCK_5_5, ZERO);
+    inline void factory_stereo_disparity_block_match_census_same_as_hand_built( std::mt19937& rng ) {
+        compare_census_to_hand_built<U8, U8>(rng, CensusVariants::BLOCK_3_3, REFLECT);
+        compare_census_to_hand_built<U8, F32>(rng, CensusVariants::BLOCK_3_3, REFLECT);
+        compare_census_to_hand_built<S32, U8>(rng, CensusVariants::BLOCK_5_5, REFLECT);
+        compare_census_to_hand_built<S32, F32>(rng, CensusVariants::BLOCK_5_5, REFLECT);
+        compare_census_to_hand_built<S32, F32>(rng, CensusVariants::BLOCK_5_5, ZERO);
         for (CensusVariants variant : {CensusVariants::BLOCK_7_7, CensusVariants::BLOCK_9_7, CensusVariants::BLOCK_13_5,
                                        CensusVariants::CIRCLE_9}) {
-            compare_census_to_hand_built<S64, U8>(variant, REFLECT);
-            compare_census_to_hand_built<S64, F32>(variant, ZERO);
+            compare_census_to_hand_built<S64, U8>(rng, variant, REFLECT);
+            compare_census_to_hand_built<S64, F32>(rng, variant, ZERO);
         }
     }
 
-    inline void factory_stereo_disparity_block_match_census_F32_same_as_hand_built() {
-        compare_census_to_hand_built<U8, F32, F32>(CensusVariants::BLOCK_3_3, REFLECT);
-        compare_census_to_hand_built<S32, U8, F32>(CensusVariants::BLOCK_5_5, ZERO);
-        compare_census_to_hand_built<S64, F32, F32>(CensusVariants::CIRCLE_9, EXTENDED);
+    inline void factory_stereo_disparity_block_match_census_F32_same_as_hand_built( std::mt19937& rng ) {
+        compare_census_to_hand_built<U8, F32, F32>(rng, CensusVariants::BLOCK_3_3, REFLECT);
+        compare_census_to_hand_built<S32, U8, F32>(rng, CensusVariants::BLOCK_5_5, ZERO);
+        compare_census_to_hand_built<S64, F32, F32>(rng, CensusVariants::CIRCLE_9, EXTENDED);
     }
 
     /// Builds the pipeline for SAD, SSD, ZSSD, or NCC by hand and compares the results
     template<class E, class D>
-    void compare_error_to_hand_built( DisparityError error, bool normalize_input, BorderType border ) {
+    void compare_error_to_hand_built( std::mt19937& rng, DisparityError error, bool normalize_input,
+                                      BorderType border ) {
         Gray<E> left(1, 1), right(1, 1);
-        create_pair(left, right);
+        create_pair(rng, left, right);
 
         ConfigDisparityBM config = create_sad_config(std::is_same<D, F32>::value);
         config.error_type = error;
@@ -258,28 +259,28 @@ namespace stereo_disparity_checks {
     }
 
     template<class E>
-    void compare_every_error_to_hand_built() {
+    void compare_every_error_to_hand_built( std::mt19937& rng ) {
         for (DisparityError error : {DisparityError::SAD, DisparityError::SSD, DisparityError::ZSSD,
                                      DisparityError::NCC}) {
-            compare_error_to_hand_built<E, U8>(error, true, REFLECT);
-            compare_error_to_hand_built<E, F32>(error, true, REFLECT);
-            compare_error_to_hand_built<E, F32>(error, true, ZERO);
+            compare_error_to_hand_built<E, U8>(rng, error, true, REFLECT);
+            compare_error_to_hand_built<E, F32>(rng, error, true, REFLECT);
+            compare_error_to_hand_built<E, F32>(rng, error, true, ZERO);
         }
-        compare_error_to_hand_built<E, F32>(DisparityError::NCC, false, REFLECT);
+        compare_error_to_hand_built<E, F32>(rng, DisparityError::NCC, false, REFLECT);
     }
 
-    inline void factory_stereo_disparity_block_match_errors_same_as_hand_built_U8() {
-        compare_every_error_to_hand_built<U8>();
+    inline void factory_stereo_disparity_block_match_errors_same_as_hand_built_U8( std::mt19937& rng ) {
+        compare_every_error_to_hand_built<U8>(rng);
     }
 
-    inline void factory_stereo_disparity_block_match_errors_same_as_hand_built_F32() {
-        compare_every_error_to_hand_built<F32>();
+    inline void factory_stereo_disparity_block_match_errors_same_as_hand_built_F32( std::mt19937& rng ) {
+        compare_every_error_to_hand_built<F32>(rng);
     }
 
     /// The local statistics of ZSSD and NCC need a region radius of at least 1, same as BoofCV
-    inline void factory_stereo_disparity_block_match_zssd_ncc_zero_radius() {
+    inline void factory_stereo_disparity_block_match_zssd_ncc_zero_radius( std::mt19937& rng ) {
         Gray<U8> left(1, 1), right(1, 1);
-        create_pair(left, right);
+        create_pair(rng, left, right);
         for (DisparityError error : {DisparityError::ZSSD, DisparityError::NCC}) {
             ConfigDisparityBM config = create_sad_config(true);
             config.error_type = error;
@@ -327,10 +328,9 @@ namespace stereo_disparity_checks {
     }
 
     /// SKIP leaves the image border untouched, same as BoofCV
-    inline void factory_census_transform_variant_skip_border() {
+    inline void factory_census_transform_variant_skip_border( std::mt19937& rng ) {
         Gray<U8> input(12, 10);
-        std::mt19937 gen(0xBEEF);
-        ImageMiscOps::fill_uniform(input, (U8)0, (U8)255, gen);
+        ImageMiscOps::fill_uniform(input, (U8)0, (U8)255, rng);
 
         Gray<U8> expected(12, 10), found(12, 10);
         ImageMiscOps::fill(expected, (U8)7);
@@ -363,9 +363,9 @@ namespace stereo_disparity_checks {
         EXPECT_EQ(1, alg->get_border_y());
     }
 
-    inline void stereo_disparity_block_match_score_enabled() {
+    inline void stereo_disparity_block_match_score_enabled( std::mt19937& rng ) {
         Gray<U8> left(1, 1), right(1, 1);
-        create_stereo_pair(left, right, 30, 20, 3);
+        create_stereo_pair(rng, left, right, 30, 20, 3);
         ConfigDisparityBM config = create_sad_config(false);
         config.save_score = false;
         auto alg = tested::FactoryStereoDisparity::block_match<U8, U8>(config);
@@ -380,9 +380,9 @@ namespace stereo_disparity_checks {
     }
 
     /// With every check off BoofCV's selector doesn't write the score, but it's still allocated
-    inline void stereo_disparity_block_match_basic_select_score_not_written() {
+    inline void stereo_disparity_block_match_basic_select_score_not_written( std::mt19937& rng ) {
         Gray<U8> left(1, 1), right(1, 1);
-        create_stereo_pair(left, right, 30, 20, 3);
+        create_stereo_pair(rng, left, right, 30, 20, 3);
         ConfigDisparityBM config = create_sad_config(false);
         config.max_per_pixel_error = -1;
         config.validate_r_to_l = -1;
@@ -402,9 +402,9 @@ namespace stereo_disparity_checks {
         EXPECT_GT(valid, 0u);
     }
 
-    inline void stereo_disparity_block_match_caller_owned_images_must_match_shape() {
+    inline void stereo_disparity_block_match_caller_owned_images_must_match_shape( std::mt19937& rng ) {
         Gray<U8> left(1, 1), right(1, 1);
-        create_stereo_pair(left, right, 30, 20, 3);
+        create_stereo_pair(rng, left, right, 30, 20, 3);
         auto alg = tested::FactoryStereoDisparity::block_match<U8, U8>(create_sad_config(false));
         Gray<U8> disparity(29, 20);
         EXPECT_THROW(alg->process(left, right, disparity, nullptr), invalid_argument);

@@ -14,8 +14,7 @@ TEST_F(ImageBorderValueTest, check) {
 
     Gray<U8> image(30,40);
 
-    std::mt19937 gen(0xBEEF);
-    ImageMiscOps::fill_uniform(image,(U8)1,(U8)50,gen);
+    ImageMiscOps::fill_uniform(image,(U8)1,(U8)50,rng);
     border.setImage(image);
 
 
@@ -38,8 +37,7 @@ TEST_F(ImageBorderExtendTest, check) {
 
     Gray<U8> image(30,40);
 
-    std::mt19937 gen(0xBEEF);
-    ImageMiscOps::fill_uniform(image,(U8)1,(U8)50,gen);
+    ImageMiscOps::fill_uniform(image,(U8)1,(U8)50,rng);
     border.setImage(image);
 
 
@@ -62,8 +60,7 @@ TEST_F(ImageBorderWrapTest, check) {
 
     Gray<U8> image(30,40);
 
-    std::mt19937 gen(0xBEEF);
-    ImageMiscOps::fill_uniform(image,(U8)1,(U8)50,gen);
+    ImageMiscOps::fill_uniform(image,(U8)1,(U8)50,rng);
     border.setImage(image);
 
 
@@ -86,8 +83,7 @@ TEST_F(ImageBorderReflectTest, check) {
 
     Gray<U8> image(30,40);
 
-    std::mt19937 gen(0xBEEF);
-    ImageMiscOps::fill_uniform(image,(U8)1,(U8)50,gen);
+    ImageMiscOps::fill_uniform(image,(U8)1,(U8)50,rng);
     border.setImage(image);
 
 

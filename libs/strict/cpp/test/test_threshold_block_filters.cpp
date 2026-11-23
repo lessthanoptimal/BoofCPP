@@ -47,19 +47,29 @@ TEST_F(ThresholdBlockCommonTest, selectBlockSize) {
 
 class ThresholdBlockMeanTest : public boofcv::BoofCPPTest {};
 
-TEST_F(ThresholdBlockMeanTest, standard_tests_U8) { threshold_checks::block_all(threshold_checks::block_mean<U8>()); }
-TEST_F(ThresholdBlockMeanTest, standard_tests_F32) { threshold_checks::block_all(threshold_checks::block_mean<F32>()); }
+TEST_F(ThresholdBlockMeanTest, standard_tests_U8) {
+    threshold_checks::block_all(rng, threshold_checks::block_mean<U8>());
+}
+TEST_F(ThresholdBlockMeanTest, standard_tests_F32) {
+    threshold_checks::block_all(rng, threshold_checks::block_mean<F32>());
+}
 
 class ThresholdBlockOtsuTest : public boofcv::BoofCPPTest {};
 
-TEST_F(ThresholdBlockOtsuTest, standard_tests_U8) { threshold_checks::block_all(threshold_checks::block_otsu<U8>()); }
-TEST_F(ThresholdBlockOtsuTest, standard_tests_F32) { threshold_checks::block_all(threshold_checks::block_otsu<F32>()); }
+TEST_F(ThresholdBlockOtsuTest, standard_tests_U8) {
+    threshold_checks::block_all(rng, threshold_checks::block_otsu<U8>());
+}
+TEST_F(ThresholdBlockOtsuTest, standard_tests_F32) {
+    threshold_checks::block_all(rng, threshold_checks::block_otsu<F32>());
+}
 
 class ThresholdBlockMinMaxTest : public boofcv::BoofCPPTest {};
 
-TEST_F(ThresholdBlockMinMaxTest, standard_tests_U8) { threshold_checks::block_all(threshold_checks::block_min_max<U8>()); }
+TEST_F(ThresholdBlockMinMaxTest, standard_tests_U8) {
+    threshold_checks::block_all(rng, threshold_checks::block_min_max<U8>());
+}
 TEST_F(ThresholdBlockMinMaxTest, standard_tests_F32) {
-    threshold_checks::block_all(threshold_checks::block_min_max<F32>());
+    threshold_checks::block_all(rng, threshold_checks::block_min_max<F32>());
 }
 
 namespace reference = threshold_block_reference;
@@ -70,23 +80,23 @@ namespace {
     /// Test images. HARD has values which are hard for floating point: large and tiny magnitudes, negative values and
     /// signed zeros for F32 (when 'limited' is false), and long runs of equal values
     template<class E>
-    Gray<E> create_image( uint32_t width, uint32_t height, Content content, bool limited, std::mt19937& gen ) {
+    Gray<E> create_image( uint32_t width, uint32_t height, Content content, bool limited, std::mt19937& rng ) {
         Gray<E> image(width, height);
         std::uniform_real_distribution<double> uniform(0, 255);
         for (uint32_t y = 0; y < height; y++) {
             for (uint32_t x = 0; x < width; x++) {
                 double v = 0;
                 switch (content) {
-                    case Content::UNIFORM: v = uniform(gen); break;
+                    case Content::UNIFORM: v = uniform(rng); break;
                     case Content::FLAT: v = 128; break;
-                    case Content::SMOOTH: v = 100 + 60*std::sin(x*0.05)*std::cos(y*0.07) + uniform(gen)/50; break;
+                    case Content::SMOOTH: v = 100 + 60*std::sin(x*0.05)*std::cos(y*0.07) + uniform(rng)/50; break;
                     case Content::HARD: {
                         const uint32_t kind = (x/7 + y/5)%5;
                         if (kind == 0) v = 200;
-                        else if (kind == 1) v = uniform(gen);
+                        else if (kind == 1) v = uniform(rng);
                         else if (std::is_integral_v<E> || limited) v = kind*50;
-                        else if (kind == 2) v = 1e6 + uniform(gen);
-                        else if (kind == 3) v = -uniform(gen)*1e-30;
+                        else if (kind == 2) v = 1e6 + uniform(rng);
+                        else if (kind == 3) v = -uniform(rng)*1e-30;
                         else v = (x + y)%2 == 0 ? 0.0 : -0.0;
                         break;
                     }
@@ -117,11 +127,10 @@ namespace {
 
     /// Calls check(input, width) for every test image and block width that fits it
     template<class E, class Check>
-    void for_each_input( bool limited, Check check ) {
-        std::mt19937 gen(0xBEEF);
+    void for_each_input( std::mt19937& rng, bool limited, Check check ) {
         for (auto shape : SHAPES) {
             for (Content content : CONTENTS) {
-                Gray<E> input = create_image<E>(shape.first, shape.second, content, limited, gen);
+                Gray<E> input = create_image<E>(shape.first, shape.second, content, limited, rng);
                 for (uint32_t width : {2u, 5u, 14u, 40u}) {
                     if (width > std::min(shape.first, shape.second))
                         continue;
@@ -132,8 +141,8 @@ namespace {
     }
 
     template<class E>
-    void block_mean_same_as_reference() {
-        for_each_input<E>(false, [&]( const Gray<E>& input, const ConfigLength& width ) {
+    void block_mean_same_as_reference( std::mt19937& rng ) {
+        for_each_input<E>(rng, false, [&]( const Gray<E>& input, const ConfigLength& width ) {
             for (bool local : {true, false})
                 for (bool down : {true, false})
                     for (double scale : {0.95, 1.0, 1.3, 0.82, -0.5}) {
@@ -144,9 +153,9 @@ namespace {
     }
 
     template<class E>
-    void block_otsu_same_as_reference() {
+    void block_otsu_same_as_reference( std::mt19937& rng ) {
         // F32 pixels must fit in U8, which they're cast to
-        for_each_input<E>(true, [&]( const Gray<E>& input, const ConfigLength& width ) {
+        for_each_input<E>(rng, true, [&]( const Gray<E>& input, const ConfigLength& width ) {
             for (bool local : {true, false})
                 for (bool down : {true, false})
                     for (bool otsu2 : {true, false})
@@ -160,8 +169,8 @@ namespace {
     }
 
     template<class E>
-    void block_min_max_same_as_reference() {
-        for_each_input<E>(false, [&]( const Gray<E>& input, const ConfigLength& width ) {
+    void block_min_max_same_as_reference( std::mt19937& rng ) {
+        for_each_input<E>(rng, false, [&]( const Gray<E>& input, const ConfigLength& width ) {
             for (bool local : {true, false})
                 for (bool down : {true, false})
                     for (float spread : {0.0f, 1.0f, 10.0f})
@@ -173,9 +182,8 @@ namespace {
     }
 
     /// F32 image with NaN pixels, including the first pixel of some blocks, which is never replaced
-    Gray<F32> nan_image() {
-        std::mt19937 gen(0xBEEF);
-        Gray<F32> input = create_image<F32>(100, 120, Content::UNIFORM, true, gen);
+    Gray<F32> nan_image( std::mt19937& rng ) {
+        Gray<F32> input = create_image<F32>(100, 120, Content::UNIFORM, true, rng);
         for (uint32_t y = 0; y < input.height; y += 3)
             for (uint32_t x = 0; x < input.width; x += 7)
                 input.at(x, y) = std::numeric_limits<F32>::quiet_NaN();
@@ -183,15 +191,15 @@ namespace {
     }
 }
 
-TEST_F(ThresholdBlockMeanTest, same_as_reference_U8) { block_mean_same_as_reference<U8>(); }
-TEST_F(ThresholdBlockMeanTest, same_as_reference_F32) { block_mean_same_as_reference<F32>(); }
-TEST_F(ThresholdBlockOtsuTest, same_as_reference_U8) { block_otsu_same_as_reference<U8>(); }
-TEST_F(ThresholdBlockOtsuTest, same_as_reference_F32) { block_otsu_same_as_reference<F32>(); }
-TEST_F(ThresholdBlockMinMaxTest, same_as_reference_U8) { block_min_max_same_as_reference<U8>(); }
-TEST_F(ThresholdBlockMinMaxTest, same_as_reference_F32) { block_min_max_same_as_reference<F32>(); }
+TEST_F(ThresholdBlockMeanTest, same_as_reference_U8) { block_mean_same_as_reference<U8>(rng); }
+TEST_F(ThresholdBlockMeanTest, same_as_reference_F32) { block_mean_same_as_reference<F32>(rng); }
+TEST_F(ThresholdBlockOtsuTest, same_as_reference_U8) { block_otsu_same_as_reference<U8>(rng); }
+TEST_F(ThresholdBlockOtsuTest, same_as_reference_F32) { block_otsu_same_as_reference<F32>(rng); }
+TEST_F(ThresholdBlockMinMaxTest, same_as_reference_U8) { block_min_max_same_as_reference<U8>(rng); }
+TEST_F(ThresholdBlockMinMaxTest, same_as_reference_F32) { block_min_max_same_as_reference<F32>(rng); }
 
 TEST_F(ThresholdBlockMeanTest, nan_same_as_reference) {
-    Gray<F32> input = nan_image();
+    Gray<F32> input = nan_image(rng);
     for (bool local : {true, false}) {
         ThresholdBlockMean<F32> alg(ConfigLength::fixed(10), local, 1.0, true);
         check_same<F32>(reference::mean(input, ConfigLength::fixed(10), local, 1.0, true), alg, input);
@@ -199,7 +207,7 @@ TEST_F(ThresholdBlockMeanTest, nan_same_as_reference) {
 }
 
 TEST_F(ThresholdBlockMinMaxTest, nan_same_as_reference) {
-    Gray<F32> input = nan_image();
+    Gray<F32> input = nan_image(rng);
     for (bool local : {true, false}) {
         for (bool down : {true, false}) {
             ThresholdBlockMinMax<F32> alg(1.0f, ConfigLength::fixed(7), local, 1.0f, down);
@@ -210,9 +218,8 @@ TEST_F(ThresholdBlockMinMaxTest, nan_same_as_reference) {
 
 /// A signed image whose scaled averages are below the lowest S16 value, and textureless blocks
 TEST_F(ThresholdBlockMinMaxTest, average_outside_signed_range) {
-    std::mt19937 gen(0xBEEF);
     Gray<S16> input(64, 48);
-    ImageMiscOps::fill_uniform(input, (S16)-32768, (S16)-32000, gen);
+    ImageMiscOps::fill_uniform(input, (S16)-32768, (S16)-32000, rng);
     for (uint32_t y = 0; y < 16; y++)
         for (uint32_t x = 0; x < 16; x++)
             input.at(x, y) = 100;

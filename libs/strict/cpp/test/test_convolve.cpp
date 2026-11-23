@@ -20,37 +20,36 @@ public:
     Kernel1D<signed_type> kernel;
     Kernel2D<signed_type> kernel2;
 
-    std::mt19937 gen;
+    std::mt19937& rng;
 
     uint32_t borderX0,borderX1;
     uint32_t borderY0,borderY1;
 
-    CompareToNaive() : gen(0xBEEF) {
-
-    }
+    explicit CompareToNaive( std::mt19937& rng ) : rng(rng) {}
 
     void setImageSize( uint32_t width , uint32_t height ) {
 
         input.reshape(width,height);
-        ImageMiscOps::fill_uniform(input, (E)0, (E)50,gen);
+        ImageMiscOps::fill_uniform(input, (E)0, (E)50,rng);
         found.reshape(width,height);
         expected.reshape(width,height);
     }
 
+    /// Without negative weights, they're at least 1, so that the normalized border code never divides by zero
     void setKernel( uint32_t width , uint32_t offset , bool has_negative=false) {
         kernel.reshape(width,offset);
         if( has_negative )
-            KernelOps::fill_uniform(kernel,(signed_type)-10,(signed_type)10,gen);
+            KernelOps::fill_uniform(kernel,(signed_type)-10,(signed_type)10,rng);
         else
-            KernelOps::fill_uniform(kernel,(signed_type)0,(signed_type)10,gen);
+            KernelOps::fill_uniform(kernel,(signed_type)1,(signed_type)10,rng);
     }
 
     void setKernel2( uint32_t width , uint32_t offset , bool has_negative=false) {
         kernel2.reshape(width,offset);
         if( has_negative )
-            KernelOps::fill_uniform(kernel2,(signed_type)-10,(signed_type)10,gen);
+            KernelOps::fill_uniform(kernel2,(signed_type)-10,(signed_type)10,rng);
         else
-            KernelOps::fill_uniform(kernel2,(signed_type)0,(signed_type)10,gen);
+            KernelOps::fill_uniform(kernel2,(signed_type)1,(signed_type)10,rng);
     }
 
     void horizontal_norm_border() {
@@ -244,7 +243,7 @@ public:
 class ConvolveNormalized_JustBorderTest : public boofcv::BoofCPPTest {};
 
 TEST_F(ConvolveNormalized_JustBorderTest, horizontal_U8) {
-    CompareToNaive<U8> compare;
+    CompareToNaive<U8> compare(rng);
 
     for( uint32_t i = 0; i < 2; i++ ) {
         uint32_t w = 15+i;
@@ -265,7 +264,7 @@ TEST_F(ConvolveNormalized_JustBorderTest, horizontal_U8) {
 }
 
 TEST_F(ConvolveNormalized_JustBorderTest, horizontal_F32) {
-    CompareToNaive<F32> compare;
+    CompareToNaive<F32> compare(rng);
 
     for( uint32_t i = 0; i < 2; i++ ) {
         uint32_t w = 15+i;
@@ -286,7 +285,7 @@ TEST_F(ConvolveNormalized_JustBorderTest, horizontal_F32) {
 }
 
 TEST_F(ConvolveNormalized_JustBorderTest, vertical_U8) {
-    CompareToNaive<U8> compare;
+    CompareToNaive<U8> compare(rng);
 
     for( uint32_t i = 0; i < 2; i++ ) {
         uint32_t w = 15+i;
@@ -307,7 +306,7 @@ TEST_F(ConvolveNormalized_JustBorderTest, vertical_U8) {
 }
 
 TEST_F(ConvolveNormalized_JustBorderTest, vertical_F32) {
-    CompareToNaive<F32> compare;
+    CompareToNaive<F32> compare(rng);
 
     for( uint32_t i = 0; i < 2; i++ ) {
         uint32_t w = 15+i;
@@ -329,8 +328,8 @@ TEST_F(ConvolveNormalized_JustBorderTest, vertical_F32) {
 
 /// Rows longer than the number of pixels the border code sums at once, and kernels that aren't centered
 template<class E>
-void check_just_border_wide() {
-    CompareToNaive<E> compare;
+void check_just_border_wide( std::mt19937& rng ) {
+    CompareToNaive<E> compare(rng);
     for (uint32_t w : {255u, 256u, 257u, 600u}) {
         compare.setImageSize(w, 9);
         for (auto [width, offset] : {std::pair{5u, 2u}, {7u, 1u}, {4u, 3u}, {7u, 6u}}) {
@@ -347,14 +346,14 @@ void check_just_border_wide() {
     }
 }
 
-TEST_F(ConvolveNormalized_JustBorderTest, wide_U8) { check_just_border_wide<U8>(); }
+TEST_F(ConvolveNormalized_JustBorderTest, wide_U8) { check_just_border_wide<U8>(rng); }
 
-TEST_F(ConvolveNormalized_JustBorderTest, wide_F32) { check_just_border_wide<F32>(); }
+TEST_F(ConvolveNormalized_JustBorderTest, wide_F32) { check_just_border_wide<F32>(rng); }
 
 class ConvolveImage_InnerTest : public boofcv::BoofCPPTest {};
 
 TEST_F(ConvolveImage_InnerTest, horizontal_div_U8) {
-    CompareToNaive<U8> compare;
+    CompareToNaive<U8> compare(rng);
 
     for( uint32_t i = 0; i < 2; i++ ) {
         uint32_t w = 15+i;
@@ -375,7 +374,7 @@ TEST_F(ConvolveImage_InnerTest, horizontal_div_U8) {
 }
 
 TEST_F(ConvolveImage_InnerTest, horizontal_div_F32) {
-    CompareToNaive<F32> compare;
+    CompareToNaive<F32> compare(rng);
 
     for( uint32_t i = 0; i < 2; i++ ) {
         uint32_t w = 15+i;
@@ -396,7 +395,7 @@ TEST_F(ConvolveImage_InnerTest, horizontal_div_F32) {
 }
 
 TEST_F(ConvolveImage_InnerTest, vertical_div_U8) {
-    CompareToNaive<U8> compare;
+    CompareToNaive<U8> compare(rng);
 
     for( uint32_t i = 0; i < 2; i++ ) {
         uint32_t w = 15+i;
@@ -417,7 +416,7 @@ TEST_F(ConvolveImage_InnerTest, vertical_div_U8) {
 }
 
 TEST_F(ConvolveImage_InnerTest, vertical_div_F32) {
-    CompareToNaive<F32> compare;
+    CompareToNaive<F32> compare(rng);
 
     for( uint32_t i = 0; i < 2; i++ ) {
         uint32_t w = 15+i;
@@ -438,7 +437,7 @@ TEST_F(ConvolveImage_InnerTest, vertical_div_F32) {
 }
 
 TEST_F(ConvolveImage_InnerTest, horizontal_U8) {
-    CompareToNaive<U8> compare;
+    CompareToNaive<U8> compare(rng);
 
     for( uint32_t i = 0; i < 2; i++ ) {
         uint32_t w = 15+i;
@@ -459,7 +458,7 @@ TEST_F(ConvolveImage_InnerTest, horizontal_U8) {
 }
 
 TEST_F(ConvolveImage_InnerTest, horizontal_F32) {
-    CompareToNaive<F32> compare;
+    CompareToNaive<F32> compare(rng);
 
     for( uint32_t i = 0; i < 2; i++ ) {
         uint32_t w = 15+i;
@@ -480,7 +479,7 @@ TEST_F(ConvolveImage_InnerTest, horizontal_F32) {
 }
 
 TEST_F(ConvolveImage_InnerTest, vertical_U8) {
-    CompareToNaive<U8> compare;
+    CompareToNaive<U8> compare(rng);
 
     for( uint32_t i = 0; i < 2; i++ ) {
         uint32_t w = 15+i;
@@ -501,7 +500,7 @@ TEST_F(ConvolveImage_InnerTest, vertical_U8) {
 }
 
 TEST_F(ConvolveImage_InnerTest, vertical_F32) {
-    CompareToNaive<F32> compare;
+    CompareToNaive<F32> compare(rng);
 
     for( uint32_t i = 0; i < 2; i++ ) {
         uint32_t w = 15+i;
@@ -524,16 +523,16 @@ TEST_F(ConvolveImage_InnerTest, vertical_F32) {
 /// vertical_rows_registers is bit identical to vertical_rows: kernels that aren't centered, an input sub-image, and
 /// image widths below, at and above vertical_rows' block of 256 columns
 template<int W, class E>
-void check_vertical_registers( std::mt19937& gen ) {
+void check_vertical_registers( std::mt19937& rng ) {
     typedef typename TypeInfo<E>::signed_type K;
     auto result = []( K total ) { return (E)(total/(K)7); };
     for( uint32_t width : {1u, 17u, 256u, 300u} ) {
         Gray<E> parent(width+5, 3*W);
-        ImageMiscOps::fill_uniform(parent, (E)0, (E)50, gen);
+        ImageMiscOps::fill_uniform(parent, (E)0, (E)50, rng);
         Gray<E> input = parent.makeSubimage(2, 1, 2+width, parent.height-1);
         for( uint32_t offset : {(uint32_t)W/2, 0u, (uint32_t)W-1} ) {
             Kernel1D<K> kernel(W, offset);
-            KernelOps::fill_uniform(kernel, (K)-10, (K)10, gen);
+            KernelOps::fill_uniform(kernel, (K)-10, (K)10, rng);
             Gray<E> expected(width, input.height), found(width, input.height);
             ImageMiscOps::fill(expected, (E)1);
             ImageMiscOps::fill(found, (E)1);
@@ -547,28 +546,26 @@ void check_vertical_registers( std::mt19937& gen ) {
 }
 
 template<class E>
-void check_vertical_registers() {
-    std::mt19937 gen(0xBEEF);
-    check_vertical_registers<3,E>(gen);
-    check_vertical_registers<5,E>(gen);
-    check_vertical_registers<7,E>(gen);
-    check_vertical_registers<9,E>(gen);
+void check_vertical_registers( std::mt19937& rng ) {
+    check_vertical_registers<3,E>(rng);
+    check_vertical_registers<5,E>(rng);
+    check_vertical_registers<7,E>(rng);
+    check_vertical_registers<9,E>(rng);
 }
 
 /// vertical_unrolled on both sides of the switch between vertical_rows_registers (floats, widths 3 to 9) and
 /// vertical_rows (wider), with and without a divisor, against the naive convolution
 template<class E>
-void check_vertical_unrolled_widths() {
+void check_vertical_unrolled_widths( std::mt19937& rng ) {
     typedef typename TypeInfo<E>::signed_type K;
-    std::mt19937 gen(0xBEEF);
     Gray<E> input(37, 40);
-    ImageMiscOps::fill_uniform(input, (E)0, (E)50, gen);
+    ImageMiscOps::fill_uniform(input, (E)0, (E)50, rng);
     ImageBorderValue<E> border(0);
     border.setImage(input);
     for( uint32_t width : {3u, 5u, 7u, 9u, 11u, 13u, 15u} ) {
         for( uint32_t offset : {width/2, 0u, width-1} ) {
             Kernel1D<K> kernel(width, offset);
-            KernelOps::fill_uniform(kernel, (K)-10, (K)10, gen);
+            KernelOps::fill_uniform(kernel, (K)-10, (K)10, rng);
             Gray<E> expected(input.width, input.height), found(input.width, input.height);
             ConvolveNaive::vertical(kernel, border, expected);
             ConvolveImage_Inner::vertical_unrolled(kernel, input, found);
@@ -580,16 +577,16 @@ void check_vertical_unrolled_widths() {
     }
 }
 
-TEST_F(ConvolveImage_InnerTest, vertical_unrolled_F32) { check_vertical_unrolled_widths<F32>(); }
+TEST_F(ConvolveImage_InnerTest, vertical_unrolled_F32) { check_vertical_unrolled_widths<F32>(rng); }
 
-TEST_F(ConvolveImage_InnerTest, vertical_unrolled_F64) { check_vertical_unrolled_widths<F64>(); }
+TEST_F(ConvolveImage_InnerTest, vertical_unrolled_F64) { check_vertical_unrolled_widths<F64>(rng); }
 
-TEST_F(ConvolveImage_InnerTest, vertical_registers_F32) { check_vertical_registers<F32>(); }
+TEST_F(ConvolveImage_InnerTest, vertical_registers_F32) { check_vertical_registers<F32>(rng); }
 
-TEST_F(ConvolveImage_InnerTest, vertical_registers_F64) { check_vertical_registers<F64>(); }
+TEST_F(ConvolveImage_InnerTest, vertical_registers_F64) { check_vertical_registers<F64>(rng); }
 
 TEST_F(ConvolveImage_InnerTest, convolve_U8) {
-    CompareToNaive<U8> compare;
+    CompareToNaive<U8> compare(rng);
 
     for( uint32_t i = 0; i < 2; i++ ) {
         uint32_t w = 15+i;
@@ -612,16 +609,15 @@ TEST_F(ConvolveImage_InnerTest, convolve_U8) {
 /// Integer images with a wider output type, for every kernel width with unrolled code and a kernel that isn't centered.
 /// Pixels and weights are small enough that no sum overflows S16, 13*13*50*3 = 25350 at most
 TEST_F(ConvolveImage_InnerTest, convolve_U8_S16) {
-    std::mt19937 gen(0xBEEF);
     Gray<U8> input(30,25);
-    ImageMiscOps::fill_uniform(input, (U8)0, (U8)50, gen);
+    ImageMiscOps::fill_uniform(input, (U8)0, (U8)50, rng);
     ImageBorderValue<U8> border(0);
     border.setImage(input);
 
     for( uint32_t width : {3u, 5u, 7u, 9u, 11u, 13u} ) {
         for( uint32_t offset : {width/2, 0u} ) {
             Kernel2D<S32> kernel(width,offset);
-            KernelOps::fill_uniform(kernel,(S32)-3,(S32)3,gen);
+            KernelOps::fill_uniform(kernel,(S32)-3,(S32)3,rng);
             Gray<S16> expected(input.width,input.height), found(input.width,input.height);
             ConvolveNaive::convolve(kernel,border,expected);
             ConvolveImage_Inner::convolve(kernel,input,found);
@@ -631,7 +627,7 @@ TEST_F(ConvolveImage_InnerTest, convolve_U8_S16) {
 }
 
 TEST_F(ConvolveImage_InnerTest, convolve_F32) {
-    CompareToNaive<F32> compare;
+    CompareToNaive<F32> compare(rng);
 
     for( uint32_t i = 0; i < 2; i++ ) {
         uint32_t w = 15+i;
@@ -652,7 +648,7 @@ TEST_F(ConvolveImage_InnerTest, convolve_F32) {
 }
 
 TEST_F(ConvolveImage_InnerTest, convolve_div_U8) {
-    CompareToNaive<U8> compare;
+    CompareToNaive<U8> compare(rng);
 
     for( uint32_t i = 0; i < 2; i++ ) {
         uint32_t w = 15+i;
@@ -673,7 +669,7 @@ TEST_F(ConvolveImage_InnerTest, convolve_div_U8) {
 }
 
 TEST_F(ConvolveImage_InnerTest, convolve_div_F32) {
-    CompareToNaive<F32> compare;
+    CompareToNaive<F32> compare(rng);
 
     for( uint32_t i = 0; i < 2; i++ ) {
         uint32_t w = 15+i;
@@ -696,7 +692,7 @@ TEST_F(ConvolveImage_InnerTest, convolve_div_F32) {
 class ConvolveImage_BorderTest : public boofcv::BoofCPPTest {};
 
 TEST_F(ConvolveImage_BorderTest, horizontal_U8) {
-    CompareToNaive<U8> compare;
+    CompareToNaive<U8> compare(rng);
 
     for( uint32_t i = 0; i < 2; i++ ) {
         uint32_t w = 15+i;
@@ -717,7 +713,7 @@ TEST_F(ConvolveImage_BorderTest, horizontal_U8) {
 }
 
 TEST_F(ConvolveImage_BorderTest, vertical_U8) {
-    CompareToNaive<U8> compare;
+    CompareToNaive<U8> compare(rng);
 
     for( uint32_t i = 0; i < 2; i++ ) {
         uint32_t w = 15+i;
@@ -738,7 +734,7 @@ TEST_F(ConvolveImage_BorderTest, vertical_U8) {
 }
 
 TEST_F(ConvolveImage_BorderTest, convolve2D_U8) {
-    CompareToNaive<U8> compare;
+    CompareToNaive<U8> compare(rng);
 
     for( uint32_t i = 0; i < 2; i++ ) {
         uint32_t w = 15+i;
@@ -761,18 +757,18 @@ TEST_F(ConvolveImage_BorderTest, convolve2D_U8) {
 
 class ConvolveNormalizedTest : public boofcv::BoofCPPTest {};
 
-TEST_F(ConvolveNormalizedTest, U8) { convolve_normalized_checks::check_all<U8>(); }
-TEST_F(ConvolveNormalizedTest, U16) { convolve_normalized_checks::check_all<U16>(); }
-TEST_F(ConvolveNormalizedTest, F32) { convolve_normalized_checks::check_all<F32>(); }
-TEST_F(ConvolveNormalizedTest, F64) { convolve_normalized_checks::check_all<F64>(); }
+TEST_F(ConvolveNormalizedTest, U8) { convolve_normalized_checks::check_all<U8>(rng); }
+TEST_F(ConvolveNormalizedTest, U16) { convolve_normalized_checks::check_all<U16>(rng); }
+TEST_F(ConvolveNormalizedTest, F32) { convolve_normalized_checks::check_all<F32>(rng); }
+TEST_F(ConvolveNormalizedTest, F64) { convolve_normalized_checks::check_all<F64>(rng); }
 
 class ConvolveImageTest : public boofcv::BoofCPPTest {};
 
-TEST_F(ConvolveImageTest, U8) { convolve_checks::check_all<U8>(); }
-TEST_F(ConvolveImageTest, U8_S16) { convolve_checks::check_all<U8, S16>(); }
-TEST_F(ConvolveImageTest, U8_S32) { convolve_checks::check_all<U8, S32>(); }
-TEST_F(ConvolveImageTest, F32) { convolve_checks::check_all<F32>(); }
-TEST_F(ConvolveImageTest, F64) { convolve_checks::check_all<F64>(); }
+TEST_F(ConvolveImageTest, U8) { convolve_checks::check_all<U8>(rng); }
+TEST_F(ConvolveImageTest, U8_S16) { convolve_checks::check_all<U8, S16>(rng); }
+TEST_F(ConvolveImageTest, U8_S32) { convolve_checks::check_all<U8, S32>(rng); }
+TEST_F(ConvolveImageTest, F32) { convolve_checks::check_all<F32>(rng); }
+TEST_F(ConvolveImageTest, F64) { convolve_checks::check_all<F64>(rng); }
 
 /**
  * Kernel is only normalized when its sum isn't within 1e-4 of one, same as BoofCV

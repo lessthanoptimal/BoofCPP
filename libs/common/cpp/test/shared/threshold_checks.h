@@ -49,10 +49,9 @@ namespace threshold_checks {
 
     /// Thresholding down and up give inverse images when no block is textureless
     template<class E>
-    void block_toggle_down( const BlockFactory<E>& factory ) {
-        std::mt19937 gen(0xBEEF);
+    void block_toggle_down( std::mt19937& rng, const BlockFactory<E>& factory ) {
         Gray<E> input(100, 120);
-        ImageMiscOps::fill_uniform(input, (E)0, (E)255, gen);
+        ImageMiscOps::fill_uniform(input, (E)0, (E)255, rng);
 
         Gray<U8> down(input.width, input.height);
         Gray<U8> up(input.width, input.height);
@@ -76,10 +75,9 @@ namespace threshold_checks {
 
     /// A sub-image gives the same result as the whole image
     template<class E>
-    void block_subimage( const BlockFactory<E>& factory ) {
-        std::mt19937 gen(0xBEEF);
+    void block_subimage( std::mt19937& rng, const BlockFactory<E>& factory ) {
         Gray<E> input(100, 120);
-        ImageMiscOps::fill_uniform(input, (E)0, (E)255, gen);
+        ImageMiscOps::fill_uniform(input, (E)0, (E)255, rng);
         Gray<U8> expected(input.width, input.height);
 
         Gray<E> sub_input = create_subimage(input);
@@ -96,10 +94,10 @@ namespace threshold_checks {
     }
 
     template<class E>
-    void block_all( const BlockFactory<E>& factory ) {
-        block_toggle_down(factory);
+    void block_all( std::mt19937& rng, const BlockFactory<E>& factory ) {
+        block_toggle_down(rng, factory);
         block_width_larger_than_image(factory);
-        block_subimage(factory);
+        block_subimage(rng, factory);
     }
 
     /// Scale adjusts the Otsu threshold the same way as BoofCV's GlobalBinaryFilter
@@ -189,15 +187,14 @@ namespace threshold_checks {
 
     /// Compares with naive_local_mean() on random, flat and smooth images, where many pixels equal their mean, with
     /// regions from 2 pixels to wider than the image, a region relative to the image size, and sub-images
-    inline void local_mean_naive() {
-        std::mt19937 gen(0xBEEF);
+    inline void local_mean_naive( std::mt19937& rng ) {
         const ConfigLength regions[] = {ConfigLength::fixed(2), ConfigLength::fixed(3), ConfigLength::fixed(8),
                                         ConfigLength::fixed(41), ConfigLength::fixed(1000),
                                         ConfigLength::relative(0.2, 3)};
         for (auto shape : {std::pair<uint32_t, uint32_t>{2, 2}, {5, 3}, {37, 29}, {64, 64}, {161, 47}}) {
             for (int content = 0; content < 3; content++) {
                 Gray<U8> input(shape.first, shape.second);
-                ImageMiscOps::fill_uniform(input, (U8)0, (U8)255, gen);
+                ImageMiscOps::fill_uniform(input, (U8)0, (U8)255, rng);
                 if (content == 1) {
                     ImageMiscOps::fill(input, (U8)128);
                 } else if (content == 2) {
