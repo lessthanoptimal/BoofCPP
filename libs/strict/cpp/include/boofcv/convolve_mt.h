@@ -121,6 +121,91 @@ namespace boofcv {
                 rows(std::max(y0, height - after), y1);
         }
     };
+
+    /// ConvolveNormalized with the output split into blocks of rows, which threads take until none are left:
+    ///
+    ///     for each block of output rows, concurrently:
+    ///         ConvolveNormalized's inner code on the sub-image of the block's inner rows and the rows they read
+    ///         ConvolveNormalized_JustBorder on the block's border pixels
+    ///
+    /// Each output pixel is computed by the same code as ConvolveNormalized, so the results are identical for any
+    /// number of threads
+    class ConvolveNormalized_MT {
+    public:
+        template<class E>
+        static void horizontal( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel, const Gray<E>& input,
+                                Gray<E>& output ) {
+            typedef typename TypeInfo<E>::signed_type K;
+            checkSameShape(input, output);
+
+            auto single = [&] { ConvolveNormalized::horizontal(kernel, input, output); };
+            // The concurrent code can't handle a kernel as wide as the image
+            if( kernel.width >= input.width ) {
+                single();
+                return;
+            }
+            Kernel1D<K> storage;
+            const Kernel1D<K>& k = ConvolveNormalized::normalized_kernel(kernel, storage);
+            auto loop = BoofConcurrency::loop_blocks(0, output.height)
+                    .element_cost(ConvolveImage_MT::row_cost(output, kernel.width));
+            loop.single(single).run([&]( uint32_t y0, uint32_t y1 ) {
+                const Gray<E> in = input.makeSubimage(0, y0, input.width, y1);
+                Gray<E> out = output.makeSubimage(0, y0, output.width, y1);
+                ConvolveNormalized::inner_horizontal(k, in, out);
+                ConvolveNormalized_JustBorder::horizontal(k, in, out);
+            });
+        }
+
+        template<class E>
+        static void vertical( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel, const Gray<E>& input,
+                              Gray<E>& output ) {
+            typedef typename TypeInfo<E>::signed_type K;
+            checkSameShape(input, output);
+
+            auto single = [&] { ConvolveNormalized::vertical(kernel, input, output); };
+            // The concurrent code can't handle a kernel as tall as the image
+            if( kernel.width >= input.height ) {
+                single();
+                return;
+            }
+            Kernel1D<K> storage;
+            const Kernel1D<K>& k = ConvolveNormalized::normalized_kernel(kernel, storage);
+            const uint32_t before = kernel.offset, after = kernel.width - kernel.offset - 1;
+            auto loop = BoofConcurrency::loop_blocks(0, output.height)
+                    .element_cost(ConvolveImage_MT::row_cost(output, kernel.width));
+            loop.single(single).run([&]( uint32_t y0, uint32_t y1 ) {
+                ConvolveImage_MT::inner_block(input, output, before, after, y0, y1,
+                                              [&k]( const Gray<E>& in, Gray<E>& out ) {
+                    ConvolveNormalized::inner_vertical(k, in, out); });
+                ConvolveNormalized_JustBorder::vertical(k, input, output, y0, y1);
+            });
+        }
+
+        template<class E>
+        static void convolve( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel, const Gray<E>& input,
+                              Gray<E>& output ) {
+            typedef typename TypeInfo<E>::signed_type K;
+            checkSameShape(input, output);
+
+            auto single = [&] { ConvolveNormalized::convolve(kernel, input, output); };
+            // The concurrent code can't handle a kernel as wide or tall as the image
+            if( kernel.width >= input.width || kernel.width >= input.height ) {
+                single();
+                return;
+            }
+            Kernel2D<K> storage;
+            const Kernel2D<K>& k = ConvolveNormalized::normalized_kernel(kernel, storage);
+            const uint32_t before = kernel.offset, after = kernel.width - kernel.offset - 1;
+            auto loop = BoofConcurrency::loop_blocks(0, output.height)
+                    .element_cost(ConvolveImage_MT::row_cost(output, kernel.width*kernel.width));
+            loop.single(single).run([&]( uint32_t y0, uint32_t y1 ) {
+                ConvolveImage_MT::inner_block(input, output, before, after, y0, y1,
+                                              [&k]( const Gray<E>& in, Gray<E>& out ) {
+                    ConvolveNormalized::inner_convolve(k, in, out); });
+                ConvolveNormalized_JustBorder::convolve(k, input, output, y0, y1);
+            });
+        }
+    };
 }
 
 #endif

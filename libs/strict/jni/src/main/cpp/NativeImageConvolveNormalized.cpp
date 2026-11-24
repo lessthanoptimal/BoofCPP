@@ -1,5 +1,6 @@
 #include <jni.h>
 #include "boofcv/convolve.h"
+#include "boofcv/convolve_mt.h"
 #include "JNIBoofCPP.h"
 #include "KernelJNI.h"
 
@@ -40,16 +41,25 @@ namespace {
         }
     }
 
+    /// ConvolveNormalized_MT with more than one thread, otherwise ConvolveNormalized
+    template<class K, class E>
+    void convolve( const Kernel2D<K>& kernel, const Gray<E>& input, Gray<E>& output ) {
+        if (BoofConcurrency::max_threads() > 1)
+            ConvolveNormalized_MT::convolve(kernel, input, output);
+        else
+            ConvolveNormalized::convolve(kernel, input, output);
+    }
+
     void convolve_2d( JNIEnv* env, jobject obj, jobject jkernel, jobject jinput, jobject joutput ) {
         if (is_integer(env, obj)) {
             std::unique_ptr<Kernel2D<S32>> kernel(extractKernel2D_S32(env, jkernel));
             with_critical_images<U8>(env, jinput, joutput, [&]( Gray<U8>& in, Gray<U8>& out ) {
-                ConvolveNormalized::convolve(*kernel, in, out);
+                convolve(*kernel, in, out);
             });
         } else {
             std::unique_ptr<Kernel2D<F32>> kernel(extractKernel2D_F32(env, jkernel));
             with_critical_images<F32>(env, jinput, joutput, [&]( Gray<F32>& in, Gray<F32>& out ) {
-                ConvolveNormalized::convolve(*kernel, in, out);
+                convolve(*kernel, in, out);
             });
         }
     }
@@ -61,7 +71,10 @@ JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeImageConvolveNormalized_n
         JNIEnv* env, jobject obj, jobject jkernel, jobject jinput, jobject joutput ) {
     jni_call(env, [&] {
         convolve_1d(env, obj, jkernel, jinput, joutput, []( const auto& kernel, const auto& in, auto& out ) {
-            ConvolveNormalized::horizontal(kernel, in, out);
+            if (BoofConcurrency::max_threads() > 1)
+                ConvolveNormalized_MT::horizontal(kernel, in, out);
+            else
+                ConvolveNormalized::horizontal(kernel, in, out);
         });
     });
 }
@@ -70,7 +83,10 @@ JNIEXPORT void JNICALL Java_org_boofcpp_convolve_NativeImageConvolveNormalized_n
         JNIEnv* env, jobject obj, jobject jkernel, jobject jinput, jobject joutput ) {
     jni_call(env, [&] {
         convolve_1d(env, obj, jkernel, jinput, joutput, []( const auto& kernel, const auto& in, auto& out ) {
-            ConvolveNormalized::vertical(kernel, in, out);
+            if (BoofConcurrency::max_threads() > 1)
+                ConvolveNormalized_MT::vertical(kernel, in, out);
+            else
+                ConvolveNormalized::vertical(kernel, in, out);
         });
     });
 }
