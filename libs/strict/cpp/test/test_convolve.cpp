@@ -379,6 +379,19 @@ TEST_F(ConvolveNormalized_JustBorderTest, vertical_range_U8) {
     });
 }
 
+/// convolve() with a row range writes the border pixels in it, and nothing else
+TEST_F(ConvolveNormalized_JustBorderTest, convolve_range_U8) {
+    Gray<U8> input(13, 20), expected(13, 20);
+    ImageMiscOps::fill_uniform(input, (U8)0, (U8)200, rng);
+    Kernel2D<S32> kernel(7, 2);
+    KernelOps::fill_uniform(kernel, 1, 10, rng);
+    ImageMiscOps::fill(expected, (U8)251);
+    ConvolveNormalized_JustBorder::convolve(kernel, input, expected);
+    check_row_ranges(expected, [&]( Gray<U8>& found, uint32_t y0, uint32_t y1 ) {
+        ConvolveNormalized_JustBorder::convolve(kernel, input, found, y0, y1);
+    });
+}
+
 TEST_F(ConvolveNormalized_JustBorderTest, wide_U8) { check_just_border_wide<U8>(rng); }
 
 TEST_F(ConvolveNormalized_JustBorderTest, wide_F32) { check_just_border_wide<F32>(rng); }

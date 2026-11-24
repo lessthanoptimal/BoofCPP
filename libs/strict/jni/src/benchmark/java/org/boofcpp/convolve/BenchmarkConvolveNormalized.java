@@ -1,6 +1,7 @@
 package org.boofcpp.convolve;
 
 import boofcv.alg.filter.convolve.GConvolveImageOps;
+import boofcv.concurrency.BoofConcurrency;
 import boofcv.factory.filter.kernel.FactoryKernelGaussian;
 import boofcv.io.image.ConvertBufferedImage;
 import boofcv.struct.convolve.Kernel1D_S32;
@@ -10,6 +11,7 @@ import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayU8;
 import org.boofcpp.testing.BenchmarkUtils;
 import org.boofcpp.BoofCPP;
+import org.boofcpp.NativeConcurrency;
 import org.openjdk.jmh.annotations.*;
 
 import java.awt.image.BufferedImage;
@@ -39,13 +41,19 @@ public class BenchmarkConvolveNormalized {
 
     NativeImageConvolveNormalized nativeOps = new NativeImageConvolveNormalized();
 
+    /// Threads of native and of BoofCV's Java code. 1 is single threaded, which is the speed target against Java
+    @Param({"1", "4"})
+    public int threads;
+
     static {
         BoofCPP.loadlib();
-        // The speed target is against single-threaded Java
-        boofcv.concurrency.BoofConcurrency.USE_CONCURRENT = false;
     }
 
     @Setup public void setup() {
+        NativeConcurrency.setMaxThreads(threads);
+        BoofConcurrency.USE_CONCURRENT = threads > 1;
+        BoofConcurrency.setMaxThreads(threads);
+
         BufferedImage buffered = BenchmarkUtils.loadImage(BenchmarkUtils.TEST_IMAGE);
         input = ConvertBufferedImage.convertFrom(buffered, (GrayU8)null);
         output = input.createSameShape();

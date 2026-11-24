@@ -113,6 +113,13 @@ namespace boofcv {
         template<class E>
         static void convolve( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel,
                               const Gray<E>& input, Gray<E>& output ) {
+            convolve(kernel, input, output, 0, input.height);
+        }
+
+        /// The border pixels in rows y0 <= y < y1
+        template<class E>
+        static void convolve( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel,
+                              const Gray<E>& input, Gray<E>& output, uint32_t y0, uint32_t y1 ) {
             typedef typename TypeInfo<E>::signed_type K;
             const int32_t kw = kernel.width;
             const int32_t offsetL = kernel.offset;
@@ -156,7 +163,7 @@ namespace boofcv {
             // left and right borders, with the corners. Rows away from the top and bottom share the column's weight
             auto column = [&]( int32_t x, int32_t minJ, int32_t maxJ ) {
                 const K weight = window_weight(-offsetL, offsetR, minJ, maxJ);
-                for (int32_t y = 0; y < height; y++) {
+                for (int32_t y = (int32_t)y0; y < (int32_t)y1; y++) {
                     const int32_t minI = y >= offsetL ? -offsetL : -y;
                     const int32_t maxI = y < height - offsetR ? offsetR : height - y - 1;
                     const bool inner = minI == -offsetL && maxI == offsetR;
@@ -180,9 +187,9 @@ namespace boofcv {
                     }
                 });
             };
-            for (int32_t y = 0; y < offsetL; y++)
+            for (int32_t y = (int32_t)y0; y < std::min((int32_t)y1, offsetL); y++)
                 border_row(y, -y, offsetR);
-            for (int32_t y = height - offsetR; y < height; y++)
+            for (int32_t y = std::max((int32_t)y0, height - offsetR); y < (int32_t)y1; y++)
                 border_row(y, -offsetL, height - y - 1);
         }
 
@@ -877,79 +884,101 @@ namespace boofcv {
             }
         }
 
-        template<class E>
-        static void horizontal( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel, const Gray<E>& input, Gray<E>& output ,
-                                typename std::enable_if<std::is_integral<E>::value >::type* = 0)
-        {
-            boofcv::checkSameShape(input, output);
+        /// The kernel BoofCV's ConvolveImageNormalized uses, after check_sum(): for floats a copy in 'storage' that sums
+        /// to one, unless the kernel's sum is within 1e-4 of one. Otherwise the kernel itself
+        template<class K>
+        static const Kernel1D<K>& normalized_kernel( const Kernel1D<K>& kernel, Kernel1D<K>& storage ) {
+            check_sum(kernel);
+            if constexpr (std::is_floating_point<K>::value) {
+                if (needs_normalization(kernel)) {
+                    storage = Kernel1D<K>(kernel.width, kernel.offset);
+                    normalize_sum_to_one(kernel, storage);
+                    return storage;
+                }
+            }
+            return kernel;
+        }
 
-            if( kernel.width >= input.width ) {
-                ConvolveNormalizedNaive::horizontal(kernel, input, output);
-            } else {
-                check_sum(kernel);
+        /// normalized_kernel() for 2D kernels
+        template<class K>
+        static const Kernel2D<K>& normalized_kernel( const Kernel2D<K>& kernel, Kernel2D<K>& storage ) {
+            check_sum(kernel);
+            if constexpr (std::is_floating_point<K>::value) {
+                K sum = 0;
+                for (uint32_t i = 0; i < kernel.data.size; i++)
+                    sum += kernel.data[i];
+                if (std::abs(sum - (K)1) > (K)1e-4f) {
+                    storage = Kernel2D<K>(kernel.width, kernel.offset);
+                    for (uint32_t i = 0; i < kernel.data.size; i++)
+                        storage.data[i] = kernel.data[i]/sum;
+                    return storage;
+                }
+            }
+            return kernel;
+        }
+
+        /// The inner image, with a kernel from normalized_kernel(). Integers divide by the kernel's sum
+        template<class E>
+        static void inner_horizontal( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel, const Gray<E>& input,
+                                      Gray<E>& output ) {
+            if constexpr (std::is_integral<E>::value)
                 ConvolveImage_Inner::horizontal_switch(kernel, input, output, kernel.sum());
-                ConvolveNormalized_JustBorder::horizontal(kernel, input, output);
-            }
+            else
+                ConvolveImage_Inner::horizontal_switch(kernel, input, output);
         }
 
+        /// See inner_horizontal()
         template<class E>
-        static void horizontal( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel, const Gray<E>& input, Gray<E>& output ,
-                                typename std::enable_if<std::is_floating_point<E>::value >::type* = 0)
-        {
-            typedef typename TypeInfo<E>::signed_type signed_type;
+        static void inner_vertical( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel, const Gray<E>& input,
+                                    Gray<E>& output ) {
+            if constexpr (std::is_integral<E>::value)
+                ConvolveImage_Inner::vertical_switch(kernel, input, output, kernel.sum());
+            else
+                ConvolveImage_Inner::vertical_switch(kernel, input, output);
+        }
+
+        /// See inner_horizontal()
+        template<class E>
+        static void inner_convolve( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel, const Gray<E>& input,
+                                    Gray<E>& output ) {
+            if constexpr (std::is_integral<E>::value)
+                ConvolveImage_Inner::convolve(kernel, input, output, kernel.sum());
+            else
+                ConvolveImage_Inner::convolve_switch(kernel, input, output);
+        }
+
+        /// Normalized convolution along x. Same as BoofCV's ConvolveImageNormalized.horizontal(): kernels as wide as
+        /// the image use the naive code, otherwise the inner image and the border are done separately
+        template<class E>
+        static void horizontal( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel, const Gray<E>& input,
+                                Gray<E>& output ) {
+            typedef typename TypeInfo<E>::signed_type K;
             boofcv::checkSameShape(input, output);
 
             if( kernel.width >= input.width ) {
                 ConvolveNormalizedNaive::horizontal(kernel, input, output);
             } else {
-                // Same as BoofCV ConvolveImageNormalized: kernel is only rescaled when its sum is not within 1e-4
-                // of one, then a regular convolution is applied to the inner image
-                if( needs_normalization(kernel) ) {
-                    Kernel1D<signed_type> k(kernel.width, kernel.offset);
-                    normalize_sum_to_one(kernel, k);
-                    ConvolveImage_Inner::horizontal_switch(k, input, output);
-                    ConvolveNormalized_JustBorder::horizontal(k, input, output);
-                } else {
-                    ConvolveImage_Inner::horizontal_switch(kernel, input, output);
-                    ConvolveNormalized_JustBorder::horizontal(kernel, input, output);
-                }
+                Kernel1D<K> storage;
+                const Kernel1D<K>& k = normalized_kernel(kernel, storage);
+                inner_horizontal(k, input, output);
+                ConvolveNormalized_JustBorder::horizontal(k, input, output);
             }
         }
 
+        /// Normalized convolution along y. See horizontal()
         template<class E>
-        static void vertical( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel, const Gray<E>& input, Gray<E>& output ,
-                                typename std::enable_if<std::is_integral<E>::value >::type* = 0)
-        {
+        static void vertical( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel, const Gray<E>& input,
+                              Gray<E>& output ) {
+            typedef typename TypeInfo<E>::signed_type K;
             boofcv::checkSameShape(input, output);
 
             if( kernel.width >= input.height ) {
                 ConvolveNormalizedNaive::vertical(kernel, input, output);
             } else {
-                check_sum(kernel);
-                ConvolveImage_Inner::vertical_switch(kernel, input, output, kernel.sum());
-                ConvolveNormalized_JustBorder::vertical(kernel, input, output);
-            }
-        }
-
-        template<class E>
-        static void vertical( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel, const Gray<E>& input, Gray<E>& output ,
-                                typename std::enable_if<std::is_floating_point<E>::value >::type* = 0)
-        {
-            typedef typename TypeInfo<E>::signed_type signed_type;
-            boofcv::checkSameShape(input, output);
-
-            if( kernel.width >= input.height ) {
-                ConvolveNormalizedNaive::vertical(kernel, input, output);
-            } else {
-                if( needs_normalization(kernel) ) {
-                    Kernel1D<signed_type> k(kernel.width, kernel.offset);
-                    normalize_sum_to_one(kernel, k);
-                    ConvolveImage_Inner::vertical_switch(k, input, output);
-                    ConvolveNormalized_JustBorder::vertical(k, input, output);
-                } else {
-                    ConvolveImage_Inner::vertical_switch(kernel, input, output);
-                    ConvolveNormalized_JustBorder::vertical(kernel, input, output);
-                }
+                Kernel1D<K> storage;
+                const Kernel1D<K>& k = normalized_kernel(kernel, storage);
+                inner_vertical(k, input, output);
+                ConvolveNormalized_JustBorder::vertical(k, input, output);
             }
         }
 
@@ -984,24 +1013,11 @@ namespace boofcv {
 
             if (kernel.width >= input.width || kernel.width >= input.height) {
                 ConvolveNormalizedNaive::convolve(kernel, input, output);
-            } else if constexpr (std::is_integral<E>::value) {
-                check_sum(kernel);
-                ConvolveImage_Inner::convolve(kernel, input, output, kernel.sum());
-                ConvolveNormalized_JustBorder::convolve(kernel, input, output);
             } else {
-                signed_type sum = 0;
-                for (uint32_t i = 0; i < kernel.data.size; i++)
-                    sum += kernel.data[i];
-                if (std::abs(sum - (signed_type)1) > (signed_type)1e-4f) {
-                    Kernel2D<signed_type> normalized(kernel.width, kernel.offset);
-                    for (uint32_t i = 0; i < kernel.data.size; i++)
-                        normalized.data[i] = kernel.data[i]/sum;
-                    ConvolveImage_Inner::convolve_switch(normalized, input, output);
-                    ConvolveNormalized_JustBorder::convolve(normalized, input, output);
-                } else {
-                    ConvolveImage_Inner::convolve_switch(kernel, input, output);
-                    ConvolveNormalized_JustBorder::convolve(kernel, input, output);
-                }
+                Kernel2D<signed_type> storage;
+                const Kernel2D<signed_type>& k = normalized_kernel(kernel, storage);
+                inner_convolve(k, input, output);
+                ConvolveNormalized_JustBorder::convolve(k, input, output);
             }
         }
     };
