@@ -82,6 +82,13 @@ namespace boofcv {
         template<class E>
         static void vertical( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel,
                               const Gray<E>& input, Gray<E>& output ) {
+            vertical(kernel, input, output, 0, input.height);
+        }
+
+        /// The top and bottom border rows y0 <= y < y1
+        template<class E>
+        static void vertical( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel,
+                              const Gray<E>& input, Gray<E>& output, uint32_t y0, uint32_t y1 ) {
             typedef typename TypeInfo<E>::signed_type K;
             const uint32_t offsetL = kernel.offset;
             const uint32_t offsetR = kernel.width - offsetL - 1;
@@ -96,9 +103,9 @@ namespace boofcv {
                         add(&input.data[input.offset + (y + k - offsetL)*input.stride], kernel.data[k]);
                 });
             };
-            for (uint32_t y = 0; y < offsetL; y++)
+            for (uint32_t y = y0; y < std::min(y1, offsetL); y++)
                 border_row(y, offsetL - y, kernel.width);
-            for (uint32_t y = input.height - offsetR; y < input.height; y++)
+            for (uint32_t y = std::max(y0, input.height - offsetR); y < y1; y++)
                 border_row(y, 0, input.height - (y - offsetL));
         }
 

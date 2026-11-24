@@ -3,6 +3,7 @@ package org.boofcpp.testing;
 import boofcv.concurrency.BoofConcurrency;
 import boofcv.core.image.GeneralizedImageOps;
 import boofcv.struct.image.*;
+import org.boofcpp.NativeConcurrency;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -10,6 +11,7 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /// Helpers shared by the tests of every variant
@@ -115,6 +117,35 @@ public class BoofCPPTesting {
             call.run();
             return null;
         });
+    }
+
+    /// The switch between a native call's single threaded and concurrent code. With one thread 'call' must run
+    /// single threaded code. With two it must run concurrent code if 'concurrent' is true and single threaded code if
+    /// it's false. Results aren't checked. Two threads work on a single core too, since the switch only looks at the
+    /// thread count. The settings are restored afterwards
+    public static void assertConcurrentToggle( boolean concurrent, Runnable call ) {
+        int threads = NativeConcurrency.getMaxThreads();
+        int blocks = NativeConcurrency.getTestingBlocks();
+        try {
+            // See if there was a new concurrent loop called. Single thread variant will do nothing
+            NativeConcurrency.setTestingBlocks(4);
+            NativeConcurrency.setMaxThreads(1);
+            long before = NativeConcurrency.getTestingLoops();
+            call.run();
+            assertEquals(0, NativeConcurrency.getTestingLoops() - before, "Concurrent code ran with one thread");
+
+            NativeConcurrency.setMaxThreads(2);
+            before = NativeConcurrency.getTestingLoops();
+            call.run();
+            long loops = NativeConcurrency.getTestingLoops() - before;
+            if (concurrent)
+                assertTrue(loops > 0, "Single threaded code ran with two threads");
+            else
+                assertEquals(0, loops, "Concurrent code ran for a single threaded call");
+        } finally {
+            NativeConcurrency.setMaxThreads(threads);
+            NativeConcurrency.setTestingBlocks(blocks);
+        }
     }
 
     /// Pixel values must be identical. Floats are compared by their bits, so NaN must match NaN
