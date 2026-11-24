@@ -554,4 +554,8 @@ JNIEXPORT void JNICALL Java_org_boofcpp_NativeConcurrency_nativeSetTestingBlocks
     });
 }
 
+JNIEXPORT jlong JNICALL Java_org_boofcpp_NativeConcurrency_nativeGetTestingLoops( JNIEnv*, jclass ) {
+    return (jlong)boofcv::BoofConcurrency::testing_loops();
+}
+
 }

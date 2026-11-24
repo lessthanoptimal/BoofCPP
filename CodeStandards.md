@@ -29,6 +29,8 @@
   - File names have the suffix `_mt` and class names `_MT`
   - Can and should share code with single threaded code, if it doesn't make that code substantially more complex
   - Unit tests compare its results with the single threaded version and run with multiple threads
+  - JNI tests only check that hooks switch between it and single threaded code, with
+    `BoofCPPTesting.assertConcurrentToggle()`, since the C++ tests cover its results
   - Number of threads is controlled centrally, similar to BoofCV's Java approach
 - Library version will match BoofCV's version
 - Templates are only used when they greatly simplify the code, e.g. image data types

@@ -1,5 +1,6 @@
 #include <jni.h>
 #include "boofcv/image_blur.h"
+#include "boofcv/image_blur_mt.h"
 #include <memory>
 #include <type_traits>
 #include <vector>
@@ -30,6 +31,13 @@ namespace {
     void mean( JNIEnv* env, jobject jinput, jobject joutput, jint radius_x, jint radius_y, jobject jstorage ) {
         with_critical_images<E>(env, jinput, joutput, jstorage, [&]( Gray<E>& input, Gray<E>& output,
                                                                      Gray<E>& storage ) {
+            // Floating point mean filters are single threaded, since their sums would depend on the blocks
+            if constexpr (std::is_integral<E>::value) {
+                if (BoofConcurrency::max_threads() > 1) {
+                    BlurImageOps_MT::mean(input, output, (uint32_t)radius_x, (uint32_t)radius_y, storage);
+                    return;
+                }
+            }
             BlurImageOps::mean(input, output, (uint32_t)radius_x, (uint32_t)radius_y, storage);
         });
     }
@@ -72,6 +80,12 @@ namespace {
         std::vector<typename TypeInfo<E>::sum_type> totals;
         with_critical_images<E>(env, jinput, joutput, jstorage, [&]( Gray<E>& input, Gray<E>& output,
                                                                      Gray<E>& storage ) {
+            if constexpr (std::is_integral<E>::value) {
+                if (BoofConcurrency::max_threads() > 1) {
+                    BlurImageOps_MT::mean_border(input, output, radius_x, radius_y, *border, storage);
+                    return;
+                }
+            }
             BlurImageOps::mean_border(input, output, radius_x, radius_y, *border, storage, totals);
         });
     }

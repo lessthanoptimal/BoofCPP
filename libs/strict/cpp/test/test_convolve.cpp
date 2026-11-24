@@ -346,6 +346,28 @@ void check_just_border_wide( std::mt19937& rng ) {
     }
 }
 
+/// vertical() with a row range writes the top and bottom border rows in it, and nothing else
+TEST_F(ConvolveNormalized_JustBorderTest, vertical_range_U8) {
+    const uint32_t w = 13, h = 20;
+    Gray<U8> input(w, h), expected(w, h), found(w, h);
+    ImageMiscOps::fill_uniform(input, (U8)0, (U8)200, rng);
+    Kernel1D<S32> kernel(7, 2);
+    KernelOps::fill_uniform(kernel, 1, 10, rng);
+    ImageMiscOps::fill(expected, (U8)251);
+    ConvolveNormalized_JustBorder::vertical(kernel, input, expected);
+    const uint32_t ranges[][2] = {{0, h}, {0, 1}, {1, 3}, {2, 17}, {5, 15}, {16, 18}, {19, h}};
+    for (auto& r : ranges) {
+        ImageMiscOps::fill(found, (U8)251);
+        ConvolveNormalized_JustBorder::vertical(kernel, input, found, r[0], r[1]);
+        for (uint32_t y = 0; y < h; y++) {
+            for (uint32_t x = 0; x < w; x++) {
+                const bool inside = y >= r[0] && y < r[1];
+                ASSERT_EQ(inside ? expected.at(x, y) : 251, found.at(x, y)) << x << " " << y;
+            }
+        }
+    }
+}
+
 TEST_F(ConvolveNormalized_JustBorderTest, wide_U8) { check_just_border_wide<U8>(rng); }
 
 TEST_F(ConvolveNormalized_JustBorderTest, wide_F32) { check_just_border_wide<F32>(rng); }

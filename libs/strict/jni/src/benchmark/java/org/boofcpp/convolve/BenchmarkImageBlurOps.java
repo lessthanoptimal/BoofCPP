@@ -1,6 +1,7 @@
 package org.boofcpp.convolve;
 
 import boofcv.alg.filter.blur.GBlurImageOps;
+import boofcv.concurrency.BoofConcurrency;
 import boofcv.core.image.GConvertImage;
 import boofcv.core.image.GeneralizedImageOps;
 import boofcv.io.image.ConvertBufferedImage;
@@ -11,6 +12,7 @@ import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
 import org.boofcpp.testing.BenchmarkUtils;
 import org.boofcpp.BoofCPP;
+import org.boofcpp.NativeConcurrency;
 import org.openjdk.jmh.annotations.*;
 
 import java.awt.image.BufferedImage;
@@ -35,13 +37,20 @@ public class BenchmarkImageBlurOps {
 
     NativeImageBlurOps nativeOps = new NativeImageBlurOps();
 
+    /// Threads of native and of BoofCV's Java code. 1 is single threaded, which is the speed target against Java.
+    /// Native mean filters of floating point images are single threaded
+    @Param({"1", "4"})
+    public int threads;
+
     static {
         BoofCPP.loadlib();
-        // The speed target is against single-threaded Java
-        boofcv.concurrency.BoofConcurrency.USE_CONCURRENT = false;
     }
 
     @Setup public void setup() {
+        NativeConcurrency.setMaxThreads(threads);
+        BoofConcurrency.USE_CONCURRENT = threads > 1;
+        BoofConcurrency.setMaxThreads(threads);
+
         BufferedImage buffered = BenchmarkUtils.loadImage(BenchmarkUtils.TEST_IMAGE);
         GrayU8 gray = ConvertBufferedImage.convertFrom(buffered, (GrayU8)null);
 

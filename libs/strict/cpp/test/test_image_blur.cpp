@@ -208,3 +208,31 @@ TEST_F(BlurImageOpsTest, mean_border_U16) { blur_mean_border_checks::check_all<U
 TEST_F(BlurImageOpsTest, mean_border_F32) { blur_mean_border_checks::check_all<F32>(rng, 0, 10); }
 TEST_F(BlurImageOpsTest, mean_border_F64) { blur_mean_border_checks::check_all<F64>(rng, 0, 10); }
 TEST_F(BlurImageOpsTest, mean_border_bad_radius) { blur_mean_border_checks::check_bad_radius<F32>(); }
+
+/// The overloads with a row range write the rows in the range, the same as the full image, and no others. U8, since
+/// a vertical range restarts the running sums, which only gives the same floats for the full image
+TEST_F(ConvolveImageMeanTest, border_row_range_U8) {
+    const uint32_t w = 23, h = 31;
+    Gray<U8> input(w, h), expected(w, h), found(w, h);
+    ImageMiscOps::fill_uniform(input, (U8)0, (U8)200, rng);
+    auto border = FactoryImageBorder::create_SB<U8>(REFLECT);
+    border->setImage(input);
+    std::vector<TypeInfo<U8>::sum_type> totals;
+    const int32_t offset = 3, length = 9;
+    const uint32_t ranges[][2] = {{0, h}, {0, 2}, {2, 5}, {3, 20}, {10, 11}, {25, h}, {7, 7}};
+    for (int op = 0; op < 2; op++) {
+        if (op == 0) ConvolveImageMean::horizontal(input, expected, offset, length, *border);
+        else ConvolveImageMean::vertical(input, expected, offset, length, *border, totals);
+        for (auto& r : ranges) {
+            ImageMiscOps::fill(found, (U8)251);
+            if (op == 0) ConvolveImageMean::horizontal(input, found, offset, length, *border, r[0], r[1]);
+            else ConvolveImageMean::vertical(input, found, offset, length, *border, totals, r[0], r[1]);
+            for (uint32_t y = 0; y < h; y++) {
+                for (uint32_t x = 0; x < w; x++) {
+                    const bool inside = y >= r[0] && y < r[1];
+                    ASSERT_EQ(inside ? expected.at(x, y) : 251, found.at(x, y)) << op << " " << x << " " << y;
+                }
+            }
+        }
+    }
+}

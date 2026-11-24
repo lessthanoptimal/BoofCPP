@@ -31,6 +31,12 @@ public class NativeConcurrency {
         nativeSetTestingBlocks(blocks);
     }
 
+    /// For tests only. Number of native loops split by setTestingBlocks() that the calling thread ran, so a test can
+    /// tell whether a call ran concurrent code
+    public static long getTestingLoops() {
+        return nativeGetTestingLoops();
+    }
+
     private static native int nativeGetMaxThreads();
 
     private static native void nativeSetMaxThreads( int threads );
@@ -38,4 +44,6 @@ public class NativeConcurrency {
     private static native int nativeGetTestingBlocks();
 
     private static native void nativeSetTestingBlocks( int blocks );
+
+    private static native long nativeGetTestingLoops();
 }
