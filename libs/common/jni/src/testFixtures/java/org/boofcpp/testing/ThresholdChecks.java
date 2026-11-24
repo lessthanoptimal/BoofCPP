@@ -38,8 +38,7 @@ public abstract class ThresholdChecks extends BoofCPPStandardJUnit {
     }
 
     /// Types the variant doesn't support return null or throw a RuntimeException, so BoofCV uses its own filter
-    @Test
-    public void unsupportedTypesDecline() {
+    @Test public void unsupportedTypesDecline() {
         for (Class type : BoofCPPTesting.unsupported(imageTypes)) {
             InputToBinary filter;
             try {

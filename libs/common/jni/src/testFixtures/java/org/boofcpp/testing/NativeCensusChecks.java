@@ -47,8 +47,7 @@ public abstract class NativeCensusChecks extends BoofCPPStandardJUnit {
         this.imageTypes = imageTypes;
     }
 
-    @Test
-    public void compareDense3x3() {
+    @Test public void compareDense3x3() {
         compare(( census, input, border ) -> {
             var output = new GrayU8(input.width, input.height);
             census.dense3x3(input, output, border);
@@ -56,8 +55,7 @@ public abstract class NativeCensusChecks extends BoofCPPStandardJUnit {
         });
     }
 
-    @Test
-    public void compareDense5x5() {
+    @Test public void compareDense5x5() {
         compare(( census, input, border ) -> {
             var output = new GrayS32(input.width, input.height);
             census.dense5x5(input, output, border);
@@ -66,8 +64,7 @@ public abstract class NativeCensusChecks extends BoofCPPStandardJUnit {
     }
 
     /// The sampled regions BoofCV's CensusVariants use, and a sparse one with points at different distances
-    @Test
-    public void compareSampleS64() {
+    @Test public void compareSampleS64() {
         for (DogArray<Point2D_I32> samples : sampleSets()) {
             compare(( census, input, border ) -> {
                 var output = new GrayS64(input.width, input.height);
@@ -79,8 +76,7 @@ public abstract class NativeCensusChecks extends BoofCPPStandardJUnit {
 
     /// Input types, borders and samples the variant doesn't support throw a RuntimeException. Through BoofCV the
     /// results are then BoofCV's own
-    @Test
-    public void unsupportedFallsBackToJava() {
+    @Test public void unsupportedFallsBackToJava() {
         for (Class type : BoofCPPTesting.unsupported(imageTypes)) {
             ImageGray input = GeneralizedImageOps.createSingleBand(type, 10, 8);
             DogArray<Point2D_I32> samples = CensusTransform.createBlockSamples(1);
@@ -121,8 +117,7 @@ public abstract class NativeCensusChecks extends BoofCPPStandardJUnit {
     }
 
     /// Through BoofCV, sample_IU16 gives BoofCV's results whether or not the variant supports it
-    @Test
-    public void sampleIU16ThroughBoofCV() {
+    @Test public void sampleIU16ThroughBoofCV() {
         for (Class type : imageTypes) {
             ImageGray input = randomImage(type, 20, 15);
             for (DogArray<Point2D_I32> samples : sampleSets()) {

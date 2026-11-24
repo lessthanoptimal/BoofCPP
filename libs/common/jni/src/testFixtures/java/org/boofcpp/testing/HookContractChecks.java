@@ -64,8 +64,7 @@ public abstract class HookContractChecks extends BoofCPPStandardJUnit {
         BOverrideManager.clear();
     }
 
-    @Test
-    public void hooksKeepContract() throws Exception {
+    @Test public void hooksKeepContract() throws Exception {
         BOverrideManager.clear();
         registerHooks();
 
@@ -101,8 +100,7 @@ public abstract class HookContractChecks extends BoofCPPStandardJUnit {
     /// BOOFCPP_OVERRIDE field is claimed by one class and registered, and holds an instance of the class, or creates
     /// one if it's a factory; every BOverride interface the class implements has a tagged field; a BOOFCPP_IGNORE class
     /// isn't registered
-    @Test
-    public void hookTagsMatchRegistration() throws Exception {
+    @Test public void hookTagsMatchRegistration() throws Exception {
         BOverrideManager.clear();
         registerHooks();
 

@@ -21,8 +21,7 @@ public abstract class NativeLocalMeanChecks extends ThresholdChecks {
         return hook.handle(ConfigLength.fixed(5), 1.0, true, type);
     }
 
-    @Test
-    public void compareToBoofCV() {
+    @Test public void compareToBoofCV() {
         forEachInput(input -> {
             for (ConfigLength width : NativeBlockMeanChecks.WIDTHS) {
                 for (boolean down : new boolean[]{true, false}) {

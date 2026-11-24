@@ -52,8 +52,7 @@ public abstract class NativeConvolveImageChecks extends BoofCPPStandardJUnit {
         this.imageTypes = imageTypes;
     }
 
-    @Test
-    public void compareHorizontal() {
+    @Test public void compareHorizontal() {
         for (Class type : imageTypes) {
             ImageGray input = randomSubImage(type, 200, 150, 0, MAX_PIXEL);
             for (Kernel1D kernel : kernels1D(type)) {
@@ -68,8 +67,7 @@ public abstract class NativeConvolveImageChecks extends BoofCPPStandardJUnit {
         }
     }
 
-    @Test
-    public void compareVertical() {
+    @Test public void compareVertical() {
         for (Class type : imageTypes) {
             ImageGray input = randomSubImage(type, 200, 150, 0, MAX_PIXEL);
             for (Kernel1D kernel : kernels1D(type)) {
@@ -84,8 +82,7 @@ public abstract class NativeConvolveImageChecks extends BoofCPPStandardJUnit {
         }
     }
 
-    @Test
-    public void compareConvolve() {
+    @Test public void compareConvolve() {
         for (Class type : imageTypes) {
             ImageGray input = randomSubImage(type, 100, 75, 0, MAX_PIXEL);
             for (Kernel2D kernel : kernels2D(type)) {
@@ -101,8 +98,7 @@ public abstract class NativeConvolveImageChecks extends BoofCPPStandardJUnit {
     }
 
     /// Input types the variant doesn't support throw a RuntimeException, so BoofCV uses its Java code
-    @Test
-    public void unsupportedTypesThrow() {
+    @Test public void unsupportedTypesThrow() {
         for (Class type : BoofCPPTesting.unsupported(imageTypes)) {
             ImageGray input = GeneralizedImageOps.createSingleBand(type, 10, 8);
             ImageGray output = (ImageGray)input.createSameShape();

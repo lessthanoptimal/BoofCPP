@@ -21,8 +21,7 @@ public abstract class NativeGlobalFixedChecks extends ThresholdChecks {
     }
 
     /// Thresholds which are fractional and outside the pixel range
-    @Test
-    public void compareToBoofCV() {
+    @Test public void compareToBoofCV() {
         forEachInput(input -> {
             for (double threshold : new double[]{125, 125.5, -1, 0, 255, 300}) {
                 for (boolean down : new boolean[]{true, false}) {

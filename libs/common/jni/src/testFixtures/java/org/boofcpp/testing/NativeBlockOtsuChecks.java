@@ -21,8 +21,7 @@ public abstract class NativeBlockOtsuChecks extends ThresholdChecks {
         return hook.handle(false, ConfigLength.fixed(5), 0.1, 1.0, true, true, type);
     }
 
-    @Test
-    public void compareToBoofCV() {
+    @Test public void compareToBoofCV() {
         forEachInput(input -> {
             for (ConfigLength width : NativeBlockMeanChecks.WIDTHS) {
                 for (boolean down : new boolean[]{true, false}) {

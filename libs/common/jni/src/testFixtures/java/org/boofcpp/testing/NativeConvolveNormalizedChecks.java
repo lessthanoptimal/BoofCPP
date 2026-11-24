@@ -42,8 +42,7 @@ public abstract class NativeConvolveNormalizedChecks extends BoofCPPStandardJUni
     }
 
     /// Gaussian kernels, also scaled so their sum isn't one, which makes BoofCV normalize them first
-    @Test
-    public void compareHorizontal() {
+    @Test public void compareHorizontal() {
         for (Class type : imageTypes) {
             ImageGray input = randomImage(type);
             for (int radius : RADII) {
@@ -58,8 +57,7 @@ public abstract class NativeConvolveNormalizedChecks extends BoofCPPStandardJUni
         }
     }
 
-    @Test
-    public void compareVertical() {
+    @Test public void compareVertical() {
         for (Class type : imageTypes) {
             ImageGray input = randomImage(type);
             for (int radius : RADII) {
@@ -76,8 +74,7 @@ public abstract class NativeConvolveNormalizedChecks extends BoofCPPStandardJUni
 
     /// 2D Gaussian kernels, also scaled, called directly and through BoofCV's hook. The widest kernel is wider than the
     /// small image, and as tall as the wide one, which BoofCV processes with its naive code
-    @Test
-    public void compareConvolve() {
+    @Test public void compareConvolve() {
         for (Class type : imageTypes) {
             for (ImageGray input : new ImageGray[]{randomImage(type), randomSubImage(type, 40, 30, 0, MAX_PIXEL),
                     randomSubImage(type, 60, 30, 0, MAX_PIXEL)}) {
@@ -106,8 +103,7 @@ public abstract class NativeConvolveNormalizedChecks extends BoofCPPStandardJUni
     }
 
     /// Types the variant doesn't support throw a RuntimeException, so BoofCV uses its Java code
-    @Test
-    public void unsupportedTypesThrow() {
+    @Test public void unsupportedTypesThrow() {
         for (Class type : BoofCPPTesting.unsupported(imageTypes)) {
             ImageGray input = GeneralizedImageOps.createSingleBand(type, 10, 8);
             Kernel1D kernel = new Kernel1D_S32(3, new int[]{1, 2, 1});
@@ -119,8 +115,7 @@ public abstract class NativeConvolveNormalizedChecks extends BoofCPPStandardJUni
     }
 
     /// A kernel whose type doesn't match the image throws a RuntimeException instead of crashing
-    @Test
-    public void mismatchedKernelThrows() {
+    @Test public void mismatchedKernelThrows() {
         for (Class type : imageTypes) {
             ImageGray input = GeneralizedImageOps.createSingleBand(type, 10, 8);
             boolean isFloat = type == GrayF32.class || type == GrayF64.class;
