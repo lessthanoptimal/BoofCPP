@@ -10,7 +10,7 @@
 using namespace std;
 using namespace boofcv;
 
-/// The _MT mean filters must be identical to the single threaded ones for any number of threads
+/// The _MT mean filters and Gaussian blur must be identical to the single threaded ones for any number of threads
 class BlurImageOps_MTTest : public boofcv::ConcurrentTest {
 protected:
     enum class Op { MEAN, MEAN_WITH_BORDER, HORIZONTAL_NORMALIZED, VERTICAL_NORMALIZED, HORIZONTAL_IMAGE_BORDER,
@@ -77,7 +77,28 @@ protected:
             });
         }
     }
+
+    /// gaussian() with the same and with different kernels along x and y, on an image with several blocks. It only
+    /// calls ConvolveNormalized_MT, whose tests cover the image sizes and blocks
+    template<class E>
+    void check_gaussian() {
+        for_each_setting([&] {
+            Gray<E> parent, storage, expected, found;
+            Gray<E> input = subimage(parent, 41, 23);
+            ImageMiscOps::fill_uniform(input, (E)0, (E)100, rng);
+            BlurImageOps::gaussian(input, expected, 1.5, 7, -1, 5, storage);
+            BlurImageOps_MT::gaussian(input, found, 1.5, 7, -1, 5, storage);
+            check_identical(expected, found, "different kernels");
+            BlurImageOps::gaussian(input, expected, -1, 5, storage);
+            BlurImageOps_MT::gaussian(input, found, -1, 5, storage);
+            check_identical(expected, found, "same kernel");
+        });
+    }
 };
 
 TEST_F(BlurImageOps_MTTest, U8) { check_all<U8>(); }
 TEST_F(BlurImageOps_MTTest, U16) { check_all<U16>(); }
+
+/// Integer and floating point images, which take different inner code
+TEST_F(BlurImageOps_MTTest, gaussian_U8) { check_gaussian<U8>(); }
+TEST_F(BlurImageOps_MTTest, gaussian_F32) { check_gaussian<F32>(); }
