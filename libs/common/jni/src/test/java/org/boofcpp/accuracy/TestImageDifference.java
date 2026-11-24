@@ -11,8 +11,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class TestImageDifference extends BoofCPPStandardJUnit {
-    @Test
-    public void measure_float() {
+    @Test public void measure_float() {
         GrayF32 expected = new GrayF32(2, 2);
         expected.data = new float[]{0, 1, 100, 4};
         GrayF32 found = expected.clone();
@@ -29,8 +28,7 @@ public class TestImageDifference extends BoofCPPStandardJUnit {
     }
 
     /// Only the pixels in the mask count, also for the means
-    @Test
-    public void measureWhere() {
+    @Test public void measureWhere() {
         GrayF32 expected = new GrayF32(3, 1);
         expected.data = new float[]{1, 2, 3};
         GrayF32 found = expected.clone();
@@ -49,8 +47,7 @@ public class TestImageDifference extends BoofCPPStandardJUnit {
     }
 
     /// Relative error is absolute below 1
-    @Test
-    public void measure_relativeBelowOne() {
+    @Test public void measure_relativeBelowOne() {
         GrayF64 expected = new GrayF64(1, 1);
         expected.set(0, 0, 0.001);
         GrayF64 found = new GrayF64(1, 1);
@@ -58,8 +55,7 @@ public class TestImageDifference extends BoofCPPStandardJUnit {
         assertEquals(0.002, ImageDifference.measure(expected, found).maxRel, 1e-15);
     }
 
-    @Test
-    public void measure_integer() {
+    @Test public void measure_integer() {
         GrayU8 expected = new GrayU8(4, 1);
         GrayU8 found = new GrayU8(4, 1);
         found.set(2, 0, 3);
@@ -71,8 +67,7 @@ public class TestImageDifference extends BoofCPPStandardJUnit {
     }
 
     /// Errors are the number of differing bits, whatever their place
-    @Test
-    public void measureBits() {
+    @Test public void measureBits() {
         GrayS32 expected = new GrayS32(4, 1);
         GrayS32 found = new GrayS32(4, 1);
         found.set(0, 0, 1 << 23);
@@ -96,8 +91,7 @@ public class TestImageDifference extends BoofCPPStandardJUnit {
     }
 
     /// Longs which a double can't tell apart still differ
-    @Test
-    public void measure_long() {
+    @Test public void measure_long() {
         GrayS64 expected = new GrayS64(2, 1);
         GrayS64 found = new GrayS64(2, 1);
         expected.set(0, 0, 1L << 60);
@@ -107,14 +101,12 @@ public class TestImageDifference extends BoofCPPStandardJUnit {
         assertEquals(0.5, d.differing, 1e-12);
     }
 
-    @Test
-    public void measure_differentShapes() {
+    @Test public void measure_differentShapes() {
         assertThrows(IllegalArgumentException.class,
                 () -> ImageDifference.measure(new GrayU8(4, 1), new GrayU8(3, 1)));
     }
 
-    @Test
-    public void ulpDistance() {
+    @Test public void ulpDistance() {
         assertEquals(0, ImageDifference.ulpDistance(0.0f, -0.0f));
         assertEquals(1, ImageDifference.ulpDistance(1.0f, Math.nextUp(1.0f)));
         assertEquals(2, ImageDifference.ulpDistance(Math.nextDown(0.0f), Math.nextUp(0.0f)));

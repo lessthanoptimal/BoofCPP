@@ -33,8 +33,7 @@ public abstract class NativeChang2004Checks extends BoofCPPStandardJUnit {
         ImageMiscOps.fillRectangle(binary,1,130,100,60,60);
     }
 
-    @Test
-    public void defaultSettings() {
+    @Test public void defaultSettings() {
         BinaryLabelContourFinder alg = hook.createChang2004();
 
         assertEquals(ConnectRule.FOUR,alg.getConnectRule());
@@ -43,8 +42,7 @@ public abstract class NativeChang2004Checks extends BoofCPPStandardJUnit {
         assertEquals(Integer.MAX_VALUE,alg.getMaxContour(null).computeNegMaxI(100));
     }
 
-    @Test
-    public void changing_settings() {
+    @Test public void changing_settings() {
         BinaryLabelContourFinder alg = hook.createChang2004();
 
         alg.setConnectRule(ConnectRule.EIGHT);
@@ -61,8 +59,7 @@ public abstract class NativeChang2004Checks extends BoofCPPStandardJUnit {
     }
 
     /// Contours can be read and written after processing an image
-    @Test
-    public void handle_image() {
+    @Test public void handle_image() {
         BinaryLabelContourFinder alg = hook.createChang2004();
 
         GrayS32 labeled = binary.createSameShape(GrayS32.class);
@@ -94,8 +91,7 @@ public abstract class NativeChang2004Checks extends BoofCPPStandardJUnit {
     }
 
     /// BoofCV's factory creates the variant's contour finder when the hook is registered
-    @Test
-    public void factoryUsesHook() {
+    @Test public void factoryUsesHook() {
         BinaryLabelContourFinder found;
         try {
             BOverrideFactoryBinaryContourFinder.chang2004 = hook;
@@ -107,8 +103,7 @@ public abstract class NativeChang2004Checks extends BoofCPPStandardJUnit {
     }
 
     /// Identical labels and contours to BoofCV's Java implementation, with and without inner contours
-    @Test
-    public void compareToJava() {
+    @Test public void compareToJava() {
         BinaryLabelContourFinder algNative = hook.createChang2004();
         BinaryLabelContourFinder algJava = new BinaryLabelContourFinderChang2004();
 

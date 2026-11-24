@@ -13,8 +13,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class TestAccuracyRecord extends BoofCPPStandardJUnit {
     /// What's saved is read back unchanged
-    @Test
-    public void jsonRoundTrip( @TempDir File dir ) throws Exception {
+    @Test public void jsonRoundTrip( @TempDir File dir ) throws Exception {
         AccuracyRecord record = new AccuracyRecord();
         record.info.put("variant", "fast");
         record.info.put("native", "GCC \"13\" \\ -O3");
@@ -32,15 +31,13 @@ public class TestAccuracyRecord extends BoofCPPStandardJUnit {
         }
     }
 
-    @Test
-    public void add_badName() {
+    @Test public void add_badName() {
         assertThrows(IllegalArgumentException.class,
                 () -> new AccuracyRecord().add("mean", "GrayF32", "a|b", difference(0, 0)));
     }
 
     /// Growth more than GROWTH times, or from zero, is reported. Results missing from either record are ignored
-    @Test
-    public void grewSince() {
+    @Test public void grewSince() {
         AccuracyRecord before = new AccuracyRecord();
         before.add("mean", "GrayF32", "a", difference(1e-5, 0.5));
         before.add("mean", "GrayF32", "b", difference(0, 0));
@@ -58,8 +55,7 @@ public class TestAccuracyRecord extends BoofCPPStandardJUnit {
     }
 
     /// A metric an older record doesn't have is read as NaN, and doesn't count as grown
-    @Test
-    public void missingMetric( @TempDir File dir ) throws Exception {
+    @Test public void missingMetric( @TempDir File dir ) throws Exception {
         AccuracyRecord before = new AccuracyRecord();
         before.add("mean", "GrayF32", "a", difference(1e-5, 0.5));
         File file = new File(dir, "record.json");

@@ -14,8 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestBoofCPPTesting extends BoofCPPStandardJUnit {
-    @Test
-    public void assertMatches_scale() {
+    @Test public void assertMatches_scale() {
         // Absolute, unless scaled
         BoofCPPTesting.assertMatches(f64(1000.0), f64(1000.0 + 0.9e-12), Tolerance.FLOAT);
         assertThrows(AssertionFailedError.class, () -> BoofCPPTesting.assertMatches(f64(1000.0), f64(1000.0 + 1.1e-12), Tolerance.FLOAT));
@@ -27,8 +26,7 @@ public class TestBoofCPPTesting extends BoofCPPStandardJUnit {
         assertThrows(AssertionFailedError.class, () -> BoofCPPTesting.assertMatches(f32(1.0f), f32(1.0f + 1.1e-5f), Tolerance.FLOAT));
     }
 
-    @Test
-    public void assertMatches_identical() {
+    @Test public void assertMatches_identical() {
         // Zero tolerance compares bits, so NaN matches NaN
         BoofCPPTesting.assertMatches(f32(Float.NaN), f32(Float.NaN), Tolerance.IDENTICAL);
         assertThrows(AssertionFailedError.class,
@@ -58,8 +56,7 @@ public class TestBoofCPPTesting extends BoofCPPStandardJUnit {
     }
 
     /// The base class compares with its tolerance, which is identical results unless a test class changes it
-    @Test
-    public void standardJUnit_tolerance() {
+    @Test public void standardJUnit_tolerance() {
         BoofCPPStandardJUnit test = new BoofCPPStandardJUnit();
         assertThrows(AssertionFailedError.class, () -> test.assertMatches(f32(1.0f), f32(Math.nextUp(1.0f))));
         test.tolerance = Tolerance.FLOAT;
@@ -70,8 +67,7 @@ public class TestBoofCPPTesting extends BoofCPPStandardJUnit {
 
     /// Floating point disparity: scores where both are valid, or the disparities without scores, and agreement
     /// on which pixels are valid
-    @Test
-    public void assertDisparityScoresMatch() {
+    @Test public void assertDisparityScoresMatch() {
         // 3 pixels, invalid value 5. Pixel 1 picks another disparity with the same score, pixel 2 is invalid in both
         GrayU8 disparity = u8row(1, 2, 5);
         GrayF32 score = f32row(1000f, 0.5f, 7f);
@@ -107,8 +103,7 @@ public class TestBoofCPPTesting extends BoofCPPStandardJUnit {
     }
 
     /// Concurrency is off during the call and restored afterwards, even if it throws
-    @Test
-    public void singleThreaded() {
+    @Test public void singleThreaded() {
         boolean previous = BoofConcurrency.USE_CONCURRENT;
         try {
             BoofConcurrency.USE_CONCURRENT = true;

@@ -24,8 +24,7 @@ public abstract class NativeBlockMinMaxChecks extends ThresholdChecks {
         return hook.handle(ConfigLength.fixed(5), 1.0, true, 2.0, true, type);
     }
 
-    @Test
-    public void compareToBoofCV() {
+    @Test public void compareToBoofCV() {
         forEachInput(input -> {
             for (ConfigLength width : new ConfigLength[]{ConfigLength.fixed(2), ConfigLength.fixed(25)}) {
                 for (boolean down : new boolean[]{true, false}) {
@@ -40,8 +39,7 @@ public abstract class NativeBlockMinMaxChecks extends ThresholdChecks {
     }
 
     /// Floating point images with only negative values
-    @Test
-    public void negativePixels() {
+    @Test public void negativePixels() {
         for (Class type : imageTypes) {
             if (!GeneralizedImageOps.isFloatingPoint(type))
                 continue;
@@ -55,8 +53,7 @@ public abstract class NativeBlockMinMaxChecks extends ThresholdChecks {
     }
 
     /// Negative spreads on an image with flat and textured regions
-    @Test
-    public void unusualSpreads() {
+    @Test public void unusualSpreads() {
         for (Class type : imageTypes) {
             ImageGray input = GeneralizedImageOps.createSingleBand(type, 101, 77);
             GImageMiscOps.fill(input, 128);
@@ -73,8 +70,7 @@ public abstract class NativeBlockMinMaxChecks extends ThresholdChecks {
     }
 
     /// Scales whose double and float products round differently, and negative scales
-    @Test
-    public void unusualScales() {
+    @Test public void unusualScales() {
         forEachInput(input -> {
             for (double scale : new double[]{0.82, -0.5}) {
                 for (boolean down : new boolean[]{true, false}) {

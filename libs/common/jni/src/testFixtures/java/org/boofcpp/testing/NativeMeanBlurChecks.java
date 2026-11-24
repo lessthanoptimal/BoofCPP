@@ -38,8 +38,7 @@ public abstract class NativeMeanBlurChecks extends BoofCPPStandardJUnit {
     }
 
     /// Mean against BoofCV's Java code. Includes regions larger than the image
-    @Test
-    public void compareMean() {
+    @Test public void compareMean() {
         int[][] radii = new int[][]{{1, 1}, {2, 3}, {5, 4}, {24, 24}, {40, 2}, {3, 30}};
 
         for (Class type : imageTypes) {
@@ -55,8 +54,7 @@ public abstract class NativeMeanBlurChecks extends BoofCPPStandardJUnit {
     }
 
     /// The output is the input
-    @Test
-    public void compareMeanInPlace() {
+    @Test public void compareMeanInPlace() {
         for (Class type : imageTypes) {
             ImageGray image = randomSubImage(type, 61, 45, 0, maxValue(type));
             ImageGray expected = callBoofCV(null, () -> GBlurImageOps.mean(image, null, 2, 3, null, null));
@@ -66,8 +64,7 @@ public abstract class NativeMeanBlurChecks extends BoofCPPStandardJUnit {
     }
 
     /// A radius of zero or less is rejected
-    @Test
-    public void badRadius() {
+    @Test public void badRadius() {
         for (Class type : imageTypes) {
             ImageGray image = randomSubImage(type, 10, 8, 0, maxValue(type));
             ImageGray output = (ImageGray)image.createSameShape();
@@ -77,8 +74,7 @@ public abstract class NativeMeanBlurChecks extends BoofCPPStandardJUnit {
     }
 
     /// Types the variant doesn't support throw a RuntimeException, so BoofCV uses its Java code
-    @Test
-    public void unsupportedTypesThrow() {
+    @Test public void unsupportedTypesThrow() {
         for (Class type : BoofCPPTesting.unsupported(imageTypes)) {
             ImageGray input = GeneralizedImageOps.createSingleBand(type, 20, 15);
             assertThrows(RuntimeException.class, () ->
@@ -87,8 +83,7 @@ public abstract class NativeMeanBlurChecks extends BoofCPPStandardJUnit {
     }
 
     /// Every border against BoofCV's meanB. Floats include negative values, which make sums cancel
-    @Test
-    public void compareMeanWithBorder() {
+    @Test public void compareMeanWithBorder() {
         int[][] radii = new int[][]{{1, 1}, {2, 3}, {5, 4}, {12, 12}};
 
         for (Class type : imageTypes) {
@@ -110,8 +105,7 @@ public abstract class NativeMeanBlurChecks extends BoofCPPStandardJUnit {
     /// computed from its definition: a horizontal mean through the border, then a vertical mean through the border.
     /// Every pixel is a border pixel here, where BoofCV adds up each pixel times 1/length for floats, and adds up the
     /// pixels and rounds the division for integers
-    @Test
-    public void smallerThanRegionWithBorder() {
+    @Test public void smallerThanRegionWithBorder() {
         for (Class type : imageTypes) {
             for (int[] shape : new int[][]{{1, 1}, {3, 2}, {2, 5}}) {
                 for (ImageBorder border : borders(type)) {
@@ -129,8 +123,7 @@ public abstract class NativeMeanBlurChecks extends BoofCPPStandardJUnit {
     }
 
     /// A radius of zero or less is rejected
-    @Test
-    public void badRadiusWithBorder() {
+    @Test public void badRadiusWithBorder() {
         for (Class type : imageTypes) {
             ImageGray input = GeneralizedImageOps.createSingleBand(type, 20, 15);
             ImageBorder border = FactoryImageBorder.single(BorderType.REFLECT, type);
@@ -145,8 +138,7 @@ public abstract class NativeMeanBlurChecks extends BoofCPPStandardJUnit {
 
     /// Borders and types the variant doesn't support throw a RuntimeException, and BoofCV's meanB then uses its own
     /// code: no border, rows and columns with different borders, and integer values that don't fit the pixels
-    @Test
-    public void unsupportedWithBorderFallsBackToJava() {
+    @Test public void unsupportedWithBorderFallsBackToJava() {
         for (Class type : imageTypes) {
             ImageGray input = randomImage(type, 20, 15);
             List<ImageBorder> unsupported = new ArrayList<>();

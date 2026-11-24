@@ -24,8 +24,7 @@ public abstract class NativeBlockMeanChecks extends ThresholdChecks {
         return hook.handle(ConfigLength.fixed(5), 1.0, true, true, type);
     }
 
-    @Test
-    public void compareToBoofCV() {
+    @Test public void compareToBoofCV() {
         forEachInput(input -> {
             for (ConfigLength width : WIDTHS) {
                 for (boolean down : new boolean[]{true, false}) {
@@ -39,8 +38,7 @@ public abstract class NativeBlockMeanChecks extends ThresholdChecks {
     }
 
     /// Scales whose double and float products round differently, and negative scales
-    @Test
-    public void unusualScales() {
+    @Test public void unusualScales() {
         forEachInput(input -> {
             for (double scale : new double[]{0.82, -0.5}) {
                 for (boolean down : new boolean[]{true, false}) {

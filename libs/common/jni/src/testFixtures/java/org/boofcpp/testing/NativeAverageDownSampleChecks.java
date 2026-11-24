@@ -55,8 +55,7 @@ public abstract class NativeAverageDownSampleChecks extends BoofCPPStandardJUnit
 
     /// Against BoofCV's Java code. Width 2 and other widths are different implementations in BoofCV. Includes regions
     /// larger than the image
-    @Test
-    public void compareDown() {
+    @Test public void compareDown() {
         for (Class type : imageTypes) {
             for (int[] shape : new int[][]{{61, 45}, {6, 7}}) {
                 for (int width : new int[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 70}) {
@@ -73,8 +72,7 @@ public abstract class NativeAverageDownSampleChecks extends BoofCPPStandardJUnit
     }
 
     /// BoofCV down samples each band of a planar image with the gray image functions, so the hook is used for each one
-    @Test
-    public void down_planar() {
+    @Test public void down_planar() {
         Planar<GrayU8> input = new Planar<>(GrayU8.class, 31, 20, 3);
         GImageMiscOps.fillUniform(input, rand, 0, 255);
         Planar<GrayU8> expected = new Planar<>(GrayU8.class, 11, 7, 3);
@@ -88,8 +86,7 @@ public abstract class NativeAverageDownSampleChecks extends BoofCPPStandardJUnit
     }
 
     /// The variant throws a RuntimeException for anything it can't process, and BoofCV then uses its own code
-    @Test
-    public void down_unsupported() {
+    @Test public void down_unsupported() {
                 GrayU8 input = new GrayU8(20, 15);
 
         assertThrows(IllegalArgumentException.class, () -> square.processDown(input, 0, new GrayU8(1, 1)));
@@ -100,8 +97,7 @@ public abstract class NativeAverageDownSampleChecks extends BoofCPPStandardJUnit
     }
 
     /// Types the variant doesn't support throw a RuntimeException, so BoofCV uses its own code
-    @Test
-    public void unsupportedTypesThrow() {
+    @Test public void unsupportedTypesThrow() {
         for (Class type : BoofCPPTesting.unsupported(imageTypes)) {
             ImageGray input = GeneralizedImageOps.createSingleBand(type, 20, 15);
             assertThrows(RuntimeException.class, () -> square.processDown(input, 2, createOutput(input, 2)));
@@ -119,8 +115,7 @@ public abstract class NativeAverageDownSampleChecks extends BoofCPPStandardJUnit
     static final int[][] GENERAL_SHAPES = new int[][]{{61, 45}, {30, 15}, {20, 22}, {7, 5}, {13, 44}, {2, 1}};
 
     /// Against BoofCV's Java code
-    @Test
-    public void compareGeneral() {
+    @Test public void compareGeneral() {
         for (Class type : generalTypes) {
             for (int[] shape : GENERAL_SHAPES) {
                 for (boolean centered : new boolean[]{false, true}) {
@@ -138,8 +133,7 @@ public abstract class NativeAverageDownSampleChecks extends BoofCPPStandardJUnit
 
     /// horizontal() and vertical() against BoofCV's Java code. The input to vertical() is floating point for every
     /// output type
-    @Test
-    public void compareHorizontalVertical() {
+    @Test public void compareHorizontalVertical() {
         for (Class type : generalTypes) {
             Class middleType = type == GrayF64.class ? GrayF64.class : GrayF32.class;
             for (int[] shape : GENERAL_SHAPES) {
@@ -163,8 +157,7 @@ public abstract class NativeAverageDownSampleChecks extends BoofCPPStandardJUnit
     }
 
     /// BoofCV down samples each band of a planar image with the gray image function, so the hook is used for each one
-    @Test
-    public void general_planar() {
+    @Test public void general_planar() {
         Planar<GrayU8> input = new Planar<>(GrayU8.class, 31, 20, 3);
         GImageMiscOps.fillUniform(input, rand, 0, 255);
         Planar<GrayU8> expected = new Planar<>(GrayU8.class, 12, 7, 3);
@@ -178,8 +171,7 @@ public abstract class NativeAverageDownSampleChecks extends BoofCPPStandardJUnit
     }
 
     /// The variant throws a RuntimeException for anything it can't process, and BoofCV then uses its own code
-    @Test
-    public void general_unsupported() {
+    @Test public void general_unsupported() {
                 GrayU8 input = new GrayU8(20, 15);
 
         // BoofCV writes past the end of each row of 'middle' for a centered output one pixel wide

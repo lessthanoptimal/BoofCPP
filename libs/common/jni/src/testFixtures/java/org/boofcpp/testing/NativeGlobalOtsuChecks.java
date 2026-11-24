@@ -32,8 +32,7 @@ public abstract class NativeGlobalOtsuChecks extends ThresholdChecks {
 
     /// Pixel ranges which start at 0 and which shift the histogram, and scales that move the threshold below 0 and
     /// above 255
-    @Test
-    public void compareToBoofCV() {
+    @Test public void compareToBoofCV() {
         for (Class type : imageTypes) {
             ImageGray input = GeneralizedImageOps.createSingleBand(type, 100, 90);
             for (double[] range : new double[][]{{0, 255}, {20, 200}}) {
@@ -50,8 +49,7 @@ public abstract class NativeGlobalOtsuChecks extends ThresholdChecks {
 
     /// Bounds outside the pixel type's range and fractional bounds. BoofCV truncates them for the histogram and adds
     /// minValue back to the threshold
-    @Test
-    public void boundsBeyondPixels() {
+    @Test public void boundsBeyondPixels() {
         for (Class type : imageTypes) {
             ImageGray input = GeneralizedImageOps.createSingleBand(type, 60, 50);
             GImageMiscOps.fillUniform(input, rand, 20, 200);
@@ -75,8 +73,7 @@ public abstract class NativeGlobalOtsuChecks extends ThresholdChecks {
 
     /// Pixels outside [minValue, maxValue] are handled as in BoofCV. F32 values less than 1 outside and NaN are
     /// counted, others throw
-    @Test
-    public void pixelsOutsideRange() {
+    @Test public void pixelsOutsideRange() {
         if (supports(GrayF32.class)) {
             GrayF32 input = new GrayF32(30, 20);
             GImageMiscOps.fillUniform(input, rand, 20, 200);

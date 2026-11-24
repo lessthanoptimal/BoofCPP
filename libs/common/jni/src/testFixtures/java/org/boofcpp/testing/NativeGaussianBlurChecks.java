@@ -27,8 +27,7 @@ public abstract class NativeGaussianBlurChecks extends BoofCPPStandardJUnit {
 
     /// Against BoofCV's Java code. Sigma or radius can be computed from the other, and the kernel can be larger than
     /// the image
-    @Test
-    public void compareGaussian() {
+    @Test public void compareGaussian() {
         double[][] params = new double[][]{
                 {-1, 1, -1, 1}, {-1, 2, -1, 5}, {1.5, -1, 1.5, -1}, {2.0, -1, 0.7, 3}, {-1, 12, 3.0, -1}};
 
@@ -50,8 +49,7 @@ public abstract class NativeGaussianBlurChecks extends BoofCPPStandardJUnit {
     }
 
     /// Images the variant doesn't support throw a RuntimeException, and BoofCV then uses its own code
-    @Test
-    public void unsupportedImagesFallBackToJava() {
+    @Test public void unsupportedImagesFallBackToJava() {
         for (Class type : BoofCPPTesting.unsupported(imageTypes)) {
             ImageGray input = GeneralizedImageOps.createSingleBand(type, 20, 15);
             assertThrows(RuntimeException.class, () ->
