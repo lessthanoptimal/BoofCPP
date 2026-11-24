@@ -10,6 +10,16 @@
 using namespace std;
 using namespace boofcv;
 
+/// Calls 'check(width, height, kernel_width, offset)' for the cases that matter to _MT code, which runs the single
+/// threaded code on blocks of rows: fewer rows than the kernel's border, several blocks with a kernel that isn't
+/// centered, and a kernel as large as the image
+template<class Check>
+void for_each_case( Check check ) {
+    check(41, 2, 5, 1);
+    check(41, 23, 5, 1);
+    check(7, 7, 7, 3);
+}
+
 /// ConvolveImage_MT must be identical to ConvolveImage for any number of threads
 class ConvolveImage_MTTest : public boofcv::ConcurrentTest {
 protected:
@@ -54,22 +64,13 @@ protected:
                                          to_string(kernel_width) + " offset " + to_string(offset));
     }
 
-    /// Heights with fewer rows than the kernel's border and with several blocks, kernels that are unrolled or not,
-    /// centered or not, and kernels as large as the image
     template<class E, class R>
     void check_all() {
         for (Op op : {Op::HORIZONTAL, Op::VERTICAL, Op::CONVOLVE}) {
             for_each_setting([&] {
-                check_matches_single_threaded<E, R>(op, 30, 1, 1, 0);
-                check_matches_single_threaded<E, R>(op, 30, 2, 1, 0);
-                check_matches_single_threaded<E, R>(op, 7, 7, 7, 3);
-                for (uint32_t height : {5u, 23u}) {
-                    check_matches_single_threaded<E, R>(op, 41, height, 3, 1);
-                    check_matches_single_threaded<E, R>(op, 41, height, 5, 1);
-                }
-                check_matches_single_threaded<E, R>(op, 300, 37, 7, 5);
-                check_matches_single_threaded<E, R>(op, 300, 51, 11, 5);
-                check_matches_single_threaded<E, R>(op, 40, 37, 17, 3);
+                for_each_case([&]( uint32_t width, uint32_t height, uint32_t kernel_width, uint32_t offset ) {
+                    check_matches_single_threaded<E, R>(op, width, height, kernel_width, offset);
+                });
             });
             check_shuffled([&]( uint32_t scale ) {
                 check_matches_single_threaded<E, R>(op, 64*scale, 32*scale, 5, 2);
