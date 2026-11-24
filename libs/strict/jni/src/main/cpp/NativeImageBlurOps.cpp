@@ -71,7 +71,10 @@ namespace {
         Kernel1D<K> kernel_y = kernel_from_java<K>(env, jkernel_y, width_y, offset_y);
         with_critical_images<E>(env, jinput, joutput, jstorage, [&]( Gray<E>& input, Gray<E>& output,
                                                                      Gray<E>& storage ) {
-            BlurImageOps::gaussian(input, output, kernel_x, kernel_y, storage);
+            if (BoofConcurrency::max_threads() > 1)
+                BlurImageOps_MT::gaussian(input, output, kernel_x, kernel_y, storage);
+            else
+                BlurImageOps::gaussian(input, output, kernel_x, kernel_y, storage);
         });
     }
 

@@ -2,6 +2,7 @@
 #define BOOFCPP_IMAGE_BLUR_MT_H
 
 #include "boofcv/concurrency.h"
+#include "boofcv/convolve_mt.h"
 #include "boofcv/image_blur.h"
 
 #include <algorithm>
@@ -110,8 +111,8 @@ namespace boofcv {
         }
     };
 
-    /// BlurImageOps' mean filters for integer images, with ConvolveImageMean_MT. The results are identical to
-    /// BlurImageOps for any number of threads
+    /// BlurImageOps' mean filters for integer images, with ConvolveImageMean_MT, and its Gaussian blur for every type,
+    /// with ConvolveNormalized_MT. The results are identical to BlurImageOps for any number of threads
     class BlurImageOps_MT {
     public:
         /// BlurImageOps::mean()
@@ -137,6 +138,33 @@ namespace boofcv {
             storage.reshape(input.width, input.height);
             ConvolveImageMean_MT::horizontal(input, storage, radius_x, radius_x*2 + 1, border);
             ConvolveImageMean_MT::vertical(storage, output, radius_y, radius_y*2 + 1, border);
+        }
+
+        /// BlurImageOps::gaussian() with the same kernel along x and y
+        template<class E>
+        static void gaussian( const Gray<E>& input, Gray<E>& output, double sigma, int32_t width, Gray<E>& storage ) {
+            gaussian(input, output, sigma, width, sigma, width, storage);
+        }
+
+        /// BlurImageOps::gaussian() with a different kernel along x and y
+        template<class E>
+        static void gaussian( const Gray<E>& input, Gray<E>& output, double sigma_x, int32_t width_x,
+                              double sigma_y, int32_t width_y, Gray<E>& storage ) {
+            typedef typename TypeInfo<E>::signed_type K;
+            gaussian(input, output, FactoryKernel::gaussian1D<K>(sigma_x, width_x),
+                     FactoryKernel::gaussian1D<K>(sigma_y, width_y), storage);
+        }
+
+        /// BlurImageOps::gaussian() with kernels that have already been computed
+        template<class E>
+        static void gaussian( const Gray<E>& input, Gray<E>& output,
+                              const Kernel1D<typename TypeInfo<E>::signed_type>& kernel_x,
+                              const Kernel1D<typename TypeInfo<E>::signed_type>& kernel_y, Gray<E>& storage ) {
+            output.reshape(input.width, input.height);
+            storage.reshape(input.width, input.height);
+
+            ConvolveNormalized_MT::horizontal(kernel_x, input, storage);
+            ConvolveNormalized_MT::vertical(kernel_y, storage, output);
         }
     };
 }
