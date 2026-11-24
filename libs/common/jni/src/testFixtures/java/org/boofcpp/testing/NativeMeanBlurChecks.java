@@ -205,31 +205,25 @@ public abstract class NativeMeanBlurChecks extends BoofCPPStandardJUnit {
                     float total = 0;
                     for (int j = -radiusY; j <= radiusY; j++)
                         for (int i = -radiusX; i <= radiusX; i++)
-                            total += (float)get(border, x + i, y + j)*weight;
+                            total += (float)BoofCPPTesting.borderValue(border, x + i, y + j)*weight;
                     ((GrayF32)output).set(x, y, total);
                 } else if (input instanceof GrayF64) {
                     double weight = 1.0/length;
                     double total = 0;
                     for (int j = -radiusY; j <= radiusY; j++)
                         for (int i = -radiusX; i <= radiusX; i++)
-                            total += get(border, x + i, y + j)*weight;
+                            total += BoofCPPTesting.borderValue(border, x + i, y + j)*weight;
                     ((GrayF64)output).set(x, y, total);
                 } else {
                     int total = 0;
                     for (int j = -radiusY; j <= radiusY; j++)
                         for (int i = -radiusX; i <= radiusX; i++)
-                            total += (int)get(border, x + i, y + j);
+                            total += (int)BoofCPPTesting.borderValue(border, x + i, y + j);
                     GeneralizedImageOps.set(output, x, y, (total + length/2)/length);
                 }
             }
         }
         return output;
-    }
-
-    private static double get( ImageBorder border, int x, int y ) {
-        double[] pixel = new double[1];
-        border.getGeneral(x, y, pixel);
-        return pixel[0];
     }
 
     /// Largest input value. It's the tolerance's scale because the mean is a running sum of raw pixel values, so

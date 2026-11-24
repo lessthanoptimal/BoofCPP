@@ -2,6 +2,7 @@ package org.boofcpp.testing;
 
 import boofcv.concurrency.BoofConcurrency;
 import boofcv.core.image.GeneralizedImageOps;
+import boofcv.struct.border.ImageBorder;
 import boofcv.struct.image.*;
 import org.boofcpp.NativeConcurrency;
 
@@ -117,6 +118,13 @@ public class BoofCPPTesting {
             call.run();
             return null;
         });
+    }
+
+    /// Pixel (x,y) of a single band image read through 'border', which can be outside the image
+    public static double borderValue( ImageBorder<?> border, int x, int y ) {
+        double[] pixel = new double[1];
+        border.getGeneral(x, y, pixel);
+        return pixel[0];
     }
 
     /// The switch between a native call's single threaded and concurrent code. With one thread 'call' must run
