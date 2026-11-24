@@ -1,6 +1,9 @@
 package org.boofcpp.testing;
 
 import boofcv.concurrency.BoofConcurrency;
+import boofcv.core.image.border.FactoryImageBorder;
+import boofcv.struct.border.BorderType;
+import boofcv.struct.border.ImageBorder;
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayF64;
 import boofcv.struct.image.GrayU8;
@@ -124,6 +127,22 @@ public class TestBoofCPPTesting extends BoofCPPStandardJUnit {
         } finally {
             BoofConcurrency.USE_CONCURRENT = previous;
         }
+    }
+
+    /// Inside the image the pixel's value, outside it the border's
+    @Test public void borderValue() {
+        GrayU8 u8 = u8row(3, 9);
+        ImageBorder<GrayU8> extended = FactoryImageBorder.single(BorderType.EXTENDED, GrayU8.class);
+        extended.setImage(u8);
+        assertEquals(9, BoofCPPTesting.borderValue(extended, 1, 0));
+        assertEquals(3, BoofCPPTesting.borderValue(extended, -2, 0));
+        assertEquals(9, BoofCPPTesting.borderValue(extended, 4, 3));
+
+        GrayF32 f32 = (GrayF32)f32(1.25f);
+        ImageBorder<GrayF32> value = FactoryImageBorder.singleValue(7.5, GrayF32.class);
+        value.setImage(f32);
+        assertEquals(1.25, BoofCPPTesting.borderValue(value, 0, 0));
+        assertEquals(7.5, BoofCPPTesting.borderValue(value, 0, -1));
     }
 
     private static GrayU8 u8row( int... values ) {
