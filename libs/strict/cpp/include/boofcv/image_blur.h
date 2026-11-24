@@ -256,7 +256,7 @@ namespace boofcv {
         /// border) for U8, S16, U16, F32 and F64, including the order of the floating point operations. Integer
         /// images round to the nearest value.
         template< class E>
-        static void horizontal( const Gray<E>& input, Gray<E>& output, int32_t offset, int32_t length,
+        static void horizontal( const Gray<E>& input, Gray<E>& output, uint32_t offset, uint32_t length,
                                 ImageBorder<E>& border ) {
             output.reshape(input.width, input.height);
             border.setImage(input);
@@ -265,12 +265,14 @@ namespace boofcv {
 
         /// horizontal() of the rows y0 <= y < y1. 'output' has the input's shape and 'border' has the input image
         template< class E>
-        static void horizontal( const Gray<E>& input, Gray<E>& output, int32_t offset, int32_t length,
+        static void horizontal( const Gray<E>& input, Gray<E>& output, uint32_t offset, uint32_t length,
                                 const ImageBorder<E>& border, uint32_t y0, uint32_t y1 ) {
             typedef typename TypeInfo<E>::sum_type sum_type;
+            // Signed, since pixels outside the image have negative coordinates
+            const auto ofs = (int32_t)offset, len = (int32_t)length;
             const int32_t width = input.width;
-            const int32_t border_right = length - offset - 1;
-            const MeanDivisor<E> divisor(length);
+            const int32_t border_right = len - ofs - 1;
+            const MeanDivisor<E> divisor(len);
 
             for (int32_t y = y0; y < (int32_t)y1; y++) {
                 E* out = output.data + output.offset + y*output.stride;
@@ -278,25 +280,25 @@ namespace boofcv {
                 // the border. BoofCV fails if the image is narrower than offset or border_right, so those columns
                 // are clamped to the image
                 auto border_pixel = [&]( int32_t x ) {
-                    out[x] = border_sum<E>(divisor, length, [&]( int32_t k ) { return border.get(x + k - offset, y); });
+                    out[x] = border_sum<E>(divisor, len, [&]( int32_t k ) { return border.get(x + k - ofs, y); });
                 };
-                for (int32_t x = 0; x < std::min(offset, width); x++)
+                for (int32_t x = 0; x < std::min(ofs, width); x++)
                     border_pixel(x);
                 for (int32_t x = std::max(0, width - border_right); x < width; x++)
                     border_pixel(x);
 
                 // inner image with a running sum
-                if (length > width)
+                if (len > width)
                     continue;
                 const E* in = input.data + input.offset + y*input.stride;
                 sum_type total = 0;
-                for (int32_t i = 0; i < length; i++)
+                for (int32_t i = 0; i < len; i++)
                     total += in[i];
-                out[offset] = divisor(total);
-                for (int32_t i = length; i < width; i++) {
-                    total -= in[i - length];
+                out[ofs] = divisor(total);
+                for (int32_t i = len; i < width; i++) {
+                    total -= in[i - len];
                     total += in[i];
-                    out[offset + i - length + 1] = divisor(total);
+                    out[ofs + i - len + 1] = divisor(total);
                 }
             }
         }
@@ -307,7 +309,7 @@ namespace boofcv {
         ///
         /// @param totals Work space
         template< class E>
-        static void vertical( const Gray<E>& input, Gray<E>& output, int32_t offset, int32_t length,
+        static void vertical( const Gray<E>& input, Gray<E>& output, uint32_t offset, uint32_t length,
                               ImageBorder<E>& border, std::vector<typename TypeInfo<E>::sum_type>& totals ) {
             output.reshape(input.width, input.height);
             border.setImage(input);
@@ -318,39 +320,41 @@ namespace boofcv {
         /// running sums start at the first inner row in the range, so the results are the same for any range only for
         /// integers
         template< class E>
-        static void vertical( const Gray<E>& input, Gray<E>& output, int32_t offset, int32_t length,
+        static void vertical( const Gray<E>& input, Gray<E>& output, uint32_t offset, uint32_t length,
                               const ImageBorder<E>& border, std::vector<typename TypeInfo<E>::sum_type>& totals,
                               uint32_t y0, uint32_t y1 ) {
             typedef typename TypeInfo<E>::sum_type sum_type;
+            // Signed, since pixels outside the image have negative coordinates
+            const auto ofs = (int32_t)offset, len = (int32_t)length;
             const int32_t width = input.width;
             const int32_t height = input.height;
-            const int32_t border_bottom = length - offset - 1;
-            const MeanDivisor<E> divisor(length);
+            const int32_t border_bottom = len - ofs - 1;
+            const MeanDivisor<E> divisor(len);
 
             // the border. Rows are clamped to the image, see horizontal()
             for (int32_t x = 0; x < width; x++) {
                 auto border_pixel = [&]( int32_t y ) {
                     output.unsafe_at(x, y) =
-                            border_sum<E>(divisor, length, [&]( int32_t k ) { return border.get(x, y + k - offset); });
+                            border_sum<E>(divisor, len, [&]( int32_t k ) { return border.get(x, y + k - ofs); });
                 };
-                for (int32_t y = y0; y < std::min({offset, height, (int32_t)y1}); y++)
+                for (int32_t y = y0; y < std::min({ofs, height, (int32_t)y1}); y++)
                     border_pixel(y);
                 for (int32_t y = std::max({0, height - border_bottom, (int32_t)y0}); y < (int32_t)y1; y++)
                     border_pixel(y);
             }
 
             // inner image with a running sum for each column. Its output rows are offset to offset + height - length
-            if (length > height)
+            if (len > height)
                 return;
-            const int32_t first = std::max(offset, (int32_t)y0);
-            const int32_t last = std::min(offset + height - length, (int32_t)y1 - 1);
+            const int32_t first = std::max(ofs, (int32_t)y0);
+            const int32_t last = std::min(ofs + height - len, (int32_t)y1 - 1);
             if (first > last)
                 return;
             totals.resize(width);
-            const E* in = input.data + input.offset + (first - offset)*input.stride;
+            const E* in = input.data + input.offset + (first - ofs)*input.stride;
             for (int32_t x = 0; x < width; x++)
                 totals[x] = in[x];
-            for (int32_t y = 1; y < length; y++) {
+            for (int32_t y = 1; y < len; y++) {
                 const E* row = in + y*input.stride;
                 for (int32_t x = 0; x < width; x++)
                     totals[x] += row[x];
@@ -358,10 +362,10 @@ namespace boofcv {
             E* out = output.data + output.offset + first*output.stride;
             for (int32_t x = 0; x < width; x++)
                 out[x] = divisor(totals[x]);
-            for (int32_t y = first - offset; y < last - offset; y++) {
+            for (int32_t y = first - ofs; y < last - ofs; y++) {
                 const E* removed = input.data + input.offset + y*input.stride;
-                const E* added = removed + length*input.stride;
-                out = output.data + output.offset + (offset + y + 1)*output.stride;
+                const E* added = removed + len*input.stride;
+                out = output.data + output.offset + (ofs + y + 1)*output.stride;
                 for (int32_t x = 0; x < width; x++) {
                     sum_type total = totals[x] - removed[x];
                     total += added[x];
@@ -416,7 +420,7 @@ namespace boofcv {
         template<class E>
         static void mean( const Gray<E>& input, Gray<E>& output, uint32_t radius_x, uint32_t radius_y,
                           Gray<E>& storage ) {
-            if (radius_x <= 0 || radius_y <= 0)
+            if (radius_x == 0 || radius_y == 0)
                 throw invalid_argument("Radius must be > 0");
 
             output.reshape(input.width, input.height);
@@ -426,17 +430,17 @@ namespace boofcv {
             ConvolveImageMean::vertical(storage, output, radius_y);
         }
 
-        /// Mean box filter where pixels outside the image are read from 'border'. Same as BoofCV's
-        /// BlurImageOps.meanB() for U8, U16, F32 and F64, which fails if a radius is larger than the image. Here
-        /// those images work.
+        /// Mean box filter where pixels outside the image are read from 'border', so every box has the same number
+        /// of pixels. Same as BoofCV's BlurImageOps.meanB() for U8, U16, F32 and F64, which fails if a radius is
+        /// larger than the image. Here those images work.
         ///
         /// @param storage Work space
         /// @param totals Work space
         template< class E>
-        static void mean_border( const Gray<E>& input, Gray<E>& output, int32_t radius_x, int32_t radius_y,
-                                 ImageBorder<E>& border, Gray<E>& storage,
-                                 std::vector<typename TypeInfo<E>::sum_type>& totals ) {
-            if (radius_x <= 0 || radius_y <= 0)
+        static void mean( const Gray<E>& input, Gray<E>& output, uint32_t radius_x, uint32_t radius_y,
+                          ImageBorder<E>& border, Gray<E>& storage,
+                          std::vector<typename TypeInfo<E>::sum_type>& totals ) {
+            if (radius_x == 0 || radius_y == 0)
                 throw invalid_argument("Radius must be > 0");
             storage.reshape(input.width, input.height);
             ConvolveImageMean::horizontal(input, storage, radius_x, radius_x*2 + 1, border);

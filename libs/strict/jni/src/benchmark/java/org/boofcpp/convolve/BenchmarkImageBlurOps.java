@@ -4,7 +4,10 @@ import boofcv.alg.filter.blur.GBlurImageOps;
 import boofcv.concurrency.BoofConcurrency;
 import boofcv.core.image.GConvertImage;
 import boofcv.core.image.GeneralizedImageOps;
+import boofcv.core.image.border.FactoryImageBorder;
 import boofcv.io.image.ConvertBufferedImage;
+import boofcv.struct.border.BorderType;
+import boofcv.struct.border.ImageBorder;
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayF64;
 import boofcv.struct.image.GrayU16;
@@ -32,6 +35,8 @@ public class BenchmarkImageBlurOps {
     public String image;
 
     ImageGray input, output, storage;
+    /// Mean with a border reads pixels outside the image from a reflected border
+    ImageBorder border;
 
     int radius = 5;
 
@@ -66,11 +71,17 @@ public class BenchmarkImageBlurOps {
         GConvertImage.convert(gray, input);
         output = (ImageGray)input.createSameShape();
         storage = (ImageGray)input.createSameShape();
+        border = FactoryImageBorder.single(BorderType.REFLECT, type);
     }
 
     @Benchmark
     public void mean_native() {
         nativeOps.processMeanWeighted(input, output, radius, radius, storage);
+    }
+
+    @Benchmark
+    public void mean_with_border_native() {
+        nativeOps.processMeanBorder(input, output, radius, radius, border, storage);
     }
 
     @Benchmark
@@ -81,6 +92,11 @@ public class BenchmarkImageBlurOps {
     @Benchmark
     public void mean() {
         GBlurImageOps.mean(input, output, radius, storage, null);
+    }
+
+    @Benchmark
+    public void mean_with_border() {
+        GBlurImageOps.meanB(input, output, radius, radius, border, storage, null);
     }
 
     @Benchmark

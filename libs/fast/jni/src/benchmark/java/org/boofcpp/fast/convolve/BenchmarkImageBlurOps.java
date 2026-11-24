@@ -73,16 +73,16 @@ public class BenchmarkImageBlurOps {
         GBlurImageOps.mean(input, output, radius, storage, null);
     }
 
-    @Benchmark public void mean_border_fast() {
+    @Benchmark public void mean_with_border_fast() {
         BOverrideBlurImageOps.mean = registered;
         GBlurImageOps.meanB(input, output, radius, radius, border, storage, null);
     }
 
-    @Benchmark public void mean_border_strict() {
+    @Benchmark public void mean_with_border_strict() {
         strict.processMeanBorder(input, output, radius, radius, border, storage);
     }
 
-    @Benchmark public void mean_border_java() {
+    @Benchmark public void mean_with_border_java() {
         BOverrideBlurImageOps.mean = null;
         GBlurImageOps.meanB(input, output, radius, radius, border, storage, null);
     }
