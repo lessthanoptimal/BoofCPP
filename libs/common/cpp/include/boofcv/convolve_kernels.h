@@ -260,7 +260,7 @@ namespace boofcv {
 
             typename Kernel1D<E>::sum_type sum = kernel.sum();
 
-            for( uint32_t i = 0; i < kernel.width; i++ ) {
+            for( uint32_t i = 0; i < kernel.data.size; i++ ) {
                 kernel.data[i] /= sum;
             }
         }
@@ -311,6 +311,16 @@ namespace boofcv {
         static Kernel1D<E> gaussian1D(double sigma, int32_t width,
                                       typename std::enable_if<std::is_floating_point<E>::value>::type* = 0 )
         {
+            Kernel1D<E> ret = gaussian1D_pdf<E>(sigma, width);
+            normalize(ret);
+            return ret;
+        }
+
+        /// gaussian1D() without normalizing the kernel
+        template< class E >
+        static Kernel1D<E> gaussian1D_pdf(double sigma, int32_t width,
+                                          typename std::enable_if<std::is_floating_point<E>::value>::type* = 0 )
+        {
             if( width <= 0 )
                 width = radiusForSigma(sigma,0)*2+1;
             else if( sigma <= 0 )
@@ -324,20 +334,19 @@ namespace boofcv {
                 ret.data[i] = static_cast<E>(computePDF(0, sigma, i-radius+adjust));
             }
 
-            normalize(ret);
-
             return ret;
         }
 
+        /// Product of two gaussian1D_pdf() kernels, normalized. Same as BoofCV's FactoryKernelGaussian.gaussian2D_F32()
         template< class E >
         static Kernel2D<E> gaussian2D(double sigma, int32_t width,
                                       typename std::enable_if<std::is_floating_point<E>::value>::type* = 0 )
         {
-            Kernel1D<E> seed = gaussian1D<E>(sigma,width);
-            Kernel2D<E> output(width,width/2);
+            Kernel1D<E> seed = gaussian1D_pdf<E>(sigma,width);
+            Kernel2D<E> output(seed.width,seed.width/2);
 
-            for( int i = 0; i < width; i++ ) {
-                for( int j = 0; j < width; j++ ) {
+            for( uint32_t i = 0; i < seed.width; i++ ) {
+                for( uint32_t j = 0; j < seed.width; j++ ) {
                     output.at(i,j) = seed.at(i)*seed.at(j);
                 }
             }

@@ -246,10 +246,12 @@ namespace boofcv {
     class ConvolveImage_Inner {
     public:
 
+        /// horizontal() with W set to the kernel's width for widths 3, 5, 7, 9, 11 and 13, so the loops over the kernel
+        /// have a fixed length. Other widths use W = 0, the width at run time
         template<class E>
-        static void horizontal_unrolled( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
-                                         const Gray<E>& input, Gray<E>& output ,
-                                         typename TypeInfo<E>::signed_type divisor)
+        static void horizontal_switch( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
+                                       const Gray<E>& input, Gray<E>& output ,
+                                       typename TypeInfo<E>::signed_type divisor)
         {
             switch( kernel.width ) {
                 case 3:horizontal<3>(kernel,input,output,divisor);return;
@@ -378,9 +380,10 @@ namespace boofcv {
             horizontal_rows<W>(kernel, input, output, [=]( signed_type total ) { return (E)(total/divisor); });
         }
 
+        /// Same as horizontal_switch() above, for horizontal() without a divisor
         template<typename E, typename R>
-        static void horizontal_unrolled( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
-                                         const Gray<E>& input, Gray<R>& output )
+        static void horizontal_switch( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
+                                       const Gray<E>& input, Gray<R>& output )
         {
             switch( kernel.width ) {
                 case 3:horizontal<3>(kernel,input,output);return;
@@ -402,10 +405,12 @@ namespace boofcv {
             horizontal_rows<W>(kernel, input, output, []( signed_type total ) { return static_cast<R>(total); });
         }
 
+        /// vertical() with W set to the kernel's width for widths 3, 5, 7, 9, 11 and 13, so the loops over the kernel have
+        /// a fixed length. Other widths use W = 0, the width at run time
         template<typename E>
-        static void vertical_unrolled( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
-                                       const Gray<E>& input, Gray<E>& output ,
-                                       typename TypeInfo<E>::signed_type divisor )
+        static void vertical_switch( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
+                                     const Gray<E>& input, Gray<E>& output ,
+                                     typename TypeInfo<E>::signed_type divisor )
         {
             switch( kernel.width ) {
                 case 3:vertical<3>(kernel,input,output,divisor);return;
@@ -526,9 +531,10 @@ namespace boofcv {
                 vertical_rows<W>(kernel, input, output, result);
         }
 
+        /// Same as vertical_switch() above, for vertical() without a divisor
         template<typename E, typename R>
-        static void vertical_unrolled( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
-                                       const Gray<E>& input, Gray<R>& output )
+        static void vertical_switch( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel ,
+                                     const Gray<E>& input, Gray<R>& output )
         {
             switch( kernel.width ) {
                 case 3:vertical<3>(kernel,input,output);return;
@@ -576,30 +582,30 @@ namespace boofcv {
             convolve_blocked(kernel, input, output, [=]( signed_type total ) { return (E)(total/divisor); });
         }
 
-        /**
-         * Mirrors BoofCV ConvolveImageUnrolled_SB_F32_F32.convolve{3,5,7,9,11}: each kernel row is summed separately,
-         * the first row is written to output and the following rows are added to it.
-         * @return true if the kernel width is supported and the image was processed
-         */
+        /// convolve() without a divisor, with W set to the kernel's width for centered kernels 3, 5, 7, 9 and 11 wide,
+        /// the widths BoofCV unrolls. Other kernels use W = 0
         template<typename E, typename R>
-        static bool convolve_rows( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel ,
-                                   const Gray<E>& input, Gray<R>& output )
+        static void convolve_switch( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel ,
+                                     const Gray<E>& input, Gray<R>& output )
         {
-            if( kernel.offset != kernel.width/2 )
-                return false;
-            switch( kernel.width ) {
-                case 3: convolve_rows_w<3>(kernel,input,output); return true;
-                case 5: convolve_rows_w<5>(kernel,input,output); return true;
-                case 7: convolve_rows_w<7>(kernel,input,output); return true;
-                case 9: convolve_rows_w<9>(kernel,input,output); return true;
-                case 11: convolve_rows_w<11>(kernel,input,output); return true;
-                default: return false;
+            if( kernel.offset == kernel.width/2 ) {
+                switch( kernel.width ) {
+                    case 3: convolve<3>(kernel,input,output); return;
+                    case 5: convolve<5>(kernel,input,output); return;
+                    case 7: convolve<7>(kernel,input,output); return;
+                    case 9: convolve<9>(kernel,input,output); return;
+                    case 11: convolve<11>(kernel,input,output); return;
+                }
             }
+            convolve(kernel,input,output);
         }
 
+        /// Mirrors BoofCV ConvolveImageUnrolled_SB_F32_F32.convolve{3,5,7,9,11}: each kernel row is summed separately,
+        /// the first row is written to output and the following rows are added to it. W is the width of a centered
+        /// kernel
         template<int W, typename E, typename R>
-        BOOFCPP_NOINLINE static void convolve_rows_w( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel ,
-                                     const Gray<E>& input, Gray<R>& output )
+        BOOFCPP_NOINLINE static void convolve_rows( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel ,
+                                                     const Gray<E>& input, Gray<R>& output )
         {
             typedef typename TypeInfo<E>::signed_type signed_type;
             const int32_t radius = W/2;
@@ -633,17 +639,18 @@ namespace boofcv {
             }
         }
 
-        template<typename E, typename R>
+        /// Convolution without a divisor. W is the width of a centered kernel, or 0 if it's only known at run time. With
+        /// a width it sums one kernel row at a time, as BoofCV's unrolled code does, so floating point results are bit
+        /// identical. Integer results don't depend on the order
+        template<int W = 0, typename E, typename R>
         static void convolve( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel ,
                               const Gray<E>& input, Gray<R>& output )
         {
             typedef typename TypeInfo<E>::signed_type signed_type;
-
-            // BoofCV uses unrolled code for these kernel widths, which sums one kernel row at a time. Same order is used
-            // here so floating point results are bit identical. Integer results don't depend on the order
-            if( convolve_rows(kernel,input,output) )
-                return;
-            convolve_blocked(kernel, input, output, []( signed_type total ) { return (R)total; });
+            if constexpr( W > 0 )
+                convolve_rows<W>(kernel, input, output);
+            else
+                convolve_blocked(kernel, input, output, []( signed_type total ) { return (R)total; });
         }
 
         /// 2D convolution where 'result' turns each sum into the output pixel. By blocks of pixels, see
@@ -801,7 +808,7 @@ namespace boofcv {
             if( kernel.width >= output.width ) {
                 ConvolveNaive::horizontal(kernel, input, output);
             } else {
-                ConvolveImage_Inner::horizontal_unrolled(kernel, *input.image, output);
+                ConvolveImage_Inner::horizontal_switch(kernel, *input.image, output);
                 ConvolveImage_Border::horizontal(kernel, input, output);
             }
         }
@@ -815,7 +822,7 @@ namespace boofcv {
             if( kernel.width >= output.height ) {
                 ConvolveNaive::vertical(kernel, input, output);
             } else {
-                ConvolveImage_Inner::vertical_unrolled(kernel, *input.image, output);
+                ConvolveImage_Inner::vertical_switch(kernel, *input.image, output);
                 ConvolveImage_Border::vertical(kernel, input, output);
             }
         }
@@ -829,7 +836,7 @@ namespace boofcv {
             if( kernel.width >= output.width || kernel.width >= output.height ) {
                 ConvolveNaive::convolve(kernel, input, output);
             } else {
-                ConvolveImage_Inner::convolve(kernel, *input.image, output);
+                ConvolveImage_Inner::convolve_switch(kernel, *input.image, output);
                 ConvolveImage_Border::convolve(kernel, input, output);
             }
         };
@@ -860,6 +867,16 @@ namespace boofcv {
             for( uint32_t i = 0; i < kernel.width; i++ ) sum += kernel.data[i];
             for( uint32_t i = 0; i < kernel.width; i++ ) out.data[i] = kernel.data[i]/sum;
         }
+
+        /// Integer kernels whose weights sum to zero, such as ones filled with zeros, throw. Floats aren't checked
+        template<class K>
+        static void check_sum( const KernelBase<K>& kernel ) {
+            if constexpr (std::is_integral<K>::value) {
+                if (kernel.sum() == 0)
+                    throw std::domain_error("Kernel weights sum to zero");
+            }
+        }
+
         template<class E>
         static void horizontal( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel, const Gray<E>& input, Gray<E>& output ,
                                 typename std::enable_if<std::is_integral<E>::value >::type* = 0)
@@ -869,7 +886,8 @@ namespace boofcv {
             if( kernel.width >= input.width ) {
                 ConvolveNormalizedNaive::horizontal(kernel, input, output);
             } else {
-                ConvolveImage_Inner::horizontal_unrolled(kernel, input, output, kernel.sum());
+                check_sum(kernel);
+                ConvolveImage_Inner::horizontal_switch(kernel, input, output, kernel.sum());
                 ConvolveNormalized_JustBorder::horizontal(kernel, input, output);
             }
         }
@@ -889,10 +907,10 @@ namespace boofcv {
                 if( needs_normalization(kernel) ) {
                     Kernel1D<signed_type> k(kernel.width, kernel.offset);
                     normalize_sum_to_one(kernel, k);
-                    ConvolveImage_Inner::horizontal_unrolled(k, input, output);
+                    ConvolveImage_Inner::horizontal_switch(k, input, output);
                     ConvolveNormalized_JustBorder::horizontal(k, input, output);
                 } else {
-                    ConvolveImage_Inner::horizontal_unrolled(kernel, input, output);
+                    ConvolveImage_Inner::horizontal_switch(kernel, input, output);
                     ConvolveNormalized_JustBorder::horizontal(kernel, input, output);
                 }
             }
@@ -907,7 +925,8 @@ namespace boofcv {
             if( kernel.width >= input.height ) {
                 ConvolveNormalizedNaive::vertical(kernel, input, output);
             } else {
-                ConvolveImage_Inner::vertical_unrolled(kernel, input, output, kernel.sum());
+                check_sum(kernel);
+                ConvolveImage_Inner::vertical_switch(kernel, input, output, kernel.sum());
                 ConvolveNormalized_JustBorder::vertical(kernel, input, output);
             }
         }
@@ -925,10 +944,10 @@ namespace boofcv {
                 if( needs_normalization(kernel) ) {
                     Kernel1D<signed_type> k(kernel.width, kernel.offset);
                     normalize_sum_to_one(kernel, k);
-                    ConvolveImage_Inner::vertical_unrolled(k, input, output);
+                    ConvolveImage_Inner::vertical_switch(k, input, output);
                     ConvolveNormalized_JustBorder::vertical(k, input, output);
                 } else {
-                    ConvolveImage_Inner::vertical_unrolled(kernel, input, output);
+                    ConvolveImage_Inner::vertical_switch(kernel, input, output);
                     ConvolveNormalized_JustBorder::vertical(kernel, input, output);
                 }
             }
@@ -966,10 +985,8 @@ namespace boofcv {
             if (kernel.width >= input.width || kernel.width >= input.height) {
                 ConvolveNormalizedNaive::convolve(kernel, input, output);
             } else if constexpr (std::is_integral<E>::value) {
-                const signed_type sum = kernel.sum();
-                if (sum == 0)
-                    throw std::domain_error("Kernel weights sum to zero");
-                ConvolveImage_Inner::convolve(kernel, input, output, sum);
+                check_sum(kernel);
+                ConvolveImage_Inner::convolve(kernel, input, output, kernel.sum());
                 ConvolveNormalized_JustBorder::convolve(kernel, input, output);
             } else {
                 signed_type sum = 0;
@@ -979,10 +996,10 @@ namespace boofcv {
                     Kernel2D<signed_type> normalized(kernel.width, kernel.offset);
                     for (uint32_t i = 0; i < kernel.data.size; i++)
                         normalized.data[i] = kernel.data[i]/sum;
-                    ConvolveImage_Inner::convolve(normalized, input, output);
+                    ConvolveImage_Inner::convolve_switch(normalized, input, output);
                     ConvolveNormalized_JustBorder::convolve(normalized, input, output);
                 } else {
-                    ConvolveImage_Inner::convolve(kernel, input, output);
+                    ConvolveImage_Inner::convolve_switch(kernel, input, output);
                     ConvolveNormalized_JustBorder::convolve(kernel, input, output);
                 }
             }

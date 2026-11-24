@@ -107,6 +107,16 @@ TEST_F(FactoryKernelTest, normalize) {
     ASSERT_FLOAT_EQ(0.10033445f,kernel_F32.at(2));
 }
 
+/// Every weight of a 2D kernel is scaled
+TEST_F(FactoryKernelTest, normalize_2D) {
+    Kernel2D<F32> kernel(3, 1);
+    for (uint32_t i = 0; i < kernel.data.size; i++)
+        kernel.data[i] = (F32)(i + 1);
+    FactoryKernel::normalize(kernel);
+    for (uint32_t i = 0; i < kernel.data.size; i++)
+        ASSERT_FLOAT_EQ((i + 1)/45.0f, kernel.data[i]);
+}
+
 TEST_F(FactoryKernelTest, sigmaForRadius) {
     ASSERT_DOUBLE_EQ(0.6,FactoryKernel::sigmaForRadius(1,0));
     ASSERT_DOUBLE_EQ(1.0,FactoryKernel::sigmaForRadius(2,0));
@@ -211,4 +221,31 @@ TEST_F(FactoryKernelTest, gaussian1D_S32_same_as_BoofCV) {
     }
 }
 
+/// Gaussian 2D kernels from BoofCV's FactoryKernelGaussian.gaussian(Kernel2D_S32.class, sigma, radius). The width
+/// comes from sigma when it isn't given
+TEST_F(FactoryKernelTest, gaussian2D_S32_same_as_BoofCV) {
+    struct Case { double sigma; int32_t width; std::vector<S32> expected; };
+    std::vector<Case> cases = {
+            {-1, 3, {1,4,1, 4,16,4, 1,4,1}},
+            {0.7, 7, {0,0,0,0,0,0,0, 0,0,0,1,0,0,0, 0,0,7,21,7,0,0, 0,1,21,59,21,1,0, 0,0,7,21,7,0,0,
+                      0,0,0,1,0,0,0, 0,0,0,0,0,0,0}},
+            {1.5, -1, {0,0,1,1,2,1,1,0,0, 0,1,4,9,11,9,4,1,0, 1,4,14,28,35,28,14,4,1, 1,9,28,54,68,54,28,9,1,
+                       2,11,35,68,85,68,35,11,2, 1,9,28,54,68,54,28,9,1, 1,4,14,28,35,28,14,4,1,
+                       0,1,4,9,11,9,4,1,0, 0,0,1,1,2,1,1,0,0}}};
+    for (const Case& c : cases) {
+        Kernel2D<S32> found = FactoryKernel::gaussian2D<S32>(c.sigma,c.width);
+        ASSERT_EQ(c.expected.size(),found.data.size);
+        for (uint32_t i = 0; i < found.data.size; i++)
+            ASSERT_EQ(c.expected[i],found.data[i]) << i;
+    }
+}
 
+/// Same as BoofCV's FactoryKernelGaussian.gaussian(Kernel2D_F32.class, -1, 1), bit for bit
+TEST_F(FactoryKernelTest, gaussian2D_F32_same_as_BoofCV) {
+    const float corner = 0.027681809f, edge = 0.111014895f, center = 0.4452132f;
+    const std::vector<F32> expected = {corner,edge,corner, edge,center,edge, corner,edge,corner};
+    Kernel2D<F32> found = FactoryKernel::gaussian2D<F32>(-1, 3);
+    ASSERT_EQ(expected.size(),found.data.size);
+    for (uint32_t i = 0; i < found.data.size; i++)
+        ASSERT_EQ(expected[i],found.data[i]) << i;
+}

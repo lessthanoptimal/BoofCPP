@@ -194,7 +194,7 @@ public:
         border.setImage(input);
 
         ConvolveNaive::convolve(kernel2,border,expected);
-        ConvolveImage_Inner::convolve(kernel2,input,found);
+        ConvolveImage_Inner::convolve_switch(kernel2,input,found);
 
         borderX0 = kernel2.offset;
         borderX1 = kernel2.width-1-kernel2.offset;
@@ -346,19 +346,17 @@ void check_just_border_wide( std::mt19937& rng ) {
     }
 }
 
-/// vertical() with a row range writes the top and bottom border rows in it, and nothing else
-TEST_F(ConvolveNormalized_JustBorderTest, vertical_range_U8) {
-    const uint32_t w = 13, h = 20;
-    Gray<U8> input(w, h), expected(w, h), found(w, h);
-    ImageMiscOps::fill_uniform(input, (U8)0, (U8)200, rng);
-    Kernel1D<S32> kernel(7, 2);
-    KernelOps::fill_uniform(kernel, 1, 10, rng);
-    ImageMiscOps::fill(expected, (U8)251);
-    ConvolveNormalized_JustBorder::vertical(kernel, input, expected);
+/// Calls 'range(found, y0, y1)' with ranges that start or end inside, at the ends of, and outside the border of a 20
+/// row image and a kernel 7 wide with offset 2. Rows y0 <= y < y1 must match 'expected' and the others are unchanged
+template<class Range>
+void check_row_ranges( const Gray<U8>& expected, Range range ) {
+    const uint32_t w = expected.width, h = expected.height;
+    ASSERT_EQ(20u, h);
+    Gray<U8> found(w, h);
     const uint32_t ranges[][2] = {{0, h}, {0, 1}, {1, 3}, {2, 17}, {5, 15}, {16, 18}, {19, h}};
     for (auto& r : ranges) {
         ImageMiscOps::fill(found, (U8)251);
-        ConvolveNormalized_JustBorder::vertical(kernel, input, found, r[0], r[1]);
+        range(found, r[0], r[1]);
         for (uint32_t y = 0; y < h; y++) {
             for (uint32_t x = 0; x < w; x++) {
                 const bool inside = y >= r[0] && y < r[1];
@@ -366,6 +364,19 @@ TEST_F(ConvolveNormalized_JustBorderTest, vertical_range_U8) {
             }
         }
     }
+}
+
+/// vertical() with a row range writes the top and bottom border rows in it, and nothing else
+TEST_F(ConvolveNormalized_JustBorderTest, vertical_range_U8) {
+    Gray<U8> input(13, 20), expected(13, 20);
+    ImageMiscOps::fill_uniform(input, (U8)0, (U8)200, rng);
+    Kernel1D<S32> kernel(7, 2);
+    KernelOps::fill_uniform(kernel, 1, 10, rng);
+    ImageMiscOps::fill(expected, (U8)251);
+    ConvolveNormalized_JustBorder::vertical(kernel, input, expected);
+    check_row_ranges(expected, [&]( Gray<U8>& found, uint32_t y0, uint32_t y1 ) {
+        ConvolveNormalized_JustBorder::vertical(kernel, input, found, y0, y1);
+    });
 }
 
 TEST_F(ConvolveNormalized_JustBorderTest, wide_U8) { check_just_border_wide<U8>(rng); }
@@ -575,10 +586,10 @@ void check_vertical_registers( std::mt19937& rng ) {
     check_vertical_registers<9,E>(rng);
 }
 
-/// vertical_unrolled on both sides of the switch between vertical_rows_registers (floats, widths 3 to 9) and
-/// vertical_rows (wider), with and without a divisor, against the naive convolution
+/// vertical_switch() with widths where it uses vertical_rows_registers (floats, widths 3 to 9) and vertical_rows
+/// (wider), with and without a divisor, against the naive convolution
 template<class E>
-void check_vertical_unrolled_widths( std::mt19937& rng ) {
+void check_vertical_switch_widths( std::mt19937& rng ) {
     typedef typename TypeInfo<E>::signed_type K;
     Gray<E> input(37, 40);
     ImageMiscOps::fill_uniform(input, (E)0, (E)50, rng);
@@ -590,18 +601,18 @@ void check_vertical_unrolled_widths( std::mt19937& rng ) {
             KernelOps::fill_uniform(kernel, (K)-10, (K)10, rng);
             Gray<E> expected(input.width, input.height), found(input.width, input.height);
             ConvolveNaive::vertical(kernel, border, expected);
-            ConvolveImage_Inner::vertical_unrolled(kernel, input, found);
+            ConvolveImage_Inner::vertical_switch(kernel, input, found);
             check_equals_inner(expected, found, 0, 0, offset, width-1-offset);
             ConvolveNaive::vertical(kernel, border, expected, (K)7);
-            ConvolveImage_Inner::vertical_unrolled(kernel, input, found, (K)7);
+            ConvolveImage_Inner::vertical_switch(kernel, input, found, (K)7);
             check_equals_inner(expected, found, 0, 0, offset, width-1-offset);
         }
     }
 }
 
-TEST_F(ConvolveImage_InnerTest, vertical_unrolled_F32) { check_vertical_unrolled_widths<F32>(rng); }
+TEST_F(ConvolveImage_InnerTest, vertical_switch_F32) { check_vertical_switch_widths<F32>(rng); }
 
-TEST_F(ConvolveImage_InnerTest, vertical_unrolled_F64) { check_vertical_unrolled_widths<F64>(rng); }
+TEST_F(ConvolveImage_InnerTest, vertical_switch_F64) { check_vertical_switch_widths<F64>(rng); }
 
 TEST_F(ConvolveImage_InnerTest, vertical_registers_F32) { check_vertical_registers<F32>(rng); }
 
@@ -642,7 +653,7 @@ TEST_F(ConvolveImage_InnerTest, convolve_U8_S16) {
             KernelOps::fill_uniform(kernel,(S32)-3,(S32)3,rng);
             Gray<S16> expected(input.width,input.height), found(input.width,input.height);
             ConvolveNaive::convolve(kernel,border,expected);
-            ConvolveImage_Inner::convolve(kernel,input,found);
+            ConvolveImage_Inner::convolve_switch(kernel,input,found);
             check_equals_inner(expected,found,offset,width-1-offset,offset,width-1-offset);
         }
     }
@@ -846,4 +857,19 @@ TEST_F(ConvolveNormalizedTest, needs_normalization) {
     EXPECT_EQ(0.5f,n.data[1]);
     EXPECT_EQ(0.25f,n.data[2]);
     EXPECT_EQ(1u,n.offset);
+}
+
+/// Integer kernels whose weights sum to zero throw: 1D kernels filled with zeros and a 2D kernel whose weights cancel
+TEST_F(ConvolveNormalizedTest, weights_sum_to_zero) {
+    Gray<U8> input(10, 9), output(10, 9);
+    ImageMiscOps::fill(input, (U8)5);
+    Kernel1D<S32> kernel1(3, 1);
+    for (uint32_t i = 0; i < kernel1.data.size; i++)
+        kernel1.data[i] = 0;
+    EXPECT_THROW(ConvolveNormalized::horizontal(kernel1, input, output), domain_error);
+    EXPECT_THROW(ConvolveNormalized::vertical(kernel1, input, output), domain_error);
+    Kernel2D<S32> kernel2(3, 1);
+    for (uint32_t i = 0; i < kernel2.data.size; i++)
+        kernel2.data[i] = i == 0 ? 1 : (i == 1 ? -1 : 0);
+    EXPECT_THROW(ConvolveNormalized::convolve(kernel2, input, output), domain_error);
 }

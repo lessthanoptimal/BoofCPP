@@ -34,7 +34,7 @@ namespace boofcv {
             auto loop = BoofConcurrency::loop_blocks(0, output.height).element_cost(row_cost(output, kernel.width));
             loop.single(single).run([&]( uint32_t y0, uint32_t y1 ) {
                 inner_block(*input.image, output, 0, 0, y0, y1, [&kernel]( const Gray<E>& in, Gray<R>& out ) {
-                    ConvolveImage_Inner::horizontal_unrolled(kernel, in, out); });
+                    ConvolveImage_Inner::horizontal_switch(kernel, in, out); });
                 ConvolveImage_Border::horizontal(kernel, input, output, 0, kernel.offset, y0, y1);
                 ConvolveImage_Border::horizontal(kernel, input, output, right, output.width, y0, y1);
             });
@@ -57,7 +57,7 @@ namespace boofcv {
             loop.single(single).run([&]( uint32_t y0, uint32_t y1 ) {
                 inner_block(*input.image, output, before, after, y0, y1,
                             [&kernel]( const Gray<E>& in, Gray<R>& out ) {
-                    ConvolveImage_Inner::vertical_unrolled(kernel, in, out); });
+                    ConvolveImage_Inner::vertical_switch(kernel, in, out); });
                 border_rows(output.height, before, after, y0, y1, [&]( uint32_t a, uint32_t b ) {
                     ConvolveImage_Border::vertical(kernel, input, output, 0, output.width, a, b); });
             });
@@ -82,7 +82,7 @@ namespace boofcv {
             loop.single(single).run([&]( uint32_t y0, uint32_t y1 ) {
                 inner_block(*input.image, output, before, after, y0, y1,
                             [&kernel]( const Gray<E>& in, Gray<R>& out ) {
-                    ConvolveImage_Inner::convolve(kernel, in, out); });
+                    ConvolveImage_Inner::convolve_switch(kernel, in, out); });
                 ConvolveImage_Border::convolve(kernel, input, output, 0, before, y0, y1);
                 ConvolveImage_Border::convolve(kernel, input, output, right, output.width, y0, y1);
                 border_rows(output.height, before, after, y0, y1, [&]( uint32_t a, uint32_t b ) {

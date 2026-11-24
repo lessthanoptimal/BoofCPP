@@ -3,7 +3,6 @@ package org.boofcpp.convolve;
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayU8;
 import org.boofcpp.BoofCPP;
-import org.boofcpp.NativeConcurrency;
 import boofcv.alg.filter.derivative.GImageDerivativeOps;
 import boofcv.core.image.GeneralizedImageOps;
 import boofcv.core.image.border.FactoryImageBorder;
@@ -14,30 +13,23 @@ import boofcv.struct.convolve.Kernel1D;
 import boofcv.struct.convolve.Kernel2D;
 import boofcv.struct.image.ImageGray;
 import org.boofcpp.testing.NativeConvolveImageChecks;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import org.boofcpp.testing.NativeSingleThreaded;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.boofcpp.testing.BoofCPPTesting.assertConcurrentToggle;
 
 /// The ConvolveImage checks shared with the other variants, single threaded. Strict's results must be identical to
 /// BoofCV's
+@ExtendWith(NativeSingleThreaded.class)
 public class TestNativeConvolveImage extends NativeConvolveImageChecks {
     static {
         BoofCPP.loadlib();
     }
 
-    final int originalThreads = NativeConcurrency.getMaxThreads();
-
     public TestNativeConvolveImage() {
         super(new NativeConvolveImage(), GrayU8.class, GrayF32.class);
     }
-
-    @BeforeEach void singleThread() {
-        NativeConcurrency.setMaxThreads(1);
-    }
-
-    @AfterEach void restoreThreads() { NativeConcurrency.setMaxThreads(originalThreads); }
 
     /// Every operation and image type runs the _MT code with more than one thread
     @Test void concurrentToggle() {
