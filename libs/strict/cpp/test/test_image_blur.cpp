@@ -10,10 +10,9 @@
 using namespace std;
 using namespace boofcv;
 
-// BlurImageOps::mean, mean_border and gaussian are tested by checks shared with the other variants
+// BlurImageOps::mean, with and without a border, and gaussian are tested by checks shared with the other variants
 #include "variant_strict.h"
 #include "shared/blur_mean_checks.h"
-#include "shared/blur_mean_border_checks.h"
 #include "shared/blur_gaussian_checks.h"
 
 class BlurImageOpsTest : public boofcv::BoofCPPTest {};
@@ -201,13 +200,17 @@ TEST_F(BlurImageOpsTest, gaussian_U16) { blur_gaussian_checks::check_all<U16>(rn
 TEST_F(BlurImageOpsTest, gaussian_F32) { blur_gaussian_checks::check_all<F32>(rng); }
 TEST_F(BlurImageOpsTest, gaussian_F64) { blur_gaussian_checks::check_all<F64>(rng); }
 
-TEST_F(BlurImageOpsTest, mean_border_U8) { blur_mean_border_checks::check_all<U8>(rng, 0, 255); }
+TEST_F(BlurImageOpsTest, mean_with_border_U8) { blur_mean_checks::check_mean_with_border_all<U8>(rng, 0, 255); }
 // negative values check the rounding of negative sums
-TEST_F(BlurImageOpsTest, mean_border_S16) { blur_mean_border_checks::check_all<S16>(rng, -30000, 30000); }
-TEST_F(BlurImageOpsTest, mean_border_U16) { blur_mean_border_checks::check_all<U16>(rng, 0, 65535); }
-TEST_F(BlurImageOpsTest, mean_border_F32) { blur_mean_border_checks::check_all<F32>(rng, 0, 10); }
-TEST_F(BlurImageOpsTest, mean_border_F64) { blur_mean_border_checks::check_all<F64>(rng, 0, 10); }
-TEST_F(BlurImageOpsTest, mean_border_bad_radius) { blur_mean_border_checks::check_bad_radius<F32>(); }
+TEST_F(BlurImageOpsTest, mean_with_border_S16) {
+    blur_mean_checks::check_mean_with_border_all<S16>(rng, -30000, 30000);
+}
+TEST_F(BlurImageOpsTest, mean_with_border_U16) { blur_mean_checks::check_mean_with_border_all<U16>(rng, 0, 65535); }
+TEST_F(BlurImageOpsTest, mean_with_border_F32) { blur_mean_checks::check_mean_with_border_all<F32>(rng, 0, 10); }
+TEST_F(BlurImageOpsTest, mean_with_border_F64) { blur_mean_checks::check_mean_with_border_all<F64>(rng, 0, 10); }
+TEST_F(BlurImageOpsTest, mean_with_border_bad_radius) {
+    blur_mean_checks::check_mean_with_border_bad_radius<F32>();
+}
 
 /// The overloads with a row range write the rows in the range, the same as the full image, and no others. U8, since
 /// a vertical range restarts the running sums, which only gives the same floats for the full image
@@ -218,7 +221,7 @@ TEST_F(ConvolveImageMeanTest, border_row_range_U8) {
     auto border = FactoryImageBorder::create_SB<U8>(REFLECT);
     border->setImage(input);
     std::vector<TypeInfo<U8>::sum_type> totals;
-    const int32_t offset = 3, length = 9;
+    const uint32_t offset = 3, length = 9;
     const uint32_t ranges[][2] = {{0, h}, {0, 2}, {2, 5}, {3, 20}, {10, 11}, {25, h}, {7, 7}};
     for (int op = 0; op < 2; op++) {
         if (op == 0) ConvolveImageMean::horizontal(input, expected, offset, length, *border);

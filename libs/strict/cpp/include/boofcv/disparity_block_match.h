@@ -220,8 +220,8 @@ namespace boofcv {
         int32_t max_per_pixel_error() const override { return -1; }
 
         void set_input( const Gray<F32>& left, const Gray<F32>& right ) override {
-            BlurImageOps::mean_border(left, mean_left, radius_x, radius_y, *border, storage, totals);
-            BlurImageOps::mean_border(right, mean_right, radius_x, radius_y, *border, storage, totals);
+            BlurImageOps::mean(left, mean_left, radius_x, radius_y, *border, storage, totals);
+            BlurImageOps::mean(right, mean_right, radius_x, radius_y, *border, storage, totals);
         }
 
         bool require_normalize() const override { return true; }
@@ -240,7 +240,7 @@ namespace boofcv {
         }
 
     private:
-        int32_t radius_x, radius_y;
+        uint32_t radius_x, radius_y;
         std::shared_ptr<ImageBorder<F32>> border;
         Gray<F32> mean_left{1, 1}, mean_right{1, 1}, storage{1, 1};
         std::vector<F32> totals;
@@ -267,11 +267,11 @@ namespace boofcv {
         void set_input( const Gray<F32>& left, const Gray<F32>& right ) override {
             // the mean of the squared pixels, then the mean, then the standard deviation in place of the squares
             PixelMath::pow2(left, tmp);
-            BlurImageOps::mean_border(tmp, stdev_left, radius_x, radius_y, *border, storage, totals);
+            BlurImageOps::mean(tmp, stdev_left, radius_x, radius_y, *border, storage, totals);
             PixelMath::pow2(right, tmp);
-            BlurImageOps::mean_border(tmp, stdev_right, radius_x, radius_y, *border, storage, totals);
-            BlurImageOps::mean_border(left, mean_left, radius_x, radius_y, *border, storage, totals);
-            BlurImageOps::mean_border(right, mean_right, radius_x, radius_y, *border, storage, totals);
+            BlurImageOps::mean(tmp, stdev_right, radius_x, radius_y, *border, storage, totals);
+            BlurImageOps::mean(left, mean_left, radius_x, radius_y, *border, storage, totals);
+            BlurImageOps::mean(right, mean_right, radius_x, radius_y, *border, storage, totals);
             PixelMath::stdev(mean_left, stdev_left, stdev_left);
             PixelMath::stdev(mean_right, stdev_right, stdev_right);
         }
@@ -294,7 +294,7 @@ namespace boofcv {
         }
 
     private:
-        int32_t radius_x, radius_y;
+        uint32_t radius_x, radius_y;
         F32 eps;
         std::shared_ptr<ImageBorder<F32>> border;
         Gray<F32> mean_left{1, 1}, mean_right{1, 1}, stdev_left{1, 1}, stdev_right{1, 1}, tmp{1, 1}, storage{1, 1};

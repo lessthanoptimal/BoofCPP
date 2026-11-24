@@ -13,7 +13,7 @@ using namespace boofcv;
 /// The _MT mean filters must be identical to the single threaded ones for any number of threads
 class BlurImageOps_MTTest : public boofcv::ConcurrentTest {
 protected:
-    enum class Op { MEAN, MEAN_BORDER, HORIZONTAL_NORMALIZED, VERTICAL_NORMALIZED, HORIZONTAL_IMAGE_BORDER,
+    enum class Op { MEAN, MEAN_WITH_BORDER, HORIZONTAL_NORMALIZED, VERTICAL_NORMALIZED, HORIZONTAL_IMAGE_BORDER,
                     VERTICAL_IMAGE_BORDER };
 
     /// Compares one operation with the current settings, on a sub-image input and output. The _MT code only splits
@@ -29,15 +29,14 @@ protected:
         ImageMiscOps::fill(found, (E)13);
         shared_ptr<ImageBorder<E>> border = FactoryImageBorder::create_SB<E>(REFLECT);
         vector<typename TypeInfo<E>::sum_type> totals;
-        const auto rx = (int32_t)radius_x, ry = (int32_t)radius_y;
         switch (op) {
             case Op::MEAN:
                 BlurImageOps::mean(input, expected, radius_x, radius_y, storage);
                 BlurImageOps_MT::mean(input, found, radius_x, radius_y, storage);
                 break;
-            case Op::MEAN_BORDER:
-                BlurImageOps::mean_border(input, expected, rx, ry, *border, storage, totals);
-                BlurImageOps_MT::mean_border(input, found, rx, ry, *border, storage);
+            case Op::MEAN_WITH_BORDER:
+                BlurImageOps::mean(input, expected, radius_x, radius_y, *border, storage, totals);
+                BlurImageOps_MT::mean(input, found, radius_x, radius_y, *border, storage);
                 break;
             case Op::HORIZONTAL_NORMALIZED:
                 ConvolveImageMean::horizontal(input, expected, radius_x);
@@ -48,12 +47,12 @@ protected:
                 ConvolveImageMean_MT::vertical(input, found, radius_y);
                 break;
             case Op::HORIZONTAL_IMAGE_BORDER:
-                ConvolveImageMean::horizontal(input, expected, rx, 2*rx + 1, *border);
-                ConvolveImageMean_MT::horizontal(input, found, rx, 2*rx + 1, *border);
+                ConvolveImageMean::horizontal(input, expected, radius_x, 2*radius_x + 1, *border);
+                ConvolveImageMean_MT::horizontal(input, found, radius_x, 2*radius_x + 1, *border);
                 break;
             case Op::VERTICAL_IMAGE_BORDER:
-                ConvolveImageMean::vertical(input, expected, ry, 2*ry + 1, *border, totals);
-                ConvolveImageMean_MT::vertical(input, found, ry, 2*ry + 1, *border);
+                ConvolveImageMean::vertical(input, expected, radius_y, 2*radius_y + 1, *border, totals);
+                ConvolveImageMean_MT::vertical(input, found, radius_y, 2*radius_y + 1, *border);
                 break;
         }
         check_identical(expected, found, "size " + to_string(width) + "x" + to_string(height) + " radius " +
@@ -64,7 +63,7 @@ protected:
     /// radius_y that differ
     template<class E>
     void check_all() {
-        for (Op op : {Op::MEAN, Op::MEAN_BORDER, Op::HORIZONTAL_NORMALIZED, Op::VERTICAL_NORMALIZED,
+        for (Op op : {Op::MEAN, Op::MEAN_WITH_BORDER, Op::HORIZONTAL_NORMALIZED, Op::VERTICAL_NORMALIZED,
                       Op::HORIZONTAL_IMAGE_BORDER, Op::VERTICAL_IMAGE_BORDER}) {
             for_each_setting([&] {
                 for (auto size : {make_pair(1u, 1u), make_pair(3u, 30u), make_pair(30u, 3u), make_pair(17u, 9u),

@@ -72,7 +72,7 @@ namespace boofcv {
 
         /// ConvolveImageMean::horizontal() with a border
         template< class E>
-        static void horizontal( const Gray<E>& input, Gray<E>& output, int32_t offset, int32_t length,
+        static void horizontal( const Gray<E>& input, Gray<E>& output, uint32_t offset, uint32_t length,
                                 ImageBorder<E>& border ) {
             static_assert(std::is_integral<E>::value, "Floating point sums depend on the blocks");
             output.reshape(input.width, input.height);
@@ -85,7 +85,7 @@ namespace boofcv {
 
         /// ConvolveImageMean::vertical() with a border
         template< class E>
-        static void vertical( const Gray<E>& input, Gray<E>& output, int32_t offset, int32_t length,
+        static void vertical( const Gray<E>& input, Gray<E>& output, uint32_t offset, uint32_t length,
                               ImageBorder<E>& border ) {
             static_assert(std::is_integral<E>::value, "Floating point sums depend on the blocks");
             output.reshape(input.width, input.height);
@@ -94,7 +94,7 @@ namespace boofcv {
                 std::vector<typename TypeInfo<E>::sum_type> totals;
                 ConvolveImageMean::vertical(input, output, offset, length, border, totals);
             };
-            rows(input, (uint32_t)length).single(single).run([&]( uint32_t y0, uint32_t y1 ) {
+            rows(input, length).single(single).run([&]( uint32_t y0, uint32_t y1 ) {
                 std::vector<typename TypeInfo<E>::sum_type> totals;
                 ConvolveImageMean::vertical(input, output, offset, length, border, totals, y0, y1);
             });
@@ -118,7 +118,7 @@ namespace boofcv {
         template<class E>
         static void mean( const Gray<E>& input, Gray<E>& output, uint32_t radius_x, uint32_t radius_y,
                           Gray<E>& storage ) {
-            if (radius_x <= 0 || radius_y <= 0)
+            if (radius_x == 0 || radius_y == 0)
                 throw invalid_argument("Radius must be > 0");
 
             output.reshape(input.width, input.height);
@@ -128,11 +128,11 @@ namespace boofcv {
             ConvolveImageMean_MT::vertical(storage, output, radius_y);
         }
 
-        /// BlurImageOps::mean_border()
+        /// BlurImageOps::mean() with an ImageBorder
         template< class E>
-        static void mean_border( const Gray<E>& input, Gray<E>& output, int32_t radius_x, int32_t radius_y,
-                                 ImageBorder<E>& border, Gray<E>& storage ) {
-            if (radius_x <= 0 || radius_y <= 0)
+        static void mean( const Gray<E>& input, Gray<E>& output, uint32_t radius_x, uint32_t radius_y,
+                          ImageBorder<E>& border, Gray<E>& storage ) {
+            if (radius_x == 0 || radius_y == 0)
                 throw invalid_argument("Radius must be > 0");
             storage.reshape(input.width, input.height);
             ConvolveImageMean_MT::horizontal(input, storage, radius_x, radius_x*2 + 1, border);
