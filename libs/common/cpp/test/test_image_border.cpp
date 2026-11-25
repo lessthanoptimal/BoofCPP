@@ -3,6 +3,8 @@
 #include "boofcv/image_border.h"
 #include "boofcv/image_misc_ops.h"
 
+#include <vector>
+
 
 using namespace std;
 using namespace boofcv;
@@ -126,4 +128,27 @@ TEST_F(ImageBorderWrapTest, smaller_than_offset) {
     x = -4; border.adjust(x, 2); EXPECT_EQ(0, x);
     x = 4; border.adjust(x, 2); EXPECT_EQ(0, x);
     x = 5; border.adjust(x, 2); EXPECT_EQ(1, x);
+}
+
+class GrowRowTest : public boofcv::BoofCPPTest {};
+
+/// Column ranges left of, across and right of a sub-image, on rows inside and outside it, must be read as get() would
+TEST_F(GrowRowTest, column_range) {
+    Gray<U8> parent(11, 9);
+    ImageMiscOps::fill_uniform(parent, (U8)0, (U8)255, rng);
+    Gray<U8> image = parent.makeSubimage(2, 3, 9, 8);
+    for (BorderType type : {REFLECT, ZERO}) {
+        auto border = FactoryImageBorder::create_SB<U8>(type);
+        border->setImage(image);
+        for (auto range : {make_pair(-3, -1), make_pair(-2, 3), make_pair(1, 5), make_pair(4, 9), make_pair(8, 10),
+                           make_pair(-3, 10), make_pair(2, 2)}) {
+            for (int32_t y = -2; y < 7; y++) {
+                vector<U8> row(range.second - range.first + 1, 7);
+                grow_row(*border, y, range.first, range.second, row.data());
+                for (int32_t x = range.first; x < range.second; x++)
+                    ASSERT_EQ(border->get(x, y), row[x - range.first]) << type << " " << x << " " << y;
+                ASSERT_EQ(7, row.back()) << "wrote past x1";
+            }
+        }
+    }
 }

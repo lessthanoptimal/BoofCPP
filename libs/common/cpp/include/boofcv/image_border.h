@@ -43,6 +43,25 @@ namespace boofcv {
         virtual E outside_get( int32_t x , int32_t y ) const = 0;
     };
 
+    /// Copies the pixels x0 <= x < x1 of row 'y' into 'output', reading the ones outside the image through 'border',
+    /// which must be set to an image. Rows outside the image are read entirely from the border
+    template<class E>
+    void grow_row( const ImageBorder<E>& border, int32_t y, int32_t x0, int32_t x1, E* output ) {
+        const Gray<E>& image = *border.image;
+        int32_t x = x0;
+        if (y >= 0 && y < (int32_t)image.height) {
+            for (; x < std::min(x1, 0); x++)
+                *output++ = border.outside_get(x, y);
+            const int32_t inside = std::min(x1, (int32_t)image.width) - x;
+            if (inside > 0) {
+                output = std::copy_n(image.data + image.offset + y*image.stride + x, inside, output);
+                x += inside;
+            }
+        }
+        for (; x < x1; x++)
+            *output++ = border.outside_get(x, y);
+    }
+
     template< class E>
     class ImageBorderIndex : public ImageBorder<E> {
     public:
