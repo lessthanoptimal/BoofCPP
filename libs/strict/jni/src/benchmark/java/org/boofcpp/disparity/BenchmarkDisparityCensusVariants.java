@@ -1,12 +1,16 @@
 package org.boofcpp.disparity;
 
 import boofcv.abst.disparity.StereoDisparity;
+import boofcv.concurrency.BoofConcurrency;
 import boofcv.factory.disparity.ConfigDisparityBM;
 import boofcv.factory.disparity.DisparityError;
 import boofcv.factory.disparity.FactoryStereoDisparity;
 import boofcv.factory.transform.census.CensusVariants;
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayU8;
+import org.boofcpp.BoofCPP;
+import org.boofcpp.NativeConcurrency;
+import org.boofcpp.testing.BenchmarkUtils;
 import org.openjdk.jmh.annotations.*;
 
 import java.util.concurrent.TimeUnit;
@@ -28,11 +32,17 @@ public class BenchmarkDisparityCensusVariants {
     StereoDisparity<GrayU8, GrayF32> java;
     StereoDisparity<GrayU8, GrayF32> nativeAlg;
 
+    static {
+        BoofCPP.loadlib();
+        // The speed target is single-threaded native against single-threaded Java
+        BoofConcurrency.USE_CONCURRENT = false;
+        NativeConcurrency.setMaxThreads(1);
+    }
+
     @Setup public void setup() {
-        // loads the images and the native library, and turns off concurrency
-        var shared = new BenchmarkDisparityBlockMatch();
-        left = shared.left;
-        right = shared.right;
+        GrayU8[] pair = BenchmarkUtils.stereoPair();
+        left = pair[0];
+        right = pair[1];
 
         ConfigDisparityBM config = BenchmarkDisparityBlockMatch.createConfig(DisparityError.CENSUS);
         config.configCensus.variant = CensusVariants.valueOf(variant);
