@@ -20,6 +20,8 @@ public:
     jclass objClass;
     jarray array_object;
     jint* data;
+    // true if data came from criticalGet()
+    bool critical = false;
     jint size;
     jint array_length;
 
@@ -30,6 +32,7 @@ public:
 
     WrapJDogArray_I32(JNIEnv *env, jobject jobj);
 
+    /// Releases the array if it's still held
     ~WrapJDogArray_I32();
 
     // there can't be any JNI call's between these two
