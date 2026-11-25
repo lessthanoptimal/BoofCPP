@@ -7,7 +7,7 @@
 #include <stdexcept>
 #include <type_traits>
 
-#include "boofcv/census_transform.h"
+#include "boofcv/census_transform_mt.h"
 #include "boofcv/config_disparity.h"
 #include "boofcv/disparity_block_match.h"
 #include "boofcv/disparity_block_match_mt.h"
@@ -193,7 +193,8 @@ namespace boofcv {
     /// Creates census transforms. Same as BoofCV's FactoryCensusTransform
     class FactoryCensusTransform {
     public:
-        /// Throws std::invalid_argument if the variant doesn't produce a 'C' image.
+        /// Throws std::invalid_argument if the variant doesn't produce a 'C' image. The transform is
+        /// CensusTransform_MT, single threaded when BoofConcurrency::max_threads() is 1
         ///
         /// @param border How the census transform reads pixels outside the image. SKIP if the image border isn't
         /// processed. NORMALIZED isn't supported.
@@ -208,17 +209,18 @@ namespace boofcv {
             switch (type) {
                 case CensusVariants::BLOCK_3_3:
                     if constexpr (std::is_same<C, U8>::value)
-                        return std::make_unique<FilterCensusTransformD33U8<E>>(image_border);
+                        return std::make_unique<FilterCensusTransformD33U8<E, CensusTransform_MT>>(image_border);
                     break;
 
                 case CensusVariants::BLOCK_5_5:
                     if constexpr (std::is_same<C, S32>::value)
-                        return std::make_unique<FilterCensusTransformD55S32<E>>(image_border);
+                        return std::make_unique<FilterCensusTransformD55S32<E, CensusTransform_MT>>(image_border);
                     break;
 
                 default:
                     if constexpr (std::is_same<C, S64>::value)
-                        return std::make_unique<FilterCensusTransformSampleS64<E>>(samples(type), image_border);
+                        return std::make_unique<FilterCensusTransformSampleS64<E, CensusTransform_MT>>(samples(type),
+                                                                                                    image_border);
                     break;
             }
             throw std::invalid_argument("Census image type doesn't match the variant");

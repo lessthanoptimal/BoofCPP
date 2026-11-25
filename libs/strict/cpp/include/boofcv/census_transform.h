@@ -78,18 +78,28 @@ namespace boofcv {
             if (samples.size() > 64)
                 throw std::invalid_argument("At most 64 samples");
             output.reshape(input.width, input.height);
+            const int32_t radius = sample_radius(samples);
+            byte_rows(input, samples, radius, output);
+            if (border != nullptr)
+                sample_border(input, samples, radius, output, *border);
+        }
 
-            // The inner image is the same distance from each edge, the largest x or y of a sample
+        /// The inner image is the same distance from each edge, the largest x or y of a sample
+        static int32_t sample_radius( const std::vector<Point2D<int32_t>>& samples ) {
             int32_t radius = 0;
             for (const auto& p : samples) {
                 radius = std::max(radius, std::abs(p.x));
                 radius = std::max(radius, std::abs(p.y));
             }
+            return radius;
+        }
 
+        /// The census of sample_S64() for the pixels at least 'radius' from every edge. 'radius' is the largest x or y
+        /// of a sample
+        template<class E>
+        static void sample_inner( const Gray<E>& input, const std::vector<Point2D<int32_t>>& samples, int32_t radius,
+                                  Gray<S64>& output ) {
             byte_rows(input, samples, radius, output);
-
-            if (border != nullptr)
-                sample_border(input, samples, radius, output, *border);
         }
 
         /// The census of sample_S64() for the pixels within 'radius' of an edge, read through 'border'. 'radius' is the
@@ -97,11 +107,18 @@ namespace boofcv {
         template<class E>
         static void sample_border( const Gray<E>& input, const std::vector<Point2D<int32_t>>& samples, int32_t radius,
                                    Gray<S64>& output, ImageBorder<E>& border ) {
+            border.setImage(input);
+            sample_border_rows(input, samples, radius, output, border, 0, input.height);
+        }
+
+        /// sample_border() for the rows y0 <= y < y1, with 'border' already set to 'input'
+        template<class E>
+        static void sample_border_rows( const Gray<E>& input, const std::vector<Point2D<int32_t>>& samples,
+                                        int32_t radius, Gray<S64>& output, const ImageBorder<E>& border,
+                                        uint32_t y0, uint32_t y1 ) {
             const int32_t width = input.width;
             const int32_t height = input.height;
-            border.setImage(input);
-
-            for (int32_t y = 0; y < height; y++) {
+            for (int32_t y = (int32_t)y0; y < (int32_t)y1; y++) {
                 const bool whole_row = y < radius || y >= height - radius || width <= 2*radius;
                 for (int32_t x = 0; x < width; x++) {
                     // skip the inner image
@@ -116,11 +133,17 @@ namespace boofcv {
         /// 'border'. Same as ImplCensusTransformBorder.dense3x3_U8() and dense5x5_S32()
         template<int R, class E, class C>
         static void dense_border( const Gray<E>& input, Gray<C>& output, ImageBorder<E>& border ) {
+            border.setImage(input);
+            dense_border_rows<R>(input, output, border, 0, input.height);
+        }
+
+        /// dense_border() for the rows y0 <= y < y1, with 'border' already set to 'input'
+        template<int R, class E, class C>
+        static void dense_border_rows( const Gray<E>& input, Gray<C>& output, const ImageBorder<E>& border,
+                                       uint32_t y0, uint32_t y1 ) {
             const int32_t width = input.width;
             const int32_t height = input.height;
-            border.setImage(input);
-
-            for (int32_t y = 0; y < height; y++) {
+            for (int32_t y = (int32_t)y0; y < (int32_t)y1; y++) {
                 const bool whole_row = y < R || y >= height - R || width <= 2*R;
                 for (int32_t x = 0; x < width; x++) {
                     // skip the inner image
@@ -129,6 +152,15 @@ namespace boofcv {
                     output.unsafe_at(x, y) = (C)region<R>(border, x, y);
                 }
             }
+        }
+
+        /// The census of dense3x3() (R = 1) or dense5x5() (R = 2) for the pixels at least R from every edge
+        template<int R, class E, class C>
+        static void dense_inner( const Gray<E>& input, Gray<C>& output ) {
+            if constexpr (R == 2 && std::is_same<E, F32>::value)
+                fused_5x5(input, output);
+            else
+                byte_rows(input, create_block_samples(R, R), R, output);
         }
 
         /// Every point in a (2*radius_x+1) by (2*radius_y+1) block except the center, in row-major order.
@@ -182,11 +214,7 @@ namespace boofcv {
         template<int R, class E, class C>
         static void dense( const Gray<E>& input, Gray<C>& output, ImageBorder<E>* border ) {
             output.reshape(input.width, input.height);
-            if constexpr (R == 2 && std::is_same<E, F32>::value)
-                fused_5x5(input, output);
-            else
-                byte_rows(input, create_block_samples(R, R), R, output);
-
+            dense_inner<R>(input, output);
             if (border != nullptr)
                 dense_border<R>(input, output, *border);
         }
@@ -327,29 +355,35 @@ namespace boofcv {
     };
 
     /// 3x3 census transform. Same as BoofCV's FilterCensusTransformD33U8
-    template<class E>
+    ///
+    /// @tparam Census CensusTransform or CensusTransform_MT
+    template<class E, class Census = CensusTransform>
     class FilterCensusTransformD33U8 : public FilterCensusTransform<E, U8> {
     public:
         using FilterCensusTransform<E, U8>::FilterCensusTransform;
 
         void process( const Gray<E>& input, Gray<U8>& output ) override {
-            CensusTransform::dense3x3(input, output, this->border.get());
+            Census::dense3x3(input, output, this->border.get());
         }
     };
 
     /// 5x5 census transform. Same as BoofCV's FilterCensusTransformD55S32
-    template<class E>
+    ///
+    /// @tparam Census CensusTransform or CensusTransform_MT
+    template<class E, class Census = CensusTransform>
     class FilterCensusTransformD55S32 : public FilterCensusTransform<E, S32> {
     public:
         using FilterCensusTransform<E, S32>::FilterCensusTransform;
 
         void process( const Gray<E>& input, Gray<S32>& output ) override {
-            CensusTransform::dense5x5(input, output, this->border.get());
+            Census::dense5x5(input, output, this->border.get());
         }
     };
 
     /// Census transform which samples arbitrary points. Same as BoofCV's FilterCensusTransformSampleS64
-    template<class E>
+    ///
+    /// @tparam Census CensusTransform or CensusTransform_MT
+    template<class E, class Census = CensusTransform>
     class FilterCensusTransformSampleS64 : public FilterCensusTransform<E, S64> {
     public:
         /// @param samples Points relative to the center which are sampled. At most 64
@@ -361,7 +395,7 @@ namespace boofcv {
         }
 
         void process( const Gray<E>& input, Gray<S64>& output ) override {
-            CensusTransform::sample_S64(input, samples, output, this->border.get());
+            Census::sample_S64(input, samples, output, this->border.get());
         }
 
     private:
