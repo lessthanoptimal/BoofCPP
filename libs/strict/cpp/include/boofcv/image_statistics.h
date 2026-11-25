@@ -2,7 +2,6 @@
 #define BOOFCPP_IMAGE_STATISTICS_H
 
 #include <algorithm>
-#include <limits>
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
@@ -12,60 +11,48 @@
 namespace boofcv {
     class ImageStatistics {
     public:
+        /// Returns the lowest value out of all the pixels in the image
         template<class T>
         static T min( const Gray<T>& input) {
-            T min_value = std::numeric_limits<T>::max();
-
-            const T* ptr = input.data;
-            const T* end = &ptr[input.total_pixels()];
-            while( ptr != end ) {
-                const T& v = *ptr++;
-                if( v < min_value ) {
-                    min_value = v;
-                }
-            }
-
-            return min_value;
+            return select(input, [](T v, T output) { return v < output; });
         }
 
+        /// Returns the highest value out of all the pixels in the image
         template<class T>
         static T max( const Gray<T>& input) {
-            T max_value = std::numeric_limits<T>::min();
-
-            const T* ptr = input.data;
-            const T* end = &ptr[input.total_pixels()];
-            while( ptr != end ) {
-                const T& v = *ptr++;
-                if( v > max_value ) {
-                    max_value = v;
-                }
-            }
-
-            return max_value;
+            return select(input, [](T v, T output) { return v > output; });
         }
 
+        /// Type sum() returns. int64_t for integers, T for floats
         template<class T>
-        static typename TypeInfo<T>::sum_type sum( const Gray<T>& input) {
-            typename TypeInfo<T>::sum_type total = 0;
+        using total_type = std::conditional_t<std::is_integral_v<T>, int64_t, T>;
+
+        /// Returns the sum of all the pixels in the image
+        template<class T>
+        static total_type<T> sum( const Gray<T>& input) {
+            // Rows of integers smaller than 32 bits are summed in an int32_t
+            using row_type = std::conditional_t<std::is_integral_v<T> && (sizeof(T) < 4), int32_t, total_type<T>>;
+            total_type<T> total = 0;
             for( uint32_t y = 0; y < input.height; y++ ) {
-                uint32_t index = input.offset + y*input.stride;
-                uint32_t end = index + input.width;
-                while( index < end ) {
-                    total += input.data[index++];
-                }
+                const T* row = input.data + input.offset + y*input.stride;
+                row_type row_total = 0;
+                for( uint32_t x = 0; x < input.width; x++ )
+                    row_total += row[x];
+                total += row_total;
             }
             return total;
         }
 
+        /// Returns the mean pixel value. double for integer images, T for floats
         template<class T>
-        static T mean( const Gray<T>& input) {
-            typename TypeInfo<T>::sum_type a = sum(input);
-            return static_cast<T>(a / (input.width * input.height));
+        static auto mean( const Gray<T>& input) {
+            using mean_type = std::conditional_t<std::is_integral_v<T>, double, T>;
+            return static_cast<mean_type>(sum(input))/static_cast<mean_type>(input.width*input.height);
         }
 
         /// Histogram of pixel values. Bin i counts pixels equal to minValue + i, where minValue can be outside the
-        /// pixel type's range, same as BoofCV's int. Throws std::out_of_range if a pixel doesn't have a bin, same as
-        /// BoofCV. For unsigned integers. U8 uses histogram_U8(). The others avoid a branch per pixel:
+        /// pixel type's range. Throws std::out_of_range if a pixel doesn't have a bin. For unsigned integers. U8 uses
+        /// histogram_U8(). The others avoid a branch per pixel:
         ///
         ///     for each pixel:  guarded[min(value - minValue, size)]++, where values below minValue wrap past size
         ///     throw if guarded[size] isn't 0
@@ -98,7 +85,7 @@ namespace boofcv {
             }
         }
 
-        /// Histogram of pixel values. A pixel's bin is (int)(value - minValue), truncated toward zero, same as BoofCV.
+        /// Histogram of pixel values. A pixel's bin is (int)(value - minValue), truncated toward zero.
         /// So values less than 1 outside the histogram are counted in its first or last bin, and NaN in the first.
         /// Throws std::out_of_range for other values. For F32 and F64. Avoids a branch per pixel:
         ///
@@ -150,6 +137,20 @@ namespace boofcv {
         }
 
     private:
+        /// Pixel 'output' is replaced by pixel 'v' when replace(v, output) is true
+        template<class T, class Replace>
+        static T select( const Gray<T>& input, Replace replace ) {
+            T output = input.data[input.offset];
+            for( uint32_t y = 0; y < input.height; y++ ) {
+                const T* row = input.data + input.offset + y*input.stride;
+                for( uint32_t x = 0; x < input.width; x++ ) {
+                    if( replace(row[x], output) )
+                        output = row[x];
+                }
+            }
+            return output;
+        }
+
         /// histogram() for U8. Several histograms keep repeated values from waiting on each other:
         ///
         ///     for each row:  pixel x counted in copy x%4, the row's last pixels in copy 0

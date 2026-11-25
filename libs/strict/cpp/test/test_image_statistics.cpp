@@ -9,22 +9,48 @@ using namespace std;
 
 class ImageStatisticsTest : public boofcv::BoofCPPTest {};
 
+/// Calls check() on the image, then on a copy of it inside a larger image filled with 'outside', a value that
+/// changes the result if it's read
+template<class T, class Check>
+void with_subimage( const Gray<T>& image, T outside, Check check ) {
+    check(image);
+    Gray<T> parent(image.width + 4, image.height + 6);
+    ImageMiscOps::fill(parent, outside);
+    Gray<T> sub = parent.makeSubimage(2, 3, 2 + image.width, 3 + image.height);
+    sub.copy(image);
+    check(sub);
+}
+
 TEST_F(ImageStatisticsTest, min) {
     Gray<U8> image(5,6);
 
     ImageMiscOps::fill(image,(U8)10);
     image.at(2,3) = 6;
 
-    ASSERT_EQ(6,ImageStatistics::min(image));
+    with_subimage(image, (U8)0, [](const Gray<U8>& img) { ASSERT_EQ(6,ImageStatistics::min(img)); });
 }
 
 TEST_F(ImageStatisticsTest, max) {
-    Gray<U8> image(5,6);
+    Gray<F32> image(5,6);
 
-    ImageMiscOps::fill(image,(U8)10);
-    image.at(2,3) = 12;
+    ImageMiscOps::fill(image,-2.0f);
+    image.at(2,3) = -1.5f;
 
-    ASSERT_EQ(12,ImageStatistics::max(image));
+    with_subimage(image, 100.0f, [](const Gray<F32>& img) { ASSERT_EQ(-1.5f,ImageStatistics::max(img)); });
+}
+
+TEST_F(ImageStatisticsTest, min_max_NaN) {
+    // NaN pixels after the first are skipped, a NaN first pixel is the result
+    Gray<F32> image(4,3);
+    ImageMiscOps::fill(image,2.0f);
+    image.at(3,2) = 3.0f;
+    image.at(1,1) = 1.0f;
+    image.at(2,0) = NAN;
+    ASSERT_EQ(3.0f,ImageStatistics::max(image));
+    ASSERT_EQ(1.0f,ImageStatistics::min(image));
+    image.at(0,0) = NAN;
+    ASSERT_TRUE(std::isnan(ImageStatistics::max(image)));
+    ASSERT_TRUE(std::isnan(ImageStatistics::min(image)));
 }
 
 TEST_F(ImageStatisticsTest, sum) {
@@ -32,15 +58,44 @@ TEST_F(ImageStatisticsTest, sum) {
 
     ImageMiscOps::fill(image,(U8)2);
 
-    ASSERT_EQ(2*5*6,ImageStatistics::sum(image));
+    with_subimage(image, (U8)7, [](const Gray<U8>& img) { ASSERT_EQ(2*5*6,ImageStatistics::sum(img)); });
+}
+
+TEST_F(ImageStatisticsTest, sum_rowOrder) {
+    // Values of mixed magnitude, so the order of additions changes the float result
+    Gray<F32> image(7,5);
+    for( uint32_t y = 0; y < image.height; y++ )
+        for( uint32_t x = 0; x < image.width; x++ )
+            image.at(x,y) = (F32)(1.1 + x + 3*y)*(F32)pow(10,(x+2*y)%6);
+
+    F32 expected = 0;
+    for( uint32_t y = 0; y < image.height; y++ ) {
+        F32 row_total = 0;
+        for( uint32_t x = 0; x < image.width; x++ )
+            row_total += image.at(x,y);
+        expected += row_total;
+    }
+    ASSERT_EQ(expected,ImageStatistics::sum(image));
+    ASSERT_EQ(expected/(F32)(7*5),ImageStatistics::mean(image));
+}
+
+TEST_F(ImageStatisticsTest, sum_exceeds32bits) {
+    Gray<U16> u16(256,257);
+    ImageMiscOps::fill(u16,(U16)65535);
+    ASSERT_EQ((int64_t)65535*256*257,ImageStatistics::sum(u16));
+
+    Gray<S32> s32(3,2);
+    ImageMiscOps::fill(s32,numeric_limits<S32>::max());
+    ASSERT_EQ((int64_t)numeric_limits<S32>::max()*6,ImageStatistics::sum(s32));
 }
 
 TEST_F(ImageStatisticsTest, mean) {
     Gray<U8> image(5,6);
 
     ImageMiscOps::fill(image,(U8)2);
+    image.at(1,1) = 9;
 
-    ASSERT_EQ(2,ImageStatistics::mean(image));
+    ASSERT_EQ(67.0/30.0,ImageStatistics::mean(image));
 }
 
 TEST_F(ImageStatisticsTest, histogram_INTEGER) {
@@ -94,7 +149,7 @@ TEST_F(ImageStatisticsTest, histogram_FLOAT) {
         }
     }
 }
-/// Pixels without a bin throw, same as BoofCV, including pixels below minValue when the histogram has more bins than
+/// Pixels without a bin throw, including pixels below minValue when the histogram has more bins than
 /// the type has values
 template<class T>
 void check_histogram_unsigned_outside() {
@@ -115,7 +170,7 @@ void check_histogram_unsigned_outside() {
     ASSERT_THROW(ImageStatistics::histogram(image,(T)10,large), std::out_of_range);
 }
 
-/// minValue outside the pixel type's range, as BoofCV's int allows: a negative minValue shifts every bin, one above
+/// minValue outside the pixel type's range: a negative minValue shifts every bin, one above
 /// every pixel value leaves them all without a bin
 template<class T>
 void check_histogram_unsigned_min_outside_type() {
@@ -144,7 +199,7 @@ TEST_F(ImageStatisticsTest, histogram_U16_outside) {
     check_histogram_unsigned_outside<U16>();
 }
 
-/// Bins are (int)(value - minValue), same as BoofCV. Values less than 1 outside the histogram and NaN are counted
+/// Bins are (int)(value - minValue). Values less than 1 outside the histogram and NaN are counted
 template<class T>
 void check_histogram_float_outside() {
     Gray<T> image(5,6);
