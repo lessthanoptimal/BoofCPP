@@ -44,7 +44,10 @@ namespace boofcv {
     ///     inner image, for each row:
     ///         for each group of 8 samples:  a byte row of the group's bits, for every pixel of the row
     ///         out[x] = the group bytes combined, group g in bits 8g to 8g + 7  (one group: the byte row is out)
-    ///     with a border:  each pixel within the largest sample distance of an edge, through the border
+    ///     with a border, for the pixels within the largest sample distance R of an edge:
+    ///         the top and bottom R rows, and the left and right R columns of the other rows, are each copied with
+    ///         the R pixels around them, read through the border, into an image whose inner image they are
+    ///         the inner image code on that image
     ///
     /// The F32 5x5 inner image instead compares all 24 samples of a pixel in one pass, see fused_5x5().
     class CensusTransform {
@@ -116,17 +119,9 @@ namespace boofcv {
         static void sample_border_rows( const Gray<E>& input, const std::vector<Point2D<int32_t>>& samples,
                                         int32_t radius, Gray<S64>& output, const ImageBorder<E>& border,
                                         uint32_t y0, uint32_t y1 ) {
-            const int32_t width = input.width;
-            const int32_t height = input.height;
-            for (int32_t y = (int32_t)y0; y < (int32_t)y1; y++) {
-                const bool whole_row = y < radius || y >= height - radius || width <= 2*radius;
-                for (int32_t x = 0; x < width; x++) {
-                    // skip the inner image
-                    if (!whole_row && x == radius)
-                        x = width - radius;
-                    output.unsafe_at(x, y) = sample(border, x, y, samples);
-                }
-            }
+            border_rows(input, output, border, radius, y0, y1, [&]( const Gray<E>& in, Gray<S64>& out ) {
+                byte_rows(in, samples, radius, out);
+            });
         }
 
         /// The census of dense3x3() (R = 1) or dense5x5() (R = 2) for the pixels within R of an edge, read through
@@ -141,17 +136,9 @@ namespace boofcv {
         template<int R, class E, class C>
         static void dense_border_rows( const Gray<E>& input, Gray<C>& output, const ImageBorder<E>& border,
                                        uint32_t y0, uint32_t y1 ) {
-            const int32_t width = input.width;
-            const int32_t height = input.height;
-            for (int32_t y = (int32_t)y0; y < (int32_t)y1; y++) {
-                const bool whole_row = y < R || y >= height - R || width <= 2*R;
-                for (int32_t x = 0; x < width; x++) {
-                    // skip the inner image
-                    if (!whole_row && x == R)
-                        x = width - R;
-                    output.unsafe_at(x, y) = (C)region<R>(border, x, y);
-                }
-            }
+            border_rows(input, output, border, R, y0, y1, []( const Gray<E>& in, Gray<C>& out ) {
+                dense_inner<R>(in, out);
+            });
         }
 
         /// The census of dense3x3() (R = 1) or dense5x5() (R = 2) for the pixels at least R from every edge
@@ -195,20 +182,37 @@ namespace boofcv {
         }
 
     private:
-        /// Census of a single pixel from sample points, reading through the border.
-        /// Same as ImplCensusTransformBorder.sample_S64()
-        template<class E>
-        static S64 sample( const ImageBorder<E>& border, int32_t cx, int32_t cy,
-                           const std::vector<Point2D<int32_t>>& samples ) {
-            const E center = border.get(cx, cy);
-            uint64_t census = 0;
-            uint64_t bit = 1;
-            for (const auto& p : samples) {
-                if (border.get(cx + p.x, cy + p.y) > center)
-                    census |= bit;
-                bit <<= 1;
+        /// The pixels within 'radius' of an edge in the rows y0 <= y < y1. Each region of them is copied with the
+        /// 'radius' pixels around it into an image, read through the border once per pixel, and inner(in, out)
+        /// computes their census as inner image pixels of it
+        template<class E, class C, class Inner>
+        static void border_rows( const Gray<E>& input, Gray<C>& output, const ImageBorder<E>& border,
+                                 int32_t radius, uint32_t y0, uint32_t y1, Inner inner ) {
+            const int32_t width = input.width, height = input.height, r = radius;
+            Gray<E> padded;
+            Gray<C> census;
+            // output pixels x0 <= x < x1 and ya <= y < yb
+            auto region = [&]( int32_t x0, int32_t x1, int32_t ya, int32_t yb ) {
+                if (x0 >= x1 || ya >= yb)
+                    return;
+                padded.reshape(x1 - x0 + 2*r, yb - ya + 2*r);
+                census.reshape(padded.width, padded.height);
+                for (int32_t j = 0; j < (int32_t)padded.height; j++)
+                    grow_row(border, ya - r + j, x0 - r, x1 + r, padded.data + padded.offset + j*padded.stride);
+                inner(padded, census);
+                for (int32_t y = ya; y < yb; y++)
+                    std::copy_n(census.data + census.offset + (y - ya + r)*census.stride + r, x1 - x0,
+                                output.data + output.offset + y*output.stride + x0);
+            };
+            const int32_t a = y0, b = y1;
+            if (width <= 2*r || height <= 2*r) {
+                region(0, width, a, b);
+                return;
             }
-            return (S64)census;
+            region(0, width, a, std::min(b, r));
+            region(0, r, std::max(a, r), std::min(b, height - r));
+            region(width - r, width, std::max(a, r), std::min(b, height - r));
+            region(0, width, std::max(a, height - r), b);
         }
 
         template<int R, class E, class C>

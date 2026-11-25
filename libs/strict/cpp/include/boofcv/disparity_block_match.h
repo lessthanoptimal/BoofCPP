@@ -30,20 +30,7 @@ namespace boofcv {
     /// elements. Rows outside the image are read entirely from the border. Same as BoofCV's GrowBorderSB.growRow().
     template<class E>
     void grow_row( const ImageBorder<E>& border, int32_t y, uint32_t radius, E* output ) {
-        const Gray<E>& image = *border.image;
-        const int32_t width = image.width;
-        const int32_t r = radius;
-        if (y < 0 || y >= (int32_t)image.height) {
-            for (int32_t i = -r; i < width + r; i++)
-                *output++ = border.outside_get(i, y);
-        } else {
-            for (int32_t i = r; i > 0; i--)
-                *output++ = border.outside_get(-i, y);
-            std::copy_n(image.data + image.offset + y*image.stride, width, output);
-            output += width;
-            for (int32_t i = 0; i < r; i++)
-                *output++ = border.outside_get(width + i, y);
-        }
+        grow_row(border, y, -(int32_t)radius, (int32_t)(border.image->width + radius), output);
     }
 
     /// Computes the score of every region along an image row for each disparity. Same as BoofCV's BlockRowScore.
