@@ -342,6 +342,10 @@ namespace boofcv {
 
         /// Selects the disparity for every pixel in output row 'row'
         virtual void process( uint32_t row, const S* scores ) = 0;
+
+        /// A copy, with its settings and output, that another thread can call process() on for different rows. Same
+        /// as BoofCV's DisparitySelect.concurrentCopy()
+        virtual std::unique_ptr<DisparitySelect<S>> concurrent_copy() const = 0;
     };
 
     /// Where a selector writes the disparity and the score
@@ -450,6 +454,10 @@ namespace boofcv {
             r2l_score.resize(width);
             r2l_best.resize(width);
             second.resize(width);
+        }
+
+        std::unique_ptr<DisparitySelect<S>> concurrent_copy() const override {
+            return std::make_unique<SelectErrorWithChecks<S, D>>(*this);
         }
 
         void process( uint32_t row, const S* scores ) override {
@@ -638,6 +646,10 @@ namespace boofcv {
             second.resize(width);
         }
 
+        std::unique_ptr<DisparitySelect<F32>> concurrent_copy() const override {
+            return std::make_unique<SelectCorrelationWithChecks_F32<D>>(*this);
+        }
+
         void process( uint32_t row, const F32* scores ) override {
             Gray<D>* disparity = this->disparity;
             Gray<F32>* score = this->score;
@@ -807,7 +819,7 @@ namespace boofcv {
                                       std::shared_ptr<DisparitySelect<S>> select ) :
                 radius_x(radius_x), radius_y(radius_y),
                 region_width(radius_x*2 + 1), region_height(radius_y*2 + 1),
-                row_score(std::move(row_score)), select(std::move(select)) {}
+                select(std::move(select)), row_score(std::move(row_score)) {}
 
         /// @param disparity_range Number of disparity values. Max disparity is min + range - 1
         void configure( int32_t disparity_min, uint32_t disparity_range ) {
@@ -840,61 +852,90 @@ namespace boofcv {
 
         /// Computes the score for every pixel and passes them to the selector, one row at a time.
         void process( const Gray<E>& left, const Gray<E>& right ) override {
+            prepare(left, right);
+            process_all_rows();
+        }
+
+    protected:
+        /// Running sums of the scores and copies of the image rows, for one thread
+        struct Workspace {
+            // horizontal scores of the last region_height rows. Row y is in horizontal[(y + radius_y)%region_height],
+            // the same index as BoofCV's, so a sum from scratch adds them in the same order. vertical is their sum
+            std::vector<std::vector<S>> horizontal;
+            std::vector<S> vertical;
+            // vertical after normalization, if the score requires it
+            std::vector<S> vertical_norm;
+            std::vector<S> element;
+            std::vector<E> left_row, right_row;
+
+            /// Sizes the arrays for the image given to prepare()
+            void resize( const DisparityBlockMatchRowFormat& alg ) {
+                const uint32_t block = alg.width*alg.disparity_range;
+                horizontal.assign(alg.region_height, std::vector<S>(block, 0));
+                vertical.assign(block, 0);
+                if (alg.row_score->require_normalize())
+                    vertical_norm.assign(block, 0);
+                element.resize(alg.width + 2*alg.radius_x);
+                left_row.resize(alg.width + 2*alg.radius_x);
+                right_row.resize(alg.width + 2*alg.radius_x);
+            }
+        };
+
+        std::shared_ptr<DisparitySelect<S>> select;
+        int32_t catastrophic_reset = 25;
+        uint32_t width = 0, height = 0;   // set by prepare()
+
+        /// Sets up the borders, the row score and the selector for the images
+        void prepare( const Gray<E>& left, const Gray<E>& right ) {
             checkSameShape(left, right);
 
             border_left->setImage(left);
             border_right->setImage(right);
             row_score->set_input(left, right);
 
-            const int32_t width = left.width;
-            const int32_t height = left.height;
-            const uint32_t block = width*disparity_range;
-
-            horizontal.assign(region_height, std::vector<S>(block, 0));
-            vertical.assign(block, 0);
-            if (row_score->require_normalize())
-                vertical_norm.assign(block, 0);
-            element.resize(width + 2*radius_x);
-            left_row.resize(width + 2*radius_x);
-            right_row.resize(width + 2*radius_x);
-
+            width = left.width;
+            height = left.height;
             // BoofCV passes min(width, disparity_max) as the largest disparity
-            const int32_t row_disparity_max = std::min(width, disparity_max);
+            row_disparity_max = std::min((int32_t)width, disparity_max);
             select->configure(disparity_min, disparity_max, width);
+        }
 
-            const int32_t row0 = -(int32_t)radius_y;
-            const int32_t row1 = height + (int32_t)radius_y;
+        /// Every row, after prepare()
+        void process_all_rows() {
+            workspace.resize(*this);
+            process_rows(workspace, *select, 0, 0, height);
+        }
 
-            // initial block of rows
+        /// Output rows y_first <= y < y1, after prepare(). The vertical sum starts from scratch at y0 <= y_first and
+        /// runs to y_first without selecting. Results are the same as one call for every row if y0 is 0 or, with
+        /// floating point scores, a multiple of catastrophic_reset. The running sums of integer scores are exact, so
+        /// any y0 gives the same results for them
+        void process_rows( Workspace& ws, DisparitySelect<S>& out, uint32_t y0, uint32_t y_first, uint32_t y1 ) const {
+            const uint32_t block = width*disparity_range;
+            const int32_t row1 = (int32_t)y1 + (int32_t)radius_y;
+
+            // the rows of the region centered on y0, then their sum
             for (uint32_t i = 0; i < region_height; i++) {
-                score_image_row(row0 + (int32_t)i, horizontal[i].data(), row_disparity_max);
-                S* __restrict v = vertical.data();
-                const S* __restrict h = horizontal[i].data();
-                for (uint32_t j = 0; j < block; j++)
-                    v[j] += h[j];
+                const int32_t row = (int32_t)(y0 + i) - (int32_t)radius_y;
+                score_image_row(ws, row, ws.horizontal[(y0 + i)%region_height].data());
             }
-            select_row(0, row_disparity_max, width);
+            sum_from_scratch(ws);
+            if (y0 == y_first)
+                select_row(ws, out, y0);
 
             // remaining rows: subtract the oldest row and add the new one
-            for (int32_t row = row0 + (int32_t)region_height; row < row1; row++) {
-                S* __restrict v = vertical.data();
-                S* __restrict h = horizontal[(row - row0)%region_height].data();
-                for (uint32_t j = 0; j < block; j++)
-                    v[j] -= h[j];
-                score_image_row(row, h, row_disparity_max);
+            for (int32_t row = (int32_t)(y0 + region_height) - (int32_t)radius_y; row < row1; row++) {
+                S* h = ws.horizontal[(row + radius_y)%region_height].data();
+                subtract(ws.vertical.data(), h, block);
+                score_image_row(ws, row, h);
                 if (std::is_floating_point<S>::value && (row - (int32_t)radius_y)%catastrophic_reset == 0) {
-                    // BoofCV restarts here to limit the floating point error. Same order of addition
-                    std::fill(vertical.begin(), vertical.end(), (S)0);
-                    for (uint32_t i = 0; i < region_height; i++) {
-                        const S* __restrict hi = horizontal[i].data();
-                        for (uint32_t j = 0; j < block; j++)
-                            v[j] += hi[j];
-                    }
+                    // BoofCV restarts here to limit the floating point error
+                    sum_from_scratch(ws);
                 } else {
-                    for (uint32_t j = 0; j < block; j++)
-                        v[j] += h[j];
+                    add(ws.vertical.data(), h, block);
                 }
-                select_row(row - (int32_t)radius_y, row_disparity_max, width);
+                if (row - (int32_t)radius_y >= (int32_t)y_first)
+                    select_row(ws, out, row - (int32_t)radius_y);
             }
         }
 
@@ -904,33 +945,50 @@ namespace boofcv {
         uint32_t disparity_range = 0;
 
         std::shared_ptr<BlockRowScore<E, S>> row_score;
-        std::shared_ptr<DisparitySelect<S>> select;
         std::shared_ptr<ImageBorder<E>> border_left, border_right;
-        int32_t catastrophic_reset = 25;
 
-        // horizontal scores of the last region_height rows. vertical is their sum
-        std::vector<std::vector<S>> horizontal;
-        std::vector<S> vertical;
-        // vertical after normalization, if the score requires it
-        std::vector<S> vertical_norm;
-        std::vector<S> element;
-        std::vector<E> left_row, right_row;
+        int32_t row_disparity_max = 0;   // set by prepare()
 
-        void select_row( int32_t row, int32_t row_disparity_max, int32_t width ) {
+        Workspace workspace;
+
+        /// v[j] += h[j] for the first n elements
+        static void add( S* __restrict v, const S* __restrict h, uint32_t n ) {
+            for (uint32_t j = 0; j < n; j++)
+                v[j] += h[j];
+        }
+
+        /// v[j] -= h[j] for the first n elements
+        static void subtract( S* __restrict v, const S* __restrict h, uint32_t n ) {
+            for (uint32_t j = 0; j < n; j++)
+                v[j] -= h[j];
+        }
+
+        /// vertical = the sum of the horizontal scores, added in index order as BoofCV does
+        void sum_from_scratch( Workspace& ws ) const {
+            const uint32_t block = width*disparity_range;
+            std::fill_n(ws.vertical.data(), block, (S)0);
+            for (uint32_t i = 0; i < region_height; i++)
+                add(ws.vertical.data(), ws.horizontal[i].data(), block);
+        }
+
+        /// Selects the disparity of every pixel in output row 'row' from the vertical sums, normalized first if the
+        /// score requires it
+        void select_row( Workspace& ws, DisparitySelect<S>& out, int32_t row ) const {
             if (row_score->require_normalize()) {
-                row_score->normalize_region_scores(row, vertical.data(), disparity_min, row_disparity_max, width,
-                                                   region_width, region_height, vertical_norm.data());
-                select->process(row, vertical_norm.data());
+                row_score->normalize_region_scores(row, ws.vertical.data(), disparity_min, row_disparity_max, width,
+                                                   region_width, region_height, ws.vertical_norm.data());
+                out.process(row, ws.vertical_norm.data());
             } else {
-                select->process(row, vertical.data());
+                out.process(row, ws.vertical.data());
             }
         }
 
-        void score_image_row( int32_t y, S* scores, int32_t row_disparity_max ) {
-            grow_row(*border_left, y, radius_x, left_row.data());
-            grow_row(*border_right, y, radius_x, right_row.data());
-            row_score->score_row(left_row.data(), right_row.data(), border_left->getWidth(), scores,
-                                 disparity_min, row_disparity_max, region_width, element.data());
+        /// Scores image row y for every disparity with its border added. See BlockRowScore::score_row()
+        void score_image_row( Workspace& ws, int32_t y, S* scores ) const {
+            grow_row(*border_left, y, radius_x, ws.left_row.data());
+            grow_row(*border_right, y, radius_x, ws.right_row.data());
+            row_score->score_row(ws.left_row.data(), ws.right_row.data(), border_left->getWidth(), scores,
+                                 disparity_min, row_disparity_max, region_width, ws.element.data());
         }
     };
 }

@@ -418,6 +418,10 @@ namespace disparity_block_match_checks {
         uint32_t width = 0;
         vector<vector<F32>> rows;
 
+        unique_ptr<tested::DisparitySelect<F32>> concurrent_copy() const override {
+            return make_unique<CaptureSelect>(*this);
+        }
+
         void configure( int32_t disparity_min, int32_t disparity_max, uint32_t width ) override {
             dmin = disparity_min;
             dmax = disparity_max;

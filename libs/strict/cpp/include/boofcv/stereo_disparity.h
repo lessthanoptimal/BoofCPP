@@ -10,6 +10,7 @@
 #include "boofcv/census_transform.h"
 #include "boofcv/config_disparity.h"
 #include "boofcv/disparity_block_match.h"
+#include "boofcv/disparity_block_match_mt.h"
 #include "boofcv/image_convert.h"
 #include "boofcv/image_misc_ops.h"
 #include "boofcv/image_normalization.h"
@@ -373,11 +374,12 @@ namespace boofcv {
             return ret;
         }
 
+        /// DisparityBlockMatchRowFormat_MT, which is single threaded when BoofConcurrency::max_threads() is 1
         template<class E, class S>
         static std::unique_ptr<DisparityBlockMatchRowFormat<E, S>> create_block_matching(
                 const ConfigDisparityBM& config, std::shared_ptr<BlockRowScore<E, S>> row_score,
                 std::shared_ptr<DisparitySelect<S>> select ) {
-            auto alg = std::make_unique<DisparityBlockMatchRowFormat<E, S>>(
+            auto alg = std::make_unique<DisparityBlockMatchRowFormat_MT<E, S>>(
                     config.region_radius_x, config.region_radius_y, std::move(row_score), std::move(select));
             alg->configure(config.disparity_min, config.disparity_range);
             alg->set_catastrophic_reset(config.catastrophic_reset);

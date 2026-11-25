@@ -49,6 +49,10 @@ namespace reference {
             column_score.resize(disparity_range);
         }
 
+        std::unique_ptr<DisparitySelect<S>> concurrent_copy() const override {
+            return std::make_unique<SelectErrorWithChecks<S, D>>(*this);
+        }
+
         void process( uint32_t row, const S* scores ) override {
             Gray<D>* disparity = this->disparity;
             Gray<F32>* score = this->score;
@@ -214,6 +218,10 @@ namespace reference {
             if (std::is_same<D, U8>::value && invalid_disparity > 254)
                 throw std::invalid_argument("Max range exceeds maximum value in disparity image");
             column_score.resize(disparity_range);
+        }
+
+        std::unique_ptr<DisparitySelect<F32>> concurrent_copy() const override {
+            return std::make_unique<SelectCorrelationWithChecks_F32<D>>(*this);
         }
 
         void process( uint32_t row, const F32* scores ) override {
