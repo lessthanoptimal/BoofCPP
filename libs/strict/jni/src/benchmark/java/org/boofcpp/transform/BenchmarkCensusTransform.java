@@ -15,6 +15,7 @@ import boofcv.struct.image.ImageDataType;
 import boofcv.struct.image.ImageGray;
 import georegression.struct.point.Point2D_I32;
 import org.boofcpp.BoofCPP;
+import org.boofcpp.NativeConcurrency;
 import org.ddogleg.struct.DogArray;
 import org.openjdk.jmh.annotations.*;
 
@@ -36,6 +37,10 @@ public class BenchmarkCensusTransform {
     @Param({"2000"})
     public int size;
 
+    /// Threads of native and of BoofCV's Java code. 1 is single threaded, which is the speed target against Java
+    @Param({"1", "4"})
+    public int threads;
+
     ImageGray input;
     BorderType borderType = BorderType.REFLECT;
     ImageBorder border;
@@ -48,11 +53,12 @@ public class BenchmarkCensusTransform {
 
     static {
         BoofCPP.loadlib();
-        // The speed target is against single-threaded Java
-        BoofConcurrency.USE_CONCURRENT = false;
     }
 
     @Setup public void setup() {
+        NativeConcurrency.setMaxThreads(threads);
+        BoofConcurrency.USE_CONCURRENT = threads > 1;
+        BoofConcurrency.setMaxThreads(threads);
         input = GeneralizedImageOps.createSingleBand(ImageDataType.valueOf(image), size, size);
         GImageMiscOps.fillUniform(input, new Random(234), 0, 200);
         border = FactoryImageBorder.single(borderType, input.getClass());
