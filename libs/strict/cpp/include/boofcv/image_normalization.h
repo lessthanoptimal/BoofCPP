@@ -78,13 +78,15 @@ namespace boofcv {
             return output;
         }
 
-        /// Mean summed in a single float, row by row. Same as BoofCV's single threaded ImageStatistics.mean(GrayF32)
+        /// Returns the mean pixel value
         static F32 mean_F32( const Gray<F32>& input ) {
             F32 total = 0;
             for (uint32_t y = 0; y < input.height; y++) {
                 const F32* row = input.data + input.offset + y*input.stride;
+                F32 row_total = 0;
                 for (uint32_t x = 0; x < input.width; x++)
-                    total += row[x];
+                    row_total += row[x];
+                total += row_total;
             }
             return total/(F32)(int32_t)(input.width*input.height);
         }

@@ -100,14 +100,21 @@ TEST_F(ImageNormalizationTest, max_abs) {
     EXPECT_EQ(250, ImageNormalization::max_abs(u8));
 }
 
-/// Summed in a single float in row major order, like BoofCV
+/// Each row is summed on its own, then the row totals are added in row order. Values of very different
+/// magnitudes make the result depend on that order
 TEST_F(ImageNormalizationTest, mean_F32) {
     Gray<F32> image(7, 3);
-    ImageMiscOps::fill_uniform(image, 0.0f, 1.0f, rng);
-    F32 total = 0;
+    ImageMiscOps::fill_uniform(image, -0.4f, 0.6f, rng);
     for (uint32_t y = 0; y < 3; y++) {
         for (uint32_t x = 0; x < 7; x++)
-            total += image.at(x, y);
+            image.at(x, y) *= std::pow(10.0f, (float)((x + 2*y)%6));
+    }
+    F32 total = 0;
+    for (uint32_t y = 0; y < 3; y++) {
+        F32 row_total = 0;
+        for (uint32_t x = 0; x < 7; x++)
+            row_total += image.at(x, y);
+        total += row_total;
     }
     EXPECT_EQ(total/21.0f, ImageNormalization::mean_F32(image));
     EXPECT_EQ(total/21.0f, ImageNormalization::mean_F32(create_subimage(image)));
