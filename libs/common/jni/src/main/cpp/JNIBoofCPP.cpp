@@ -46,18 +46,23 @@ WrapJDogArray_I32::WrapJDogArray_I32(JNIEnv *env, jobject jobj)
 }
 
 WrapJDogArray_I32::~WrapJDogArray_I32() {
-    if( this->data != nullptr ) {
-        throw std::runtime_error("You didn't release the critical array!");
-    }
+    if( this->data == nullptr )
+        return;
+    if( critical )
+        criticalRelease();
+    else
+        regularRelease();
 }
 
 void WrapJDogArray_I32::criticalGet() {
     this->data = (jint *)env->GetPrimitiveArrayCritical(array_object, 0);
+    this->critical = true;
 }
 
 void WrapJDogArray_I32::criticalRelease() {
     this->env->ReleasePrimitiveArrayCritical(array_object, this->data, 0);
     this->data = nullptr;
+    this->critical = false;
 }
 
 void WrapJDogArray_I32::regularGet() {
