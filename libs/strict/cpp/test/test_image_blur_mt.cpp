@@ -23,7 +23,9 @@ protected:
                                         uint32_t radius_y ) {
         Gray<E> parent, found_parent, storage;
         Gray<E> input = subimage(parent, width, height);
-        ImageMiscOps::fill_uniform(input, (E)0, (E)std::min(1000, (int)std::numeric_limits<E>::max()), rng);
+        const E max_value = std::is_floating_point<E>::value ? (E)1000 :
+                            (E)std::min(1000, (int)std::numeric_limits<E>::max());
+        ImageMiscOps::fill_uniform(input, (E)0, max_value, rng);
         Gray<E> expected(width, height);
         Gray<E> found = subimage(found_parent, width, height);
         ImageMiscOps::fill(found, (E)13);
@@ -98,6 +100,9 @@ protected:
 
 TEST_F(BlurImageOps_MTTest, U8) { check_all<U8>(); }
 TEST_F(BlurImageOps_MTTest, U16) { check_all<U16>(); }
+/// Floating point blocks along y start on the rows where the single threaded code restarts its sums
+TEST_F(BlurImageOps_MTTest, F32) { check_all<F32>(); }
+TEST_F(BlurImageOps_MTTest, F64) { check_all<F64>(); }
 
 /// Integer and floating point images, which take different inner code
 TEST_F(BlurImageOps_MTTest, gaussian_U8) { check_gaussian<U8>(); }

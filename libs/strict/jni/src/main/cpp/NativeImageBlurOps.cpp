@@ -34,12 +34,9 @@ namespace {
             throw std::invalid_argument("Radius must be > 0");
         with_critical_images<E>(env, jinput, joutput, jstorage, [&]( Gray<E>& input, Gray<E>& output,
                                                                      Gray<E>& storage ) {
-            // Floating point mean filters are single threaded, since their sums would depend on the blocks
-            if constexpr (std::is_integral<E>::value) {
-                if (BoofConcurrency::max_threads() > 1) {
-                    BlurImageOps_MT::mean(input, output, (uint32_t)radius_x, (uint32_t)radius_y, storage);
-                    return;
-                }
+            if (BoofConcurrency::max_threads() > 1) {
+                BlurImageOps_MT::mean(input, output, (uint32_t)radius_x, (uint32_t)radius_y, storage);
+                return;
             }
             BlurImageOps::mean(input, output, (uint32_t)radius_x, (uint32_t)radius_y, storage);
         });
@@ -89,11 +86,9 @@ namespace {
         std::vector<typename TypeInfo<E>::sum_type> totals;
         with_critical_images<E>(env, jinput, joutput, jstorage, [&]( Gray<E>& input, Gray<E>& output,
                                                                      Gray<E>& storage ) {
-            if constexpr (std::is_integral<E>::value) {
-                if (BoofConcurrency::max_threads() > 1) {
-                    BlurImageOps_MT::mean(input, output, (uint32_t)radius_x, (uint32_t)radius_y, *border, storage);
-                    return;
-                }
+            if (BoofConcurrency::max_threads() > 1) {
+                BlurImageOps_MT::mean(input, output, (uint32_t)radius_x, (uint32_t)radius_y, *border, storage);
+                return;
             }
             BlurImageOps::mean(input, output, (uint32_t)radius_x, (uint32_t)radius_y, *border, storage, totals);
         });

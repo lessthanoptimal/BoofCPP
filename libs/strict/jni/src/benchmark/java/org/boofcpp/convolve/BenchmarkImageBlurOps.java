@@ -43,8 +43,7 @@ public class BenchmarkImageBlurOps {
 
     NativeImageBlurOps nativeOps = new NativeImageBlurOps();
 
-    /// Threads of native and of BoofCV's Java code. 1 is single threaded, which is the speed target against Java.
-    /// Native mean filters of floating point images are single threaded
+    /// Threads of native and of BoofCV's Java code. 1 is single threaded, which is the speed target against Java
     @Param({"1", "4"})
     public int threads;
 
