@@ -81,17 +81,20 @@ namespace boofcv {
         /// Returns the mean pixel value
         static F32 mean_F32( const Gray<F32>& input ) {
             F32 total = 0;
-            for (uint32_t y = 0; y < input.height; y++) {
-                const F32* row = input.data + input.offset + y*input.stride;
-                F32 row_total = 0;
-                for (uint32_t x = 0; x < input.width; x++)
-                    row_total += row[x];
-                total += row_total;
-            }
+            for (uint32_t y = 0; y < input.height; y++)
+                total += row_total(input, y);
             return total/(F32)(int32_t)(input.width*input.height);
         }
 
-    private:
+        /// Sum of row y's pixels, in order
+        static F32 row_total( const Gray<F32>& input, uint32_t y ) {
+            const F32* row = input.data + input.offset + y*input.stride;
+            F32 total = 0;
+            for (uint32_t x = 0; x < input.width; x++)
+                total += row[x];
+            return total;
+        }
+
         template<class E>
         static E abs_value( E v ) {
             if constexpr (std::is_unsigned<E>::value)

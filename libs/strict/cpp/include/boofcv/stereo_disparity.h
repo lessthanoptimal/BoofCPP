@@ -13,7 +13,7 @@
 #include "boofcv/disparity_block_match_mt.h"
 #include "boofcv/image_convert.h"
 #include "boofcv/image_misc_ops.h"
-#include "boofcv/image_normalization.h"
+#include "boofcv/image_normalization_mt.h"
 
 namespace boofcv {
 
@@ -172,12 +172,12 @@ namespace boofcv {
     protected:
         void process_images( const Gray<E>& left, const Gray<E>& right ) override {
             if (normalize) {
-                ImageNormalization::zero_mean_max_one(left, adjusted_left, parameters);
+                ImageNormalization_MT::zero_mean_max_one(left, adjusted_left, parameters);
                 // The same parameters for both images since the cameras' gain and exposure are assumed to be the same
-                ImageNormalization::apply(right, parameters, adjusted_right);
+                ImageNormalization_MT::apply(right, parameters, adjusted_right);
             } else {
-                convert(left, adjusted_left);
-                convert(right, adjusted_right);
+                ConvertImage_MT::convert(left, adjusted_left);
+                ConvertImage_MT::convert(right, adjusted_right);
             }
             alg->process(adjusted_left, adjusted_right);
         }
@@ -298,12 +298,12 @@ namespace boofcv {
 
                 case DisparityError::ZSSD:
                     // Not normalized, unlike NCC, since rescaling the input would change the scale of the error
-                    ret = create_pre_filter<E, D>(config, std::make_shared<BlockRowScoreZssd>(
+                    ret = create_pre_filter<E, D>(config, std::make_shared<BlockRowScoreZssd_MT>(
                             config.region_radius_x, config.region_radius_y, config.border), false);
                     break;
 
                 case DisparityError::NCC:
-                    ret = create_pre_filter<E, D>(config, std::make_shared<BlockRowScoreNcc>(
+                    ret = create_pre_filter<E, D>(config, std::make_shared<BlockRowScoreNcc_MT>(
                             config.region_radius_x, config.region_radius_y, config.border,
                             (F32)config.config_ncc.eps), config.config_ncc.normalize_input);
                     break;

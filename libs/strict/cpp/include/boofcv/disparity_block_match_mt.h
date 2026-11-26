@@ -3,6 +3,8 @@
 
 #include "boofcv/concurrency.h"
 #include "boofcv/disparity_block_match.h"
+#include "boofcv/image_blur_mt.h"
+#include "boofcv/pixel_math_mt.h"
 
 #include <memory>
 #include <type_traits>
@@ -54,6 +56,36 @@ namespace boofcv {
                         std::unique_ptr<DisparitySelect<S>> select = this->select->concurrent_copy();
                         this->process_rows(workspace, *select, y_first - y_first%reset, y_first, y1);
                     });
+        }
+    };
+
+    /// BlockRowScoreZssd with its local means from BlurImageOps_MT, which gives the same means for any number of
+    /// threads
+    class BlockRowScoreZssd_MT : public BlockRowScoreZssd {
+    public:
+        using BlockRowScoreZssd::BlockRowScoreZssd;
+
+        void set_input( const Gray<F32>& left, const Gray<F32>& right ) override {
+            BlurImageOps_MT::mean(left, mean_left, radius_x, radius_y, *border, storage);
+            BlurImageOps_MT::mean(right, mean_right, radius_x, radius_y, *border, storage);
+        }
+    };
+
+    /// BlockRowScoreNcc with its local statistics from BlurImageOps_MT and PixelMath_MT, which give the same
+    /// statistics for any number of threads
+    class BlockRowScoreNcc_MT : public BlockRowScoreNcc {
+    public:
+        using BlockRowScoreNcc::BlockRowScoreNcc;
+
+        void set_input( const Gray<F32>& left, const Gray<F32>& right ) override {
+            PixelMath_MT::pow2(left, tmp);
+            BlurImageOps_MT::mean(tmp, stdev_left, radius_x, radius_y, *border, storage);
+            PixelMath_MT::pow2(right, tmp);
+            BlurImageOps_MT::mean(tmp, stdev_right, radius_x, radius_y, *border, storage);
+            BlurImageOps_MT::mean(left, mean_left, radius_x, radius_y, *border, storage);
+            BlurImageOps_MT::mean(right, mean_right, radius_x, radius_y, *border, storage);
+            PixelMath_MT::stdev(mean_left, stdev_left, stdev_left);
+            PixelMath_MT::stdev(mean_right, stdev_right, stdev_right);
         }
     };
 }

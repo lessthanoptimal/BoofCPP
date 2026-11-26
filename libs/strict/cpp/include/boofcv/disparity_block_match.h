@@ -226,7 +226,7 @@ namespace boofcv {
             }
         }
 
-    private:
+    protected:
         uint32_t radius_x, radius_y;
         std::shared_ptr<ImageBorder<F32>> border;
         Gray<F32> mean_left{1, 1}, mean_right{1, 1}, storage{1, 1};
@@ -280,7 +280,7 @@ namespace boofcv {
             }
         }
 
-    private:
+    protected:
         uint32_t radius_x, radius_y;
         F32 eps;
         std::shared_ptr<ImageBorder<F32>> border;
