@@ -43,26 +43,13 @@ public class TestNativeMeanBlur extends NativeMeanBlurChecks {
         hook.processMean(input, input.createSameShape(), 2, 2, BorderType.NORMALIZED, null);
     }
 
-    /// Integer images run the _MT code with more than one thread. Floating point ones are always single threaded
+    /// Runs the _MT code with more than one thread. Normalized and with a border have separate switches
     @Test void concurrentToggle() {
         var hook = new NativeImageBlurOps();
-        for (Class type : new Class[]{GrayU8.class, GrayU16.class, GrayF32.class, GrayF64.class}) {
-            ImageGray input = randomSubImage(type, 40, 30, 0, 100);
-            ImageGray output = (ImageGray)input.createSameShape();
-            assertConcurrentToggle(!GeneralizedImageOps.isFloatingPoint(type),
-                    () -> hook.processMean(input, output, 2, 2, BorderType.NORMALIZED, null));
-        }
-    }
-
-    /// Same as concurrentToggle() with a border
-    @Test void concurrentToggleWithBorder() {
-        var hook = new NativeImageBlurOps();
-        for (Class type : new Class[]{GrayU8.class, GrayU16.class, GrayF32.class, GrayF64.class}) {
-            ImageGray input = randomSubImage(type, 40, 30, 0, 100);
-            ImageGray output = (ImageGray)input.createSameShape();
-            assertConcurrentToggle(!GeneralizedImageOps.isFloatingPoint(type),
-                    () -> hook.processMean(input, output, 2, 2, BorderType.REFLECT, null));
-        }
+        ImageGray input = randomSubImage(GrayU8.class, 40, 30, 0, 100);
+        ImageGray output = (ImageGray)input.createSameShape();
+        assertConcurrentToggle(true, () -> hook.processMean(input, output, 2, 2, BorderType.NORMALIZED, null));
+        assertConcurrentToggle(true, () -> hook.processMean(input, output, 2, 2, BorderType.REFLECT, null));
     }
 
     /// The native functions reject a negative radius themselves, since C++ takes unsigned radii

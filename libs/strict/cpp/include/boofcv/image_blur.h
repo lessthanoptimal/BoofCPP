@@ -20,6 +20,22 @@ namespace boofcv {
         /// ImplConvolveBox.VERTICAL_RESTART
         static constexpr int32_t VERTICAL_RESTART = 64;
 
+        /// Number of blocks of VERTICAL_RESTART inner rows for a kernel 'length' rows long. Same as BoofCV's
+        /// ImplConvolveBox.restartBlocks()
+        static uint32_t restart_blocks( uint32_t height, uint32_t length ) {
+            return (uint32_t)std::max<int64_t>(1, ((int64_t)height - length + VERTICAL_RESTART)/VERTICAL_RESTART);
+        }
+
+        /// First output row of the block, for a kernel that starts 'offset' rows before the output row. Block 0
+        /// includes the top border and the last block the bottom border. Same as BoofCV's ImplConvolveBox.restartRow()
+        static uint32_t restart_row( uint32_t block, uint32_t blocks, uint32_t height, uint32_t offset ) {
+            if (block == 0)
+                return 0;
+            if (block >= blocks)
+                return height;
+            return offset + block*VERTICAL_RESTART;
+        }
+
         template< class E>
         static void inner_horizontal(const Gray<E>& input, Gray<E>& output, uint32_t radius )
         {
@@ -279,6 +295,7 @@ namespace boofcv {
             return divisor(total);
         }
 
+    public:
         /// Floating point mean along x of the rows y0 to y1. Port of BoofCV's ImplConvolveMean.horizontal(), with the
         /// same order of operations. Without a border the mean near the image border is of the pixels inside the image
         template< class E>
@@ -343,6 +360,7 @@ namespace boofcv {
             }
         }
 
+    private:
         /// Border of one row without an ImageBorder, when the kernel fits inside the image: the mean of the pixels
         /// inside the image, with a running sum along each side
         template< class E>
@@ -375,6 +393,7 @@ namespace boofcv {
             }
         }
 
+    public:
         /// Floating point mean along y of the output rows y0 to y1. Port of BoofCV's ImplConvolveMean.vertical(), with
         /// the same order of operations. The running sums start over every VERTICAL_RESTART rows after the first
         /// inner row

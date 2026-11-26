@@ -11,25 +11,30 @@
 
 namespace boofcv {
 
-    /// ConvolveImageMean for integer images, with the output split into blocks of rows that threads take until none
-    /// are left:
+    /// ConvolveImageMean with the output split into blocks of rows that threads take until none are left:
     ///
     ///     horizontal:  for each block of rows, concurrently:  ConvolveImageMean's code on the block's rows
     ///     vertical:    for each block of rows, concurrently:
     ///                      column sums of the 'length' rows above the block's first inner row, then running sums
     ///                      the block's top or bottom border rows
     ///
-    /// Each vertical block restarts its running sums, which gives the same sums only for integers, so the results are
-    /// identical to ConvolveImageMean for any number of threads
+    /// Each vertical block restarts its running sums. Integer sums don't depend on where, and floating point blocks
+    /// start on the rows where ConvolveImageMean restarts its sums, so the results are identical to ConvolveImageMean
+    /// for any number of threads
     class ConvolveImageMean_MT {
     public:
         template< class E>
         static void horizontal( const Gray<E>& input, Gray<E>& output, uint32_t radius )
         {
-            static_assert(std::is_integral<E>::value, "Floating point sums depend on the blocks");
             checkSameShape(input,output);
 
             auto single = [&] { ConvolveImageMean::horizontal(input, output, radius); };
+            if constexpr (std::is_floating_point<E>::value) {
+                rows(input, 0).single(single).run([&]( uint32_t y0, uint32_t y1 ) {
+                    ConvolveImageMean::float_horizontal<E>(input, output, radius, radius*2 + 1, nullptr, y0, y1);
+                });
+                return;
+            }
             // The concurrent code can't handle a kernel wider than the image
             if( radius*2 + 1 > input.width ) {
                 single();
@@ -48,10 +53,13 @@ namespace boofcv {
         template< class E>
         static void vertical( const Gray<E>& input, Gray<E>& output, uint32_t radius )
         {
-            static_assert(std::is_integral<E>::value, "Floating point sums depend on the blocks");
             checkSameShape(input,output);
 
             auto single = [&] { ConvolveImageMean::vertical(input, output, radius); };
+            if constexpr (std::is_floating_point<E>::value) {
+                float_vertical<E>(input, output, radius, radius*2 + 1, nullptr, single);
+                return;
+            }
             // The concurrent code can't handle a kernel taller than the image
             if( radius*2 + 1 > input.height ) {
                 single();
@@ -75,7 +83,6 @@ namespace boofcv {
         template< class E>
         static void horizontal( const Gray<E>& input, Gray<E>& output, uint32_t offset, uint32_t length,
                                 ImageBorder<E>& border ) {
-            static_assert(std::is_integral<E>::value, "Floating point sums depend on the blocks");
             output.reshape(input.width, input.height);
             border.setImage(input);
             auto single = [&] { ConvolveImageMean::horizontal(input, output, offset, length, border); };
@@ -88,13 +95,16 @@ namespace boofcv {
         template< class E>
         static void vertical( const Gray<E>& input, Gray<E>& output, uint32_t offset, uint32_t length,
                               ImageBorder<E>& border ) {
-            static_assert(std::is_integral<E>::value, "Floating point sums depend on the blocks");
             output.reshape(input.width, input.height);
             border.setImage(input);
             auto single = [&] {
                 std::vector<typename TypeInfo<E>::sum_type> totals;
                 ConvolveImageMean::vertical(input, output, offset, length, border, totals);
             };
+            if constexpr (std::is_floating_point<E>::value) {
+                float_vertical<E>(input, output, offset, length, &border, single);
+                return;
+            }
             rows(input, length).single(single).run([&]( uint32_t y0, uint32_t y1 ) {
                 std::vector<typename TypeInfo<E>::sum_type> totals;
                 ConvolveImageMean::vertical(input, output, offset, length, border, totals, y0, y1);
@@ -102,6 +112,24 @@ namespace boofcv {
         }
 
     private:
+        /// Floating point vertical mean in blocks of rows that start where ConvolveImageMean restarts its sums
+        template< class E, class Single>
+        static void float_vertical( const Gray<E>& input, Gray<E>& output, uint32_t offset, uint32_t length,
+                                    const ImageBorder<E>* border, Single single ) {
+            const uint32_t height = input.height;
+            const uint32_t blocks = ConvolveImageMean::restart_blocks(height, length);
+            const uint32_t restart = ConvolveImageMean::VERTICAL_RESTART;
+            BoofConcurrency::loop_blocks(0, blocks)
+                    .element_cost(std::max<uint64_t>(1, 3*(uint64_t)input.width*restart))
+                    .block_cost((uint64_t)length*input.width)
+                    .single(single)
+                    .run([&]( uint32_t b0, uint32_t b1 ) {
+                        ConvolveImageMean::float_vertical<E>(input, output, offset, length, border,
+                                ConvolveImageMean::restart_row(b0, blocks, height, offset),
+                                ConvolveImageMean::restart_row(b1, blocks, height, offset));
+                    });
+        }
+
         /// Loop over the rows of 'image'. A row costs about 3 operations per pixel (subtract, add and divide), and a
         /// block first sums 'restart_rows' rows to restart its running sums
         static BoofConcurrency::LoopBlocks rows( const ImageBase& image, uint32_t restart_rows ) {
@@ -111,8 +139,8 @@ namespace boofcv {
         }
     };
 
-    /// BlurImageOps' mean filters for integer images, with ConvolveImageMean_MT, and its Gaussian blur for every type,
-    /// with ConvolveNormalized_MT. The results are identical to BlurImageOps for any number of threads
+    /// BlurImageOps' mean filters with ConvolveImageMean_MT, and its Gaussian blur with ConvolveNormalized_MT. The
+    /// results are identical to BlurImageOps for any number of threads
     class BlurImageOps_MT {
     public:
         /// BlurImageOps::mean()
