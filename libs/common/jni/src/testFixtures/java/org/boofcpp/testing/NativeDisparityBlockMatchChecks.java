@@ -300,7 +300,6 @@ public abstract class NativeDisparityBlockMatchChecks extends BoofCPPStandardJUn
     /// Images smaller than the census region and the block. Every pixel is in the border
     @Test void smallerThanRegion() {
         assumeTrue(supports(GrayU8.class));
-        int javaFailed = 0;
         for (int[] shape : new int[][]{{1, 1}, {1, 4}, {4, 1}, {2, 3}, {3, 2}, {5, 4}}) {
             GrayU8[] pair = createPair(shape[0], shape[1]);
             for (Consumer<ConfigDisparityBM> error : errorTypes()) {
@@ -309,24 +308,10 @@ public abstract class NativeDisparityBlockMatchChecks extends BoofCPPStandardJUn
                 error.accept(config);
                 for (BorderType border : new BorderType[]{BorderType.REFLECT, BorderType.WRAP, BorderType.EXTENDED}) {
                     config.border = border;
-                    boolean statistics = config.errorType == DisparityError.ZSSD ||
-                            config.errorType == DisparityError.NCC;
-                    if (statistics && (shape[0] < config.regionRadiusX || shape[1] < config.regionRadiusY)) {
-                        // BoofCV's mean filter with a border writes outside the image when it's smaller than the
-                        // radius. Native processes it
-                        BOverrideStereoDisparity.opCreateBlockMatch = null;
-                        var java = FactoryStereoDisparity.blockMatch(config, GrayU8.class, GrayF32.class);
-                        assertThrows(ArrayIndexOutOfBoundsException.class, () -> java.process(pair[0], pair[1]));
-                        create(config, GrayU8.class, GrayF32.class).process(pair[0], pair[1]);
-                        javaFailed++;
-                        continue;
-                    }
                     compare(config, GrayF32.class, pair[0], pair[1]);
                 }
             }
         }
-        // 1x1, 1x4, 4x1, 2x3 and 3x2 with ZSSD and NCC and three borders
-        assertEquals(5*2*3, javaFailed);
     }
 
     /// Every error type with a supported image type gives the variant's block matcher. Other types give null or throw a
