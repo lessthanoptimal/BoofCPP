@@ -50,7 +50,10 @@ public abstract class NativeCensusChecks extends BoofCPPStandardJUnit {
     @Test public void compareDense3x3() {
         compare(( census, input, border ) -> {
             var output = new GrayU8(input.width, input.height);
-            census.dense3x3(input, output, border);
+            if (census == null)
+                GCensusTransform.dense3x3(input, output, border(border, input));
+            else
+                census.dense3x3(input, output, border);
             return output;
         });
     }
@@ -58,7 +61,10 @@ public abstract class NativeCensusChecks extends BoofCPPStandardJUnit {
     @Test public void compareDense5x5() {
         compare(( census, input, border ) -> {
             var output = new GrayS32(input.width, input.height);
-            census.dense5x5(input, output, border);
+            if (census == null)
+                GCensusTransform.dense5x5(input, output, border(border, input));
+            else
+                census.dense5x5(input, output, border);
             return output;
         });
     }
@@ -68,7 +74,10 @@ public abstract class NativeCensusChecks extends BoofCPPStandardJUnit {
         for (DogArray<Point2D_I32> samples : sampleSets()) {
             compare(( census, input, border ) -> {
                 var output = new GrayS64(input.width, input.height);
-                census.sample_S64(input, samples, output, border);
+                if (census == null)
+                    GCensusTransform.sample_S64(input, samples, output, border(border, input), null);
+                else
+                    census.sample_S64(input, samples, output, border);
                 return output;
             });
         }
@@ -80,22 +89,21 @@ public abstract class NativeCensusChecks extends BoofCPPStandardJUnit {
         for (Class type : BoofCPPTesting.unsupported(imageTypes)) {
             ImageGray input = GeneralizedImageOps.createSingleBand(type, 10, 8);
             DogArray<Point2D_I32> samples = CensusTransform.createBlockSamples(1);
-            assertThrows(RuntimeException.class, () -> hook.dense3x3(input, new GrayU8(10, 8), null));
-            assertThrows(RuntimeException.class, () -> hook.dense5x5(input, new GrayS32(10, 8), null));
-            assertThrows(RuntimeException.class, () -> hook.sample_S64(input, samples, new GrayS64(10, 8), null));
+            assertThrows(RuntimeException.class, () -> hook.dense3x3(input, new GrayU8(10, 8), BorderType.SKIP));
+            assertThrows(RuntimeException.class, () -> hook.dense5x5(input, new GrayS32(10, 8), BorderType.SKIP));
+            assertThrows(RuntimeException.class, () ->
+                    hook.sample_S64(input, samples, new GrayS64(10, 8), BorderType.SKIP));
         }
 
         for (Class type : imageTypes) {
             ImageGray input = randomImage(type, 20, 15);
+            // BoofCV doesn't pass these borders to the hook
             List<ImageBorder> borders = new ArrayList<>();
             borders.add(type == GrayF32.class ?
                     new ImageBorder1D_F32(new BorderIndex1D_Extend(), new BorderIndex1D_Wrap()) :
                     new ImageBorder1D_S32(new BorderIndex1D_Extend(), new BorderIndex1D_Wrap()));
-            if (type != GrayF32.class)
-                borders.add(FactoryImageBorder.singleValue(-1, type));
+            borders.add(FactoryImageBorder.singleValue(7, type));
             for (ImageBorder border : borders) {
-                assertThrows(RuntimeException.class, () -> hook.dense3x3(input, new GrayU8(20, 15), border));
-                assertThrows(RuntimeException.class, () -> hook.dense5x5(input, new GrayS32(20, 15), border));
                 Supplier<ImageBase> boofcv = () -> {
                     var output = new GrayS32(1, 1);
                     GCensusTransform.dense5x5(input, output, border);
@@ -106,7 +114,8 @@ public abstract class NativeCensusChecks extends BoofCPPStandardJUnit {
 
             // More samples than bits in the census
             DogArray<Point2D_I32> samples = CensusTransform.createBlockSamples(4);
-            assertThrows(RuntimeException.class, () -> hook.sample_S64(input, samples, new GrayS64(20, 15), null));
+            assertThrows(RuntimeException.class, () ->
+                    hook.sample_S64(input, samples, new GrayS64(20, 15), BorderType.SKIP));
             Supplier<ImageBase> boofcv = () -> {
                 var output = new GrayS64(1, 1);
                 GCensusTransform.sample_S64(input, samples, output, null, null);
@@ -133,32 +142,31 @@ public abstract class NativeCensusChecks extends BoofCPPStandardJUnit {
     }
 
     interface Census {
-        ImageBase apply( BOverrideCensusTransform.Census census, ImageGray input, ImageBorder border );
+        /// Calls BoofCV's function if 'census' is null
+        ImageBase apply( BOverrideCensusTransform.Census census, ImageGray input, BorderType border );
     }
 
     /// Compares the hook to BoofCV for every type, shape and border, called directly and through BoofCV's hook
     private void compare( Census op ) {
-        BOverrideCensusTransform.Census boofcv = new JavaCensus();
         for (Class type : imageTypes) {
             for (int[] shape : SHAPES) {
-                for (ImageBorder border : borders(type)) {
+                for (BorderType border : BORDERS) {
                     ImageGray input = randomImage(type, shape[0], shape[1]);
-                    ImageBase expected = callBoofCV(null, () -> op.apply(boofcv, input, border));
+                    ImageBase expected = callBoofCV(null, () -> op.apply(null, input, border));
                     assertIdentical(expected, op.apply(hook, input, border));
-                    assertIdentical(expected, callBoofCV(hook, () -> op.apply(boofcv, input, border)));
+                    assertIdentical(expected, callBoofCV(hook, () -> op.apply(null, input, border)));
                 }
             }
         }
     }
 
-    /// No border, extended, reflected, wrapped, zero and a constant value
-    private static List<ImageBorder> borders( Class type ) {
-        List<ImageBorder> list = new ArrayList<>();
-        list.add(null);
-        for (BorderType b : new BorderType[]{BorderType.EXTENDED, BorderType.REFLECT, BorderType.WRAP, BorderType.ZERO})
-            list.add(FactoryImageBorder.single(b, type));
-        list.add(FactoryImageBorder.singleValue(type == GrayF32.class ? 7.5 : 7, type));
-        return list;
+    /// No border and the borders native can implement
+    private static final BorderType[] BORDERS =
+            {BorderType.SKIP, BorderType.EXTENDED, BorderType.REFLECT, BorderType.WRAP, BorderType.ZERO};
+
+    /// BoofCV's border for the type. Null for SKIP
+    private static ImageBorder border( BorderType type, ImageGray input ) {
+        return type == BorderType.SKIP ? null : FactoryImageBorder.single(type, input.getClass());
     }
 
     private static List<DogArray<Point2D_I32>> sampleSets() {
@@ -196,26 +204,5 @@ public abstract class NativeCensusChecks extends BoofCPPStandardJUnit {
     /// assertMatches()
     private static void assertIdentical( ImageBase expected, ImageBase found ) {
         BoofTesting.assertEquals(expected, found, 0);
-    }
-
-    /// Calls BoofCV's census functions, which use the registered hook
-    private static class JavaCensus implements BOverrideCensusTransform.Census {
-        @Override public void dense3x3( ImageGray input, GrayU8 output, ImageBorder border ) {
-            GCensusTransform.dense3x3(input, output, border);
-        }
-
-        @Override public void dense5x5( ImageGray input, GrayS32 output, ImageBorder border ) {
-            GCensusTransform.dense5x5(input, output, border);
-        }
-
-        @Override public void sample_S64( ImageGray input, FastAccess sample, GrayS64 output,
-                                          ImageBorder border ) {
-            GCensusTransform.sample_S64(input, sample, output, border, null);
-        }
-
-        @Override public void sample_IU16( ImageGray input, FastAccess sample,
-                                           InterleavedU16 output, ImageBorder border ) {
-            GCensusTransform.sample_IU16(input, sample, output, border, null);
-        }
     }
 }

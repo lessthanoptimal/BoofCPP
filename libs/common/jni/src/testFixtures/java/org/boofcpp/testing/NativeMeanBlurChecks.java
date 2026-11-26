@@ -18,7 +18,7 @@ import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -43,11 +43,12 @@ public abstract class NativeMeanBlurChecks extends BoofCPPStandardJUnit {
 
         for (Class type : imageTypes) {
             for (int[] r : radii) {
-                ImageGray input = randomSubImage(type, 61, 45, 0, maxValue(type));
-                ImageGray expected = callBoofCV(null, () -> GBlurImageOps.mean(input, null, r[0], r[1], null, null));
+                // taller than BoofCV's VERTICAL_RESTART rows
+                ImageGray input = randomSubImage(type, 61, 150, 0, maxValue(type));
+                ImageGray expected = callBoofCV(null, () -> GBlurImageOps.mean(input, null, r[0], r[1], null));
 
                 ImageGray found = (ImageGray)input.createSameShape();
-                hook.processMeanWeighted(input, found, r[0], r[1], null);
+                hook.processMean(input, found, r[0], r[1], BorderType.NORMALIZED, null);
                 assertMatches(expected, found, maxValue(type));
             }
         }
@@ -57,8 +58,8 @@ public abstract class NativeMeanBlurChecks extends BoofCPPStandardJUnit {
     @Test public void compareMeanInPlace() {
         for (Class type : imageTypes) {
             ImageGray image = randomSubImage(type, 61, 45, 0, maxValue(type));
-            ImageGray expected = callBoofCV(null, () -> GBlurImageOps.mean(image, null, 2, 3, null, null));
-            hook.processMeanWeighted(image, image, 2, 3, null);
+            ImageGray expected = callBoofCV(null, () -> GBlurImageOps.mean(image, null, 2, 3, null));
+            hook.processMean(image, image, 2, 3, BorderType.NORMALIZED, null);
             assertMatches(expected, image, maxValue(type));
         }
     }
@@ -68,8 +69,10 @@ public abstract class NativeMeanBlurChecks extends BoofCPPStandardJUnit {
         for (Class type : imageTypes) {
             ImageGray image = randomSubImage(type, 10, 8, 0, maxValue(type));
             ImageGray output = (ImageGray)image.createSameShape();
-            assertThrows(IllegalArgumentException.class, () -> hook.processMeanWeighted(image, output, 0, 2, null));
-            assertThrows(IllegalArgumentException.class, () -> hook.processMeanWeighted(image, output, 2, -1, null));
+            for (BorderType border : new BorderType[]{BorderType.NORMALIZED, BorderType.REFLECT}) {
+                assertThrows(IllegalArgumentException.class, () -> hook.processMean(image, output, 0, 2, border, null));
+                assertThrows(IllegalArgumentException.class, () -> hook.processMean(image, output, 2, -1, border, null));
+            }
         }
     }
 
@@ -77,8 +80,10 @@ public abstract class NativeMeanBlurChecks extends BoofCPPStandardJUnit {
     @Test public void unsupportedTypesThrow() {
         for (Class type : BoofCPPTesting.unsupported(imageTypes)) {
             ImageGray input = GeneralizedImageOps.createSingleBand(type, 20, 15);
-            assertThrows(RuntimeException.class, () ->
-                    hook.processMeanWeighted(input, input.createSameShape(), 2, 2, null));
+            for (BorderType border : new BorderType[]{BorderType.NORMALIZED, BorderType.EXTENDED}) {
+                assertThrows(RuntimeException.class, () ->
+                        hook.processMean(input, input.createSameShape(), 2, 2, border, null));
+            }
         }
     }
 
@@ -88,82 +93,51 @@ public abstract class NativeMeanBlurChecks extends BoofCPPStandardJUnit {
 
         for (Class type : imageTypes) {
             for (int[] r : radii) {
-                for (ImageBorder border : borders(type)) {
-                    ImageGray input = randomImage(type, 61, 45);
-                    ImageGray expected = callBoofCV(null, () ->
-                            (ImageGray)GBlurImageOps.meanB(input, null, r[0], r[1], border, null, null));
+                for (BorderType border : BORDERS) {
+                    ImageGray input = randomImage(type, 61, 150);
+                    ImageGray expected = callBoofCV(null, () -> (ImageGray)GBlurImageOps.meanB(input, null, r[0], r[1],
+                            FactoryImageBorder.single(border, type), null));
 
                     ImageGray found = (ImageGray)input.createSameShape();
-                    hook.processMeanBorder(input, found, r[0], r[1], border, null);
+                    hook.processMean(input, found, r[0], r[1], border, null);
                     assertMatches(expected, found, maxValue(type));
                 }
             }
         }
     }
 
-    /// Images smaller than the region. BoofCV's meanB can't process these, so the result is compared to the mean
-    /// computed from its definition: a horizontal mean through the border, then a vertical mean through the border.
-    /// Every pixel is a border pixel here, where BoofCV adds up each pixel times 1/length for floats, and adds up the
-    /// pixels and rounds the division for integers
+    /// Images smaller than the region, so every pixel is a border pixel
     @Test public void smallerThanRegionWithBorder() {
         for (Class type : imageTypes) {
             for (int[] shape : new int[][]{{1, 1}, {3, 2}, {2, 5}}) {
-                for (ImageBorder border : borders(type)) {
+                for (BorderType border : BORDERS) {
                     ImageGray input = randomImage(type, shape[0], shape[1]);
+                    ImageGray expected = callBoofCV(null, () -> (ImageGray)GBlurImageOps.meanB(input, null, 3, 3,
+                            FactoryImageBorder.single(border, type), null));
+
                     ImageGray found = GeneralizedImageOps.createSingleBand(type, 1, 1);
                     ImageGray storage = GeneralizedImageOps.createSingleBand(type, 1, 1);
-                    hook.processMeanBorder(input, found, 3, 3, border, storage);
-
-                    ImageGray horizontal = naiveMeanBorder(input, 3, 0, border);
-                    assertMatches(naiveMeanBorder(horizontal, 0, 3, border), found,
-                            maxValue(type));
+                    hook.processMean(input, found, 3, 3, border, storage);
+                    assertMatches(expected, found, maxValue(type));
                 }
             }
         }
     }
 
-    /// A radius of zero or less is rejected
-    @Test public void badRadiusWithBorder() {
-        for (Class type : imageTypes) {
-            ImageGray input = GeneralizedImageOps.createSingleBand(type, 20, 15);
-            ImageBorder border = FactoryImageBorder.single(BorderType.REFLECT, type);
-            assertThrows(IllegalArgumentException.class, () ->
-                    hook.processMeanBorder(input, input.createSameShape(), 0, 2, border, null));
-            assertThrows(IllegalArgumentException.class, () ->
-                    hook.processMeanBorder(input, input.createSameShape(), 2, 0, border, null));
-            assertThrows(IllegalArgumentException.class, () ->
-                    hook.processMeanBorder(input, input.createSameShape(), -1, 2, border, null));
-        }
-    }
-
-    /// Borders and types the variant doesn't support throw a RuntimeException, and BoofCV's meanB then uses its own
-    /// code: no border, rows and columns with different borders, and integer values that don't fit the pixels
+    /// meanB without a border throws, so BoofCV uses its Java code. So does meanB with a border BoofCV doesn't pass
+    /// to the hook, e.g. rows and columns with different borders
     @Test public void unsupportedWithBorderFallsBackToJava() {
         for (Class type : imageTypes) {
             ImageGray input = randomImage(type, 20, 15);
-            List<ImageBorder> unsupported = new ArrayList<>();
-            unsupported.add(mixedBorder(type));
-            if (type == GrayU8.class || type == GrayU16.class) {
-                unsupported.add(FactoryImageBorder.singleValue(type == GrayU8.class ? 300 : 70000, type));
-                unsupported.add(FactoryImageBorder.singleValue(-1, type));
-            }
-            for (ImageBorder border : unsupported) {
-                assertThrows(RuntimeException.class, () ->
-                        hook.processMeanBorder(input, input.createSameShape(), 2, 2, border, null));
+            assertThrows(RuntimeException.class, () ->
+                    hook.processMean(input, input.createSameShape(), 2, 2, BorderType.SKIP, null));
+            for (ImageBorder border : Arrays.asList(null, mixedBorder(type))) {
                 ImageGray expected = callBoofCV(null, () ->
-                        (ImageGray)GBlurImageOps.meanB(input, null, 2, 2, border, null, null));
+                        (ImageGray)GBlurImageOps.meanB(input, null, 2, 2, border, null));
                 ImageGray found = callBoofCV(hook, () ->
-                        (ImageGray)GBlurImageOps.meanB(input, null, 2, 2, border, null, null));
+                        (ImageGray)GBlurImageOps.meanB(input, null, 2, 2, border, null));
                 assertMatches(expected, found, maxValue(type));
             }
-            assertThrows(RuntimeException.class, () ->
-                    hook.processMeanBorder(input, input.createSameShape(), 2, 2, null, null));
-        }
-        for (Class type : BoofCPPTesting.unsupported(imageTypes)) {
-            ImageGray input = GeneralizedImageOps.createSingleBand(type, 20, 15);
-            ImageBorder border = FactoryImageBorder.single(BorderType.EXTENDED, type);
-            assertThrows(RuntimeException.class, () ->
-                    hook.processMeanBorder(input, input.createSameShape(), 2, 2, border, null));
         }
     }
 
@@ -176,54 +150,15 @@ public abstract class NativeMeanBlurChecks extends BoofCPPStandardJUnit {
         return new ImageBorder1D_S32(new BorderIndex1D_Extend(), new BorderIndex1D_Wrap());
     }
 
-    /// Extended, reflected, wrapped, zero and a constant value
-    protected static List<ImageBorder> borders( Class type ) {
-        List<ImageBorder> list = new ArrayList<>();
-        for (BorderType b : new BorderType[]{BorderType.EXTENDED, BorderType.REFLECT, BorderType.WRAP, BorderType.ZERO})
-            list.add(FactoryImageBorder.single(b, type));
-        list.add(FactoryImageBorder.singleValue(type == GrayU8.class || type == GrayU16.class ? 7 : 7.5, type));
-        return list;
-    }
+    /// Borders native can implement
+    protected static final BorderType[] BORDERS =
+            {BorderType.EXTENDED, BorderType.REFLECT, BorderType.WRAP, BorderType.ZERO};
 
     /// Random sub-image. Integers are in [0, maxValue], floats in [-maxValue, maxValue]
     private ImageGray randomImage( Class type, int width, int height ) {
         double max = maxValue(type);
         boolean isFloat = type == GrayF32.class || type == GrayF64.class;
         return randomSubImage(type, width, height, isFloat ? -max : 0, max);
-    }
-
-    /// Mean along x over 2*radiusX+1 pixels, then along y over 2*radiusY+1 pixels, of every pixel read through the
-    /// border. Same arithmetic as BoofCV's border code for a mean kernel
-    private static ImageGray naiveMeanBorder( ImageGray input, int radiusX, int radiusY, ImageBorder border ) {
-        ImageGray output = (ImageGray)input.createSameShape();
-        border.setImage(input);
-        int length = (2*radiusX + 1)*(2*radiusY + 1);
-        for (int y = 0; y < input.height; y++) {
-            for (int x = 0; x < input.width; x++) {
-                if (input instanceof GrayF32) {
-                    float weight = 1.0f/length;
-                    float total = 0;
-                    for (int j = -radiusY; j <= radiusY; j++)
-                        for (int i = -radiusX; i <= radiusX; i++)
-                            total += (float)BoofCPPTesting.borderValue(border, x + i, y + j)*weight;
-                    ((GrayF32)output).set(x, y, total);
-                } else if (input instanceof GrayF64) {
-                    double weight = 1.0/length;
-                    double total = 0;
-                    for (int j = -radiusY; j <= radiusY; j++)
-                        for (int i = -radiusX; i <= radiusX; i++)
-                            total += BoofCPPTesting.borderValue(border, x + i, y + j)*weight;
-                    ((GrayF64)output).set(x, y, total);
-                } else {
-                    int total = 0;
-                    for (int j = -radiusY; j <= radiusY; j++)
-                        for (int i = -radiusX; i <= radiusX; i++)
-                            total += (int)BoofCPPTesting.borderValue(border, x + i, y + j);
-                    GeneralizedImageOps.set(output, x, y, (total + length/2)/length);
-                }
-            }
-        }
-        return output;
     }
 
     /// Largest input value. It's the tolerance's scale because the mean is a running sum of raw pixel values, so

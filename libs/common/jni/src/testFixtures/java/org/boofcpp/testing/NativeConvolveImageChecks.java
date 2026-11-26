@@ -60,7 +60,7 @@ public abstract class NativeConvolveImageChecks extends BoofCPPStandardJUnit {
                     ImageBorder border = FactoryImageBorder.single(borderType, type);
                     ImageGray expected = createOutput(input), found = createOutput(input);
                     singleThreaded(() -> GConvolveImageOps.horizontal(kernel, input, expected, border));
-                    horizontal.horizontal(kernel, input, found, border);
+                    horizontal.horizontal(kernel, input, found, borderType);
                     assertMatches(expected, found, scale(kernel));
                 }
             }
@@ -75,7 +75,7 @@ public abstract class NativeConvolveImageChecks extends BoofCPPStandardJUnit {
                     ImageBorder border = FactoryImageBorder.single(borderType, type);
                     ImageGray expected = createOutput(input), found = createOutput(input);
                     singleThreaded(() -> GConvolveImageOps.vertical(kernel, input, expected, border));
-                    vertical.vertical(kernel, input, found, border);
+                    vertical.vertical(kernel, input, found, borderType);
                     assertMatches(expected, found, scale(kernel));
                 }
             }
@@ -90,7 +90,7 @@ public abstract class NativeConvolveImageChecks extends BoofCPPStandardJUnit {
                     ImageBorder border = FactoryImageBorder.single(borderType, type);
                     ImageGray expected = createOutput(input), found = createOutput(input);
                     singleThreaded(() -> GConvolveImageOps.convolve(kernel, input, expected, border));
-                    convolve.convolve(kernel, input, found, border);
+                    convolve.convolve(kernel, input, found, borderType);
                     assertMatches(expected, found, scale(kernel));
                 }
             }
@@ -102,7 +102,6 @@ public abstract class NativeConvolveImageChecks extends BoofCPPStandardJUnit {
         for (Class type : BoofCPPTesting.unsupported(imageTypes)) {
             ImageGray input = GeneralizedImageOps.createSingleBand(type, 10, 8);
             ImageGray output = (ImageGray)input.createSameShape();
-            ImageBorder border = FactoryImageBorder.single(BorderType.EXTENDED, type);
             Kernel1D kernel1;
             Kernel2D kernel2;
             if (type == GrayF32.class) {
@@ -115,9 +114,9 @@ public abstract class NativeConvolveImageChecks extends BoofCPPStandardJUnit {
                 kernel1 = new Kernel1D_S32(3, new int[]{1, 2, 1});
                 kernel2 = new Kernel2D_S32(3, new int[]{1, 2, 1, 2, 4, 2, 1, 2, 1});
             }
-            assertThrows(RuntimeException.class, () -> horizontal.horizontal(kernel1, input, output, border));
-            assertThrows(RuntimeException.class, () -> vertical.vertical(kernel1, input, output, border));
-            assertThrows(RuntimeException.class, () -> convolve.convolve(kernel2, input, output, border));
+            assertThrows(RuntimeException.class, () -> horizontal.horizontal(kernel1, input, output, BorderType.EXTENDED));
+            assertThrows(RuntimeException.class, () -> vertical.vertical(kernel1, input, output, BorderType.EXTENDED));
+            assertThrows(RuntimeException.class, () -> convolve.convolve(kernel2, input, output, BorderType.EXTENDED));
         }
     }
 

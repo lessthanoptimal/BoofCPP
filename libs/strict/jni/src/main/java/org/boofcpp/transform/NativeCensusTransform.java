@@ -2,7 +2,6 @@ package org.boofcpp.transform;
 
 import boofcv.alg.transform.census.BOverrideCensusTransform;
 import boofcv.struct.border.BorderType;
-import boofcv.struct.border.ImageBorder;
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayS32;
 import boofcv.struct.image.GrayS64;
@@ -21,17 +20,17 @@ import org.ddogleg.struct.FastAccess;
 /// BOOFCPP_OVERRIDE BOverrideCensusTransform.census
 public class NativeCensusTransform<T extends ImageGray<T>> implements BOverrideCensusTransform.Census<T> {
     @Override
-    public void dense3x3( T input, GrayU8 output, ImageBorder<T> border ) {
+    public void dense3x3( T input, GrayU8 output, BorderType border ) {
         nativeDense(3, input, output, border);
     }
 
     @Override
-    public void dense5x5( T input, GrayS32 output, ImageBorder<T> border ) {
+    public void dense5x5( T input, GrayS32 output, BorderType border ) {
         nativeDense(5, input, output, border);
     }
 
     @Override
-    public void sample_S64( T input, FastAccess<Point2D_I32> sample, GrayS64 output, ImageBorder<T> border ) {
+    public void sample_S64( T input, FastAccess<Point2D_I32> sample, GrayS64 output, BorderType border ) {
         int[] xs = new int[sample.size], ys = new int[sample.size];
         for (int i = 0; i < sample.size; i++) {
             xs[i] = sample.get(i).x;
@@ -42,13 +41,13 @@ public class NativeCensusTransform<T extends ImageGray<T>> implements BOverrideC
 
     @Override
     public void sample_IU16( T input, FastAccess<Point2D_I32> sample, InterleavedU16 output,
-                             ImageBorder<T> border ) {
+                             BorderType border ) {
         throw new RuntimeException("Not supported by native");
     }
 
-    /// Dense census of a width x width region. 'border' is null if the image border isn't processed
-    private static void nativeDense( int width, ImageGray input, ImageGray output, ImageBorder border ) {
-        NativeImageBorder b = border == null ? null : NativeImageBorder.of(border, input);
+    /// Dense census of a width x width region. SKIP if the image border isn't processed
+    private static void nativeDense( int width, ImageGray input, ImageGray output, BorderType border ) {
+        NativeImageBorder b = border == BorderType.SKIP ? null : NativeImageBorder.of(border);
         boolean hasBorder = b != null;
         BorderType type = hasBorder ? b.type : null;
         double value = hasBorder ? b.value : 0;
@@ -63,8 +62,8 @@ public class NativeCensusTransform<T extends ImageGray<T>> implements BOverrideC
         }
     }
 
-    private static void nativeSampleS64( ImageGray input, int[] xs, int[] ys, GrayS64 output, ImageBorder border ) {
-        NativeImageBorder b = border == null ? null : NativeImageBorder.of(border, input);
+    private static void nativeSampleS64( ImageGray input, int[] xs, int[] ys, GrayS64 output, BorderType border ) {
+        NativeImageBorder b = border == BorderType.SKIP ? null : NativeImageBorder.of(border);
         boolean hasBorder = b != null;
         BorderType type = hasBorder ? b.type : null;
         double value = hasBorder ? b.value : 0;

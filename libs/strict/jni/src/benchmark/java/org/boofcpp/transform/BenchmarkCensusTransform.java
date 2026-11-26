@@ -37,6 +37,7 @@ public class BenchmarkCensusTransform {
     public int size;
 
     ImageGray input;
+    BorderType borderType = BorderType.REFLECT;
     ImageBorder border;
     DogArray<Point2D_I32> samples = CensusTransform.createBlockSamples(3);
     GrayU8 dense3x3 = new GrayU8(1, 1);
@@ -54,16 +55,16 @@ public class BenchmarkCensusTransform {
     @Setup public void setup() {
         input = GeneralizedImageOps.createSingleBand(ImageDataType.valueOf(image), size, size);
         GImageMiscOps.fillUniform(input, new Random(234), 0, 200);
-        border = FactoryImageBorder.single(BorderType.REFLECT, input.getClass());
+        border = FactoryImageBorder.single(borderType, input.getClass());
         dense3x3.reshape(size, size);
         dense5x5.reshape(size, size);
         sampleS64.reshape(size, size);
     }
 
-    @Benchmark public void dense3x3_native() { nativeOps.dense3x3(input, dense3x3, border); }
+    @Benchmark public void dense3x3_native() { nativeOps.dense3x3(input, dense3x3, borderType); }
     @Benchmark public void dense3x3_java() { GCensusTransform.dense3x3(input, dense3x3, border); }
-    @Benchmark public void dense5x5_native() { nativeOps.dense5x5(input, dense5x5, border); }
+    @Benchmark public void dense5x5_native() { nativeOps.dense5x5(input, dense5x5, borderType); }
     @Benchmark public void dense5x5_java() { GCensusTransform.dense5x5(input, dense5x5, border); }
-    @Benchmark public void sample_S64_native() { nativeOps.sample_S64(input, samples, sampleS64, border); }
+    @Benchmark public void sample_S64_native() { nativeOps.sample_S64(input, samples, sampleS64, borderType); }
     @Benchmark public void sample_S64_java() { GCensusTransform.sample_S64(input, samples, sampleS64, border, null); }
 }

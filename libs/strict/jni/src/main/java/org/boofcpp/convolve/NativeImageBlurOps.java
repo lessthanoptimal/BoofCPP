@@ -9,7 +9,6 @@ import boofcv.struct.border.BorderType;
 import boofcv.struct.convolve.Kernel1D_F32;
 import boofcv.struct.convolve.Kernel1D_F64;
 import boofcv.struct.convolve.Kernel1D_S32;
-import boofcv.struct.border.ImageBorder;
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayF64;
 import boofcv.struct.image.GrayU16;
@@ -17,6 +16,9 @@ import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageBase;
 import org.boofcpp.NativeImageBorder;
 import org.boofcpp.threshold.NativeThresholdBase;
+
+import java.util.Arrays;
+import java.util.List;
 
 /// Native mean and Gaussian blur, called by BoofCV through BOverrideBlurImageOps. Supports GrayU8, GrayU16, GrayF32
 /// and GrayF64, the same gray images as BoofCV's BlurImageOps. Anything native doesn't support throws a
@@ -27,11 +29,33 @@ import org.boofcpp.threshold.NativeThresholdBase;
 public class NativeImageBlurOps<T extends ImageBase<T>>
     implements BOverrideBlurImageOps.Mean<T>,BOverrideBlurImageOps.Gaussian<T>
 {
+    private final List<Class<?>> meanTypes;
+
+    /// Native mean for GrayU8, GrayU16, GrayF32 and GrayF64
+    public NativeImageBlurOps() {
+        this(GrayU8.class, GrayU16.class, GrayF32.class, GrayF64.class);
+    }
+
+    /// @param meanTypes Images the mean is native for. Others throw a RuntimeException, so BoofCV uses its Java code
+    public NativeImageBlurOps( Class<?>... meanTypes ) {
+        this.meanTypes = Arrays.asList(meanTypes);
+    }
+
+    /// NORMALIZED and the borders NativeImageBorder supports. SKIP throws a RuntimeException, so BoofCV uses its Java
+    /// code
     @Override
-    public void processMeanWeighted(T input, T output, int radiusX, int radiusY, T storage) {
+    public void processMean( T input, T output, int radiusX, int radiusY, BorderType border, T storage ) {
+        if (!meanTypes.contains(input.getClass()))
+            throw new RuntimeException("Mean isn't native for " + input.getClass().getSimpleName());
         if (radiusX <= 0 || radiusY <= 0)
             throw new IllegalArgumentException("Radius must be > 0");
+        if (border == BorderType.NORMALIZED)
+            meanNormalized(input, output, radiusX, radiusY, storage);
+        else
+            meanBorder(input, output, radiusX, radiusY, NativeImageBorder.of(border), storage);
+    }
 
+    private void meanNormalized( T input, T output, int radiusX, int radiusY, T storage ) {
         output.reshape(input.width, input.height);
         storage = InputSanityCheck.declareOrReshape(input, storage);
 
@@ -56,19 +80,8 @@ public class NativeImageBlurOps<T extends ImageBase<T>>
 
     native void nativeMeanF64( GrayF64 input, GrayF64 output, int radiusX, int radiusY, GrayF64 storage );
 
-    /// Mean filter where pixels outside the image are read from 'border'. Native supports GrayU8, GrayU16, GrayF32 and
-    /// GrayF64 with the borders NativeImageBorder supports. Anything else throws a RuntimeException, which causes
-    /// BoofCV to fall back to its Java implementation.
-    @Override
-    public void processMeanBorder(T input, T output, int radiusX, int radiusY, ImageBorder<T> border,
-                                  T storage) {
-        if (border == null)
-            throw new RuntimeException("Native requires a border");
-        if (radiusX <= 0 || radiusY <= 0)
-            throw new IllegalArgumentException("Radius must be > 0");
-
-        NativeImageBorder b = NativeImageBorder.of(border, input);
-
+    /// Mean filter where pixels outside the image are from the border
+    private void meanBorder( T input, T output, int radiusX, int radiusY, NativeImageBorder b, T storage ) {
         output.reshape(input.width, input.height);
         storage = InputSanityCheck.declareOrReshape(input, storage);
 
