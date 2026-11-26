@@ -16,6 +16,10 @@ namespace boofcv {
      */
     class ConvolveImageMean {
     public:
+        /// Floating point running sums along y start over every VERTICAL_RESTART rows. Same as BoofCV's
+        /// ImplConvolveBox.VERTICAL_RESTART
+        static constexpr int32_t VERTICAL_RESTART = 64;
+
         template< class E>
         static void inner_horizontal(const Gray<E>& input, Gray<E>& output, uint32_t radius )
         {
@@ -92,127 +96,6 @@ namespace boofcv {
             }
         }
 
-        /**
-         * Image border for mean filter along x-axis. Floating point images. Port of BoofCV
-         * ImplConvolveMean.horizontalBorder(GrayF32) so that the order of floating point operations is identical:
-         * running sum of pixels inside the image divided by the number of pixels.
-         */
-        template< class E>
-        static void border_horizontal(const Gray<E>& input, Gray<E>& output, uint32_t radius )
-        {
-            const int32_t offset = radius;
-            const int32_t length = radius*2 + 1;
-            const int32_t offsetR = length - offset - 1;
-            const int32_t width = input.width;
-            const E* dataSrc = input.data;
-            E* dataDst = output.data;
-
-            for( uint32_t y = 0; y < input.height; y++ ) {
-                int32_t indexDest = output.offset + y*output.stride;
-                int32_t j = input.offset + y*input.stride;
-
-                E total = 0;
-                int32_t count = length - offset;
-                int32_t jEnd = j + count;
-                if( offset > 0 ) {
-                    for( int32_t indexSrc = j; indexSrc < jEnd; indexSrc++ ) {
-                        total += dataSrc[indexSrc];
-                    }
-                    dataDst[indexDest++] = total/count;
-                }
-                while( ++count < length ) {
-                    total += dataSrc[jEnd++];
-                    dataDst[indexDest++] = total/count;
-                }
-
-                jEnd = j + width;
-                count = offset + offsetR;
-                j += width - count;
-                indexDest += width - count;
-                total = 0;
-                if( offsetR > 0 ) {
-                    for( int32_t indexSrc = j; indexSrc < jEnd; indexSrc++ ) {
-                        total += dataSrc[indexSrc];
-                    }
-                    dataDst[indexDest++] = total/count;
-                }
-                while( --count > offset ) {
-                    total -= dataSrc[j++];
-                    dataDst[indexDest++] = total/count;
-                }
-            }
-        }
-
-        /**
-         * Image border for mean filter along y-axis. Floating point images. Port of BoofCV
-         * ImplConvolveMean.verticalBorder(GrayF32) so that the order of floating point operations is identical.
-         */
-        template< class E>
-        static void border_vertical(const Gray<E>& input, Gray<E>& output, uint32_t radius )
-        {
-            const int32_t offset = radius;
-            const int32_t length = radius*2 + 1;
-            const int32_t height = input.height;
-            const int32_t x0 = 0, x1 = input.width;
-            const E* dataSrc = input.data;
-            E* dataDst = output.data;
-            std::vector<E> totals(x1 - x0);
-
-            // Image Top
-            for( int32_t count = length - offset; count < length; count++ ) {
-                const int32_t indexInRow = input.offset + x0;
-                if( count == length - offset ) {
-                    int32_t indexIn = indexInRow;
-                    for( int32_t x = x0; x < x1; x++ ) {
-                        totals[x - x0] = dataSrc[indexIn++];
-                    }
-                    for( int32_t y = 1; y < count; y++ ) {
-                        indexIn = indexInRow + y*input.stride;
-                        for( int32_t x = x0; x < x1; x++ ) {
-                            totals[x - x0] += dataSrc[indexIn++];
-                        }
-                    }
-                } else {
-                    int32_t indexIn0 = indexInRow + (count - 1)*input.stride;
-                    int32_t end = indexIn0 + x1 - x0;
-                    for( int32_t i = indexIn0; i < end; i++ ) {
-                        totals[i - indexIn0] += dataSrc[i];
-                    }
-                }
-                int32_t indexOut = output.offset + (count - (length - offset))*output.stride;
-                for( int32_t x = x0; x < x1; x++ ) {
-                    dataDst[indexOut + x] = totals[x - x0]/count;
-                }
-            }
-            // Image Bottom
-            for( int32_t yStart = height - length + 1; yStart < height - offset; yStart++ ) {
-                const int32_t indexInRow = input.offset + x0;
-                if( yStart == height - length + 1 ) {
-                    int32_t indexIn = indexInRow + yStart*input.stride;
-                    for( int32_t x = x0; x < x1; x++ ) {
-                        totals[x - x0] = dataSrc[indexIn++];
-                    }
-                    for( int32_t y = yStart + 1; y < height; y++ ) {
-                        indexIn = indexInRow + y*input.stride;
-                        for( int32_t x = x0; x < x1; x++ ) {
-                            totals[x - x0] += dataSrc[indexIn++];
-                        }
-                    }
-                } else {
-                    int32_t indexIn0 = indexInRow + (yStart - 1)*input.stride;
-                    int32_t indexIn1 = indexIn0 + x1 - x0;
-                    for( int32_t i = indexIn0; i < indexIn1; i++ ) {
-                        totals[i - indexIn0] -= dataSrc[i];
-                    }
-                }
-                int32_t count = height - yStart;
-                int32_t indexOut = output.offset + (yStart + offset)*output.stride;
-                for( int32_t x = x0; x < x1; x++ ) {
-                    dataDst[indexOut + x] = totals[x - x0]/count;
-                }
-            }
-        }
-
         template< class E>
         static void horizontal(const Gray<E>& input, Gray<E>& output, uint32_t radius )
         {
@@ -220,14 +103,15 @@ namespace boofcv {
 
             typedef typename TypeInfo<E>::signed_type signed_type;
 
+            if constexpr (std::is_floating_point<E>::value) {
+                float_horizontal<E>(input, output, radius, radius*2 + 1, nullptr, 0, input.height);
+                return;
+            }
             Kernel1D<signed_type> kernel = FactoryKernel::mean1D<signed_type>(radius*2+1);
             if( kernel.width > input.width ) {
                 ConvolveNormalized::horizontal(kernel,input,output);
             } else {
-                if constexpr (std::is_floating_point<E>::value)
-                    border_horizontal(input, output, radius);
-                else
-                    ConvolveNormalized_JustBorder::horizontal(kernel, input ,output );
+                ConvolveNormalized_JustBorder::horizontal(kernel, input ,output );
                 inner_horizontal(input, output, radius);
             }
         }
@@ -239,14 +123,15 @@ namespace boofcv {
 
             typedef typename TypeInfo<E>::signed_type signed_type;
 
+            if constexpr (std::is_floating_point<E>::value) {
+                float_vertical<E>(input, output, radius, radius*2 + 1, nullptr, 0, input.height);
+                return;
+            }
             Kernel1D<signed_type> kernel = FactoryKernel::mean1D<signed_type>(radius*2+1);
             if( kernel.width > input.height ) { // Java: length > input.height
                 ConvolveNormalized::vertical(kernel,input,output);
             } else {
-                if constexpr (std::is_floating_point<E>::value)
-                    border_vertical(input, output, radius);
-                else
-                    ConvolveNormalized_JustBorder::vertical(kernel, input ,output );
+                ConvolveNormalized_JustBorder::vertical(kernel, input ,output );
                 inner_vertical(input, output, radius);
             }
         }
@@ -267,6 +152,10 @@ namespace boofcv {
         template< class E>
         static void horizontal( const Gray<E>& input, Gray<E>& output, uint32_t offset, uint32_t length,
                                 const ImageBorder<E>& border, uint32_t y0, uint32_t y1 ) {
+            if constexpr (std::is_floating_point<E>::value) {
+                float_horizontal<E>(input, output, offset, length, &border, y0, y1);
+                return;
+            }
             typedef typename TypeInfo<E>::sum_type sum_type;
             // Signed, since pixels outside the image have negative coordinates
             const auto ofs = (int32_t)offset, len = (int32_t)length;
@@ -277,8 +166,7 @@ namespace boofcv {
             for (int32_t y = y0; y < (int32_t)y1; y++) {
                 E* out = output.data + output.offset + y*output.stride;
 
-                // the border. BoofCV fails if the image is narrower than offset or border_right, so those columns
-                // are clamped to the image
+                // the border. In an image narrower than the kernel every column is a border column
                 auto border_pixel = [&]( int32_t x ) {
                     out[x] = border_sum<E>(divisor, len, [&]( int32_t k ) { return border.get(x + k - ofs, y); });
                 };
@@ -316,13 +204,17 @@ namespace boofcv {
             vertical(input, output, offset, length, border, totals, 0, input.height);
         }
 
-        /// vertical() of the rows y0 <= y < y1. 'output' has the input's shape and 'border' has the input image. The
-        /// running sums start at the first inner row in the range, so the results are the same for any range only for
-        /// integers
+        /// vertical() of the rows y0 <= y < y1. 'output' has the input's shape and 'border' has the input image. Floating
+        /// point running sums start over every VERTICAL_RESTART rows, so a range that starts at one of those rows gives the
+        /// same results
         template< class E>
         static void vertical( const Gray<E>& input, Gray<E>& output, uint32_t offset, uint32_t length,
                               const ImageBorder<E>& border, std::vector<typename TypeInfo<E>::sum_type>& totals,
                               uint32_t y0, uint32_t y1 ) {
+            if constexpr (std::is_floating_point<E>::value) {
+                float_vertical<E>(input, output, offset, length, &border, y0, y1);
+                return;
+            }
             typedef typename TypeInfo<E>::sum_type sum_type;
             // Signed, since pixels outside the image have negative coordinates
             const auto ofs = (int32_t)offset, len = (int32_t)length;
@@ -331,7 +223,7 @@ namespace boofcv {
             const int32_t border_bottom = len - ofs - 1;
             const MeanDivisor<E> divisor(len);
 
-            // the border. Rows are clamped to the image, see horizontal()
+            // the border rows, see horizontal()
             for (int32_t x = 0; x < width; x++) {
                 auto border_pixel = [&]( int32_t y ) {
                     output.unsafe_at(x, y) =
@@ -376,23 +268,178 @@ namespace boofcv {
         }
 
     private:
-        /// Mean of 'length' pixels along the image border, where pixel(k) returns the k-th pixel. Same as BoofCV's
-        /// ConvolveJustBorder_General_SB with a mean kernel: floats add up each pixel times 1/length, and integers
-        /// add up the pixels and round the division.
+        /// Mean of 'length' integer pixels along the image border, where pixel(k) returns the k-th pixel. The division
+        /// is rounded, same as BoofCV
         template< class E, class PixelFunc>
         static E border_sum( const MeanDivisor<E>& divisor, int32_t length, PixelFunc pixel ) {
-            if constexpr (std::is_floating_point<E>::value) {
-                const E weight = (E)1/(E)length;
+            typedef typename TypeInfo<E>::sum_type sum_type;
+            sum_type total = 0;
+            for (int32_t k = 0; k < length; k++)
+                total += pixel(k);
+            return divisor(total);
+        }
+
+        /// Floating point mean along x of the rows y0 to y1. Port of BoofCV's ImplConvolveMean.horizontal(), with the
+        /// same order of operations. Without a border the mean near the image border is of the pixels inside the image
+        template< class E>
+        static void float_horizontal( const Gray<E>& input, Gray<E>& output, uint32_t offset_, uint32_t length_,
+                                      const ImageBorder<E>* border, uint32_t y0, uint32_t y1 ) {
+            const auto offset = (int32_t)offset_, length = (int32_t)length_;
+            const int32_t width = input.width;
+            const int32_t offsetR = length - offset - 1;
+
+            for (int32_t y = y0; y < (int32_t)y1; y++) {
+                const E* in = input.data + input.offset + y*input.stride;
+                E* out = output.data + output.offset + y*output.stride;
+
+                if (border == nullptr && length <= width) {
+                    float_border_inside(in, out, offset, length, width);
+                    continue;
+                }
+                auto pixel = [&]( int32_t i ) -> E {
+                    if (i >= 0 && i < width)
+                        return in[i];
+                    return border == nullptr ? 0 : border->get(i, y);
+                };
+                // Running sums along the left and then the right border. Without a border only pixels inside the
+                // image are counted
+                for (int side = 0; side < 2; side++) {
+                    const int32_t xStart = side == 0 ? 0 : std::max(std::min(offset, width), width - offsetR);
+                    const int32_t xEnd = side == 0 ? std::min(offset, width) : width;
+                    E total = 0;
+                    int32_t count = 0;
+                    for (int32_t x = xStart; x < xEnd; x++) {
+                        if (x == xStart) {
+                            for (int32_t i = x - offset; i < x - offset + length; i++) {
+                                total += pixel(i);
+                                count += i >= 0 && i < width ? 1 : 0;
+                            }
+                        } else {
+                            const int32_t removed = x - offset - 1, added = x - offset + length - 1;
+                            total -= pixel(removed);
+                            total += pixel(added);
+                            count += (added < width ? 1 : 0) - (removed >= 0 ? 1 : 0);
+                        }
+                        out[x] = total/(border == nullptr ? count : length);
+                    }
+                }
+            }
+
+            // inner image: total += added - removed, divided by the length
+            if (length > width)
+                return;
+            const E divisor = (E)length;
+            for (int32_t y = y0; y < (int32_t)y1; y++) {
+                const E* in = input.data + input.offset + y*input.stride;
+                E* out = output.data + output.offset + y*output.stride + offset;
                 E total = 0;
-                for (int32_t k = 0; k < length; k++)
-                    total += pixel(k)*weight;
-                return total;
-            } else {
-                typedef typename TypeInfo<E>::sum_type sum_type;
-                sum_type total = 0;
-                for (int32_t k = 0; k < length; k++)
-                    total += pixel(k);
-                return divisor(total);
+                for (int32_t i = 0; i < length; i++)
+                    total += in[i];
+                out[0] = total/divisor;
+                for (int32_t i = length; i < width; i++) {
+                    total += in[i] - in[i - length];
+                    out[i - length + 1] = total/divisor;
+                }
+            }
+        }
+
+        /// Border of one row without an ImageBorder, when the kernel fits inside the image: the mean of the pixels
+        /// inside the image, with a running sum along each side
+        template< class E>
+        static void float_border_inside( const E* in, E* out, int32_t offset, int32_t length, int32_t width ) {
+            const int32_t offsetR = length - offset - 1;
+            if (offset > 0) {
+                E total = 0;
+                int32_t count = length - offset;
+                for (int32_t i = 0; i < count; i++)
+                    total += in[i];
+                out[0] = total/count;
+                for (int32_t x = 1; x < offset; x++) {
+                    total += in[x + offsetR];
+                    count++;
+                    out[x] = total/count;
+                }
+            }
+            if (offsetR > 0) {
+                const int32_t x0 = width - offsetR;
+                E total = 0;
+                int32_t count = offsetR + offset;
+                for (int32_t i = x0 - offset; i < width; i++)
+                    total += in[i];
+                out[x0] = total/count;
+                for (int32_t x = x0 + 1; x < width; x++) {
+                    total -= in[x - offset - 1];
+                    count--;
+                    out[x] = total/count;
+                }
+            }
+        }
+
+        /// Floating point mean along y of the output rows y0 to y1. Port of BoofCV's ImplConvolveMean.vertical(), with
+        /// the same order of operations. The running sums start over every VERTICAL_RESTART rows after the first
+        /// inner row
+        template< class E>
+        static void float_vertical( const Gray<E>& input, Gray<E>& output, uint32_t offset_, uint32_t length_,
+                                    const ImageBorder<E>* border, uint32_t y0_, uint32_t y1_ ) {
+            const auto offset = (int32_t)offset_, length = (int32_t)length_;
+            const auto y0 = (int32_t)y0_, y1 = (int32_t)y1_;
+            const int32_t width = input.width, height = input.height;
+            const int32_t offsetR = length - offset - 1;
+            std::vector<E> totals(width);
+
+            // border rows
+            for (int32_t y = y0; y < y1; y++) {
+                if (y >= offset && y < height - offsetR) {
+                    y = height - offsetR - 1;
+                    continue;
+                }
+                std::fill(totals.begin(), totals.end(), 0);
+                int32_t count = 0;
+                for (int32_t k = 0; k < length; k++) {
+                    const int32_t j = y - offset + k;
+                    if (j >= 0 && j < height) {
+                        const E* row = input.data + input.offset + j*input.stride;
+                        for (int32_t i = 0; i < width; i++)
+                            totals[i] += row[i];
+                        count++;
+                    } else if (border != nullptr) {
+                        for (int32_t i = 0; i < width; i++)
+                            totals[i] += border->get(i, j);
+                    }
+                }
+                const int32_t divisor = border == nullptr ? count : length;
+                E* out = output.data + output.offset + y*output.stride;
+                for (int32_t i = 0; i < width; i++)
+                    out[i] = totals[i]/divisor;
+            }
+
+            // inner rows, in blocks that start over the running sums
+            const int32_t inner0 = std::max(y0, offset), inner1 = std::min(y1, height - offsetR);
+            const E divisor = (E)length;
+            for (int32_t start = inner0; start < inner1; ) {
+                const int32_t end = std::min(offset + ((start - offset)/VERTICAL_RESTART + 1)*VERTICAL_RESTART, inner1);
+                const E* first = input.data + input.offset + (start - offset)*input.stride;
+                for (int32_t i = 0; i < width; i++)
+                    totals[i] = first[i];
+                for (int32_t k = 1; k < length; k++) {
+                    const E* row = first + k*input.stride;
+                    for (int32_t i = 0; i < width; i++)
+                        totals[i] += row[i];
+                }
+                for (int32_t y = start; y < end; y++) {
+                    if (y > start) {
+                        const E* removed = input.data + input.offset + (y - offset - 1)*input.stride;
+                        const E* added = removed + length*input.stride;
+                        for (int32_t i = 0; i < width; i++) {
+                            E total = totals[i] - removed[i];
+                            totals[i] = total + added[i];
+                        }
+                    }
+                    E* out = output.data + output.offset + y*output.stride;
+                    for (int32_t i = 0; i < width; i++)
+                        out[i] = totals[i]/divisor;
+                }
+                start = end;
             }
         }
     };
@@ -431,8 +478,7 @@ namespace boofcv {
         }
 
         /// Mean box filter where pixels outside the image are read from 'border', so every box has the same number
-        /// of pixels. Same as BoofCV's BlurImageOps.meanB() for U8, U16, F32 and F64, which fails if a radius is
-        /// larger than the image. Here those images work.
+        /// of pixels. Same as BoofCV's BlurImageOps.meanB() for U8, U16, F32 and F64.
         ///
         /// @param storage Work space
         /// @param totals Work space
