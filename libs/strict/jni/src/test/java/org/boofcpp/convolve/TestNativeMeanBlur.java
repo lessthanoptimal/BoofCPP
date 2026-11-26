@@ -6,9 +6,7 @@ import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
 import org.boofcpp.BoofCPP;
 import boofcv.core.image.GeneralizedImageOps;
-import boofcv.core.image.border.FactoryImageBorder;
 import boofcv.struct.border.BorderType;
-import boofcv.struct.border.ImageBorder;
 import boofcv.struct.image.ImageGray;
 import org.boofcpp.testing.NativeMeanBlurChecks;
 import org.boofcpp.testing.NativeSingleThreaded;
@@ -31,6 +29,20 @@ public class TestNativeMeanBlur extends NativeMeanBlurChecks {
         super(new NativeImageBlurOps(), GrayU8.class, GrayU16.class, GrayF32.class, GrayF64.class);
     }
 
+    /// Images the mean isn't native for throw, so BoofCV uses its Java code
+    @Test void meanTypes() {
+        var hook = new NativeImageBlurOps(GrayU16.class);
+        for (Class type : new Class[]{GrayU8.class, GrayF32.class, GrayF64.class}) {
+            ImageGray input = GeneralizedImageOps.createSingleBand(type, 20, 15);
+            for (BorderType border : new BorderType[]{BorderType.NORMALIZED, BorderType.REFLECT}) {
+                assertThrows(RuntimeException.class, () ->
+                        hook.processMean(input, input.createSameShape(), 2, 2, border, null));
+            }
+        }
+        var input = new GrayU16(20, 15);
+        hook.processMean(input, input.createSameShape(), 2, 2, BorderType.NORMALIZED, null);
+    }
+
     /// Integer images run the _MT code with more than one thread. Floating point ones are always single threaded
     @Test void concurrentToggle() {
         var hook = new NativeImageBlurOps();
@@ -38,7 +50,7 @@ public class TestNativeMeanBlur extends NativeMeanBlurChecks {
             ImageGray input = randomSubImage(type, 40, 30, 0, 100);
             ImageGray output = (ImageGray)input.createSameShape();
             assertConcurrentToggle(!GeneralizedImageOps.isFloatingPoint(type),
-                    () -> hook.processMeanWeighted(input, output, 2, 2, null));
+                    () -> hook.processMean(input, output, 2, 2, BorderType.NORMALIZED, null));
         }
     }
 
@@ -48,9 +60,8 @@ public class TestNativeMeanBlur extends NativeMeanBlurChecks {
         for (Class type : new Class[]{GrayU8.class, GrayU16.class, GrayF32.class, GrayF64.class}) {
             ImageGray input = randomSubImage(type, 40, 30, 0, 100);
             ImageGray output = (ImageGray)input.createSameShape();
-            ImageBorder border = FactoryImageBorder.single(BorderType.REFLECT, type);
             assertConcurrentToggle(!GeneralizedImageOps.isFloatingPoint(type),
-                    () -> hook.processMeanBorder(input, output, 2, 2, border, null));
+                    () -> hook.processMean(input, output, 2, 2, BorderType.REFLECT, null));
         }
     }
 
@@ -72,7 +83,7 @@ public class TestNativeMeanBlur extends NativeMeanBlurChecks {
         ImageGray input = randomSubImage(GrayU8.class, 40, 30, 0, 100);
         ImageGray output = (ImageGray)input.createSameShape();
         assertThrows(AssertionFailedError.class, () ->
-                assertConcurrentToggle(false, () -> hook.processMeanWeighted(input, output, 2, 2, null)));
+                assertConcurrentToggle(false, () -> hook.processMean(input, output, 2, 2, BorderType.NORMALIZED, null)));
         assertThrows(AssertionFailedError.class, () ->
                 assertConcurrentToggle(true, () -> output.setTo(input)));
     }

@@ -42,13 +42,13 @@ public class CensusAccuracy implements AccuracyCase {
             var expected3 = new GrayU8(1, 1);
             var found3 = new GrayU8(input.width, input.height);
             withoutHook(() -> GCensusTransform.dense3x3(input, expected3, border));
-            hook.dense3x3(input, found3, border);
+            hook.dense3x3(input, found3, BorderType.REFLECT);
             record.add("census_3x3", name, "test_image", ImageDifference.measureBits(expected3, found3));
 
             var expected5 = new GrayS32(1, 1);
             var found5 = new GrayS32(input.width, input.height);
             withoutHook(() -> GCensusTransform.dense5x5(input, expected5, border));
-            hook.dense5x5(input, found5, border);
+            hook.dense5x5(input, found5, BorderType.REFLECT);
             record.add("census_5x5", name, "test_image", ImageDifference.measureBits(expected5, found5));
 
             for (String region : new String[]{"block_7x7", "circle_9"}) {
@@ -57,7 +57,7 @@ public class CensusAccuracy implements AccuracyCase {
                 var expected = new GrayS64(1, 1);
                 var found = new GrayS64(input.width, input.height);
                 withoutHook(() -> GCensusTransform.sample_S64(input, samples, expected, border, null));
-                hook.sample_S64(input, samples, found, border);
+                hook.sample_S64(input, samples, found, BorderType.REFLECT);
                 record.add("census_sample", name, "test_image " + region, ImageDifference.measureBits(expected, found));
             }
         }

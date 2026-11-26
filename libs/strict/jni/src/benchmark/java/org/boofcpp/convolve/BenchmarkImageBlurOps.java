@@ -36,6 +36,7 @@ public class BenchmarkImageBlurOps {
 
     ImageGray input, output, storage;
     /// Mean with a border reads pixels outside the image from a reflected border
+    BorderType borderType = BorderType.REFLECT;
     ImageBorder border;
 
     int radius = 5;
@@ -71,17 +72,17 @@ public class BenchmarkImageBlurOps {
         GConvertImage.convert(gray, input);
         output = (ImageGray)input.createSameShape();
         storage = (ImageGray)input.createSameShape();
-        border = FactoryImageBorder.single(BorderType.REFLECT, type);
+        border = FactoryImageBorder.single(borderType, type);
     }
 
     @Benchmark
     public void mean_native() {
-        nativeOps.processMeanWeighted(input, output, radius, radius, storage);
+        nativeOps.processMean(input, output, radius, radius, BorderType.NORMALIZED, storage);
     }
 
     @Benchmark
     public void mean_with_border_native() {
-        nativeOps.processMeanBorder(input, output, radius, radius, border, storage);
+        nativeOps.processMean(input, output, radius, radius, borderType, storage);
     }
 
     @Benchmark
@@ -91,12 +92,12 @@ public class BenchmarkImageBlurOps {
 
     @Benchmark
     public void mean() {
-        GBlurImageOps.mean(input, output, radius, storage, null);
+        GBlurImageOps.mean(input, output, radius, storage);
     }
 
     @Benchmark
     public void mean_with_border() {
-        GBlurImageOps.meanB(input, output, radius, radius, border, storage, null);
+        GBlurImageOps.meanB(input, output, radius, radius, border, storage);
     }
 
     @Benchmark

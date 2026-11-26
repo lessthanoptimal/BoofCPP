@@ -2,7 +2,6 @@ package org.boofcpp.fast.convolve;
 
 import boofcv.alg.filter.blur.BOverrideBlurImageOps;
 import boofcv.struct.border.BorderType;
-import boofcv.struct.border.ImageBorder;
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayF64;
 import boofcv.struct.image.ImageBase;
@@ -21,37 +20,26 @@ public class NativeImageBlurOps<T extends ImageBase<T>> implements BOverrideBlur
         this.previous = previous;
     }
 
+    /// NORMALIZED and the borders NativeImageBorder supports for GrayF32 and GrayF64
     @Override
-    public void processMeanWeighted( T input, T output, int radiusX, int radiusY, T storage ) {
-        if (!(input instanceof GrayF32 || input instanceof GrayF64)) {
-            previous().processMeanWeighted(input, output, radiusX, radiusY, storage);
+    public void processMean( T input, T output, int radiusX, int radiusY, BorderType border, T storage ) {
+        if (!(input instanceof GrayF32 || input instanceof GrayF64) || border == BorderType.SKIP) {
+            previous().processMean(input, output, radiusX, radiusY, border, storage);
             return;
         }
         if (radiusX <= 0 || radiusY <= 0)
             throw new IllegalArgumentException("Radius must be > 0");
 
         output.reshape(input.width, input.height);
-        if (input instanceof GrayF32) {
-            nativeMeanF32((GrayF32)input, (GrayF32)output, radiusX, radiusY);
-        } else {
-            nativeMeanF64((GrayF64)input, (GrayF64)output, radiusX, radiusY);
-        }
-    }
-
-    /// The borders NativeImageBorder supports. Others throw a RuntimeException, which causes BoofCV to fall back to
-    /// its Java implementation
-    @Override
-    public void processMeanBorder( T input, T output, int radiusX, int radiusY, ImageBorder<T> border,
-                                   T storage ) {
-        if (!(input instanceof GrayF32 || input instanceof GrayF64) || border == null) {
-            previous().processMeanBorder(input, output, radiusX, radiusY, border, storage);
+        if (border == BorderType.NORMALIZED) {
+            if (input instanceof GrayF32) {
+                nativeMeanF32((GrayF32)input, (GrayF32)output, radiusX, radiusY);
+            } else {
+                nativeMeanF64((GrayF64)input, (GrayF64)output, radiusX, radiusY);
+            }
             return;
         }
-        if (radiusX <= 0 || radiusY <= 0)
-            throw new IllegalArgumentException("Radius must be > 0");
-        NativeImageBorder b = NativeImageBorder.of(border, input);
-
-        output.reshape(input.width, input.height);
+        NativeImageBorder b = NativeImageBorder.of(border);
         if (input instanceof GrayF32) {
             nativeMeanBorderF32((GrayF32)input, (GrayF32)output, radiusX, radiusY, b.type, b.value);
         } else {

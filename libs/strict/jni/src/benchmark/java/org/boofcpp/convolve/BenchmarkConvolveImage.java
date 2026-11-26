@@ -46,8 +46,9 @@ public class BenchmarkConvolveImage {
     Kernel1D_F32 kernel1D_F32 = FactoryKernelGaussian.gaussian1D(GrayF32.class,-1,5);
     Kernel2D_F32 kernel2D_F32 = FactoryKernelGaussian.gaussian2D(GrayF32.class,-1,5);
 
-    ImageBorder<GrayU8> border = FactoryImageBorder.single(BorderType.EXTENDED, GrayU8.class);
-    ImageBorder<GrayF32> borderF32 = FactoryImageBorder.single(BorderType.EXTENDED, GrayF32.class);
+    BorderType borderType = BorderType.EXTENDED;
+    ImageBorder<GrayU8> border = FactoryImageBorder.single(borderType, GrayU8.class);
+    ImageBorder<GrayF32> borderF32 = FactoryImageBorder.single(borderType, GrayF32.class);
 
     NativeConvolveImage nativeOps = new NativeConvolveImage();
 
@@ -69,16 +70,16 @@ public class BenchmarkConvolveImage {
         BoofConcurrency.setMaxThreads(threads);
     }
 
-    @Benchmark public void horizontal_native_U8() { nativeOps.horizontal(kernel1D,input,output,border); }
-    @Benchmark public void vertical_native_U8() { nativeOps.vertical(kernel1D,input,output,border); }
-    @Benchmark public void convolve_native_U8() { nativeOps.convolve(kernel2D,input,output,border); }
+    @Benchmark public void horizontal_native_U8() { nativeOps.horizontal(kernel1D,input,output,borderType); }
+    @Benchmark public void vertical_native_U8() { nativeOps.vertical(kernel1D,input,output,borderType); }
+    @Benchmark public void convolve_native_U8() { nativeOps.convolve(kernel2D,input,output,borderType); }
     @Benchmark public void horizontal_java_U8() { GConvolveImageOps.horizontal(kernel1D,input,output,border); }
     @Benchmark public void vertical_java_U8() { GConvolveImageOps.vertical(kernel1D,input,output,border); }
     @Benchmark public void convolve_java_U8() { GConvolveImageOps.convolve(kernel2D,input,output,border); }
 
-    @Benchmark public void horizontal_native_F32() { nativeOps.horizontal(kernel1D_F32,inputF32,outputF32,borderF32); }
-    @Benchmark public void vertical_native_F32() { nativeOps.vertical(kernel1D_F32,inputF32,outputF32,borderF32); }
-    @Benchmark public void convolve_native_F32() { nativeOps.convolve(kernel2D_F32,inputF32,outputF32,borderF32); }
+    @Benchmark public void horizontal_native_F32() { nativeOps.horizontal(kernel1D_F32,inputF32,outputF32,borderType); }
+    @Benchmark public void vertical_native_F32() { nativeOps.vertical(kernel1D_F32,inputF32,outputF32,borderType); }
+    @Benchmark public void convolve_native_F32() { nativeOps.convolve(kernel2D_F32,inputF32,outputF32,borderType); }
     @Benchmark public void horizontal_java_F32() { GConvolveImageOps.horizontal(kernel1D_F32,inputF32,outputF32,borderF32); }
     @Benchmark public void vertical_java_F32() { GConvolveImageOps.vertical(kernel1D_F32,inputF32,outputF32,borderF32); }
     @Benchmark public void convolve_java_F32() { GConvolveImageOps.convolve(kernel2D_F32,inputF32,outputF32,borderF32); }

@@ -32,6 +32,7 @@ public class BenchmarkImageBlurOps {
     public String image;
 
     ImageGray input, output, storage;
+    BorderType borderType = BorderType.REFLECT;
     ImageBorder border;
 
     int radius = 5;
@@ -56,34 +57,34 @@ public class BenchmarkImageBlurOps {
         GConvertImage.convert(gray, input);
         output = (ImageGray)input.createSameShape();
         storage = (ImageGray)input.createSameShape();
-        border = FactoryImageBorder.single(BorderType.REFLECT, type);
+        border = FactoryImageBorder.single(borderType, type);
     }
 
     @Benchmark public void mean_fast() {
         BOverrideBlurImageOps.mean = registered;
-        GBlurImageOps.mean(input, output, radius, storage, null);
+        GBlurImageOps.mean(input, output, radius, storage);
     }
 
     @Benchmark public void mean_strict() {
-        strict.processMeanWeighted(input, output, radius, radius, storage);
+        strict.processMean(input, output, radius, radius, BorderType.NORMALIZED, storage);
     }
 
     @Benchmark public void mean_java() {
         BOverrideBlurImageOps.mean = null;
-        GBlurImageOps.mean(input, output, radius, storage, null);
+        GBlurImageOps.mean(input, output, radius, storage);
     }
 
     @Benchmark public void mean_with_border_fast() {
         BOverrideBlurImageOps.mean = registered;
-        GBlurImageOps.meanB(input, output, radius, radius, border, storage, null);
+        GBlurImageOps.meanB(input, output, radius, radius, border, storage);
     }
 
     @Benchmark public void mean_with_border_strict() {
-        strict.processMeanBorder(input, output, radius, radius, border, storage);
+        strict.processMean(input, output, radius, radius, borderType, storage);
     }
 
     @Benchmark public void mean_with_border_java() {
         BOverrideBlurImageOps.mean = null;
-        GBlurImageOps.meanB(input, output, radius, radius, border, storage, null);
+        GBlurImageOps.meanB(input, output, radius, radius, border, storage);
     }
 }

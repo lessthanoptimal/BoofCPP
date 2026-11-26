@@ -56,8 +56,8 @@ public class MeanBlurAccuracy implements AccuracyCase {
     private void compare( AccuracyRecord record, ImageGray input, int radiusX, int radiusY, String name ) {
         ImageGray expected = (ImageGray)input.createSameShape();
         ImageGray found = (ImageGray)input.createSameShape();
-        withoutHook(() -> GBlurImageOps.mean(input, expected, radiusX, radiusY, null, null));
-        hook.processMeanWeighted(input, found, radiusX, radiusY, null);
+        withoutHook(() -> GBlurImageOps.mean(input, expected, radiusX, radiusY, null));
+        hook.processMean(input, found, radiusX, radiusY, BorderType.NORMALIZED, null);
         record.add("mean", input.getClass().getSimpleName(), name, ImageDifference.measure(expected, found));
         compareBorder(record, input, radiusX, radiusY, BorderType.REFLECT, name);
     }
@@ -68,8 +68,8 @@ public class MeanBlurAccuracy implements AccuracyCase {
         ImageGray expected = (ImageGray)input.createSameShape();
         ImageGray found = (ImageGray)input.createSameShape();
         ImageBorder javaBorder = FactoryImageBorder.single(border, type);
-        withoutHook(() -> GBlurImageOps.meanB(input, expected, radiusX, radiusY, javaBorder, null, null));
-        hook.processMeanBorder(input, found, radiusX, radiusY, FactoryImageBorder.single(border, type), null);
+        withoutHook(() -> GBlurImageOps.meanB(input, expected, radiusX, radiusY, javaBorder, null));
+        hook.processMean(input, found, radiusX, radiusY, border, null);
         record.add("mean_border", type.getSimpleName(), name, ImageDifference.measure(expected, found));
     }
 
