@@ -25,9 +25,9 @@ void threshold_process( JNIEnv* env, jobject obj, jobject jinput, jobject joutpu
         jboolean isInteger = env->GetBooleanField(obj, fields.isInteger);
         jlong nativePtr = env->GetLongField(obj, fields.nativePtr);
         if (isInteger)
-            threshold_images((Filter<boofcv::U8>*)nativePtr, env, jinput, joutput);
+            threshold_images<Filter, boofcv::U8>((Filter<boofcv::U8>*)nativePtr, env, jinput, joutput);
         else
-            threshold_images((Filter<boofcv::F32>*)nativePtr, env, jinput, joutput);
+            threshold_images<Filter, boofcv::F32>((Filter<boofcv::F32>*)nativePtr, env, jinput, joutput);
     });
 }
 
