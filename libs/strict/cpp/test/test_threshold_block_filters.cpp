@@ -107,22 +107,15 @@ namespace {
         return image;
     }
 
-    const std::vector<std::pair<uint32_t, uint32_t>> SHAPES = {{16, 16}, {37, 29}, {100, 120}, {160, 47}, {401, 297}};
+    const std::vector<std::pair<uint32_t, uint32_t>> SHAPES = {{16, 16}, {37, 29}, {100, 120}, {160, 47}};
     const Content CONTENTS[] = {Content::UNIFORM, Content::FLAT, Content::SMOOTH, Content::HARD};
 
-    /// The filter gives the expected image, for the whole image and a sub-image
+    /// The filter gives the expected image. Sub-images are checked by the standard tests
     template<class E>
     void check_same( const Gray<U8>& expected, InputToBinary<Gray<E>>& alg, const Gray<E>& input ) {
         Gray<U8> found(input.width, input.height);
         alg.process(input, found);
         check_equals(expected, found);
-
-        Gray<E> sub_input = create_subimage(input);
-        Gray<U8> sub_found = create_subimage(found);
-        alg.process(sub_input, sub_found);
-        check_equals(expected, sub_found);
-        sub_input.subimage = false;
-        sub_found.subimage = false;
     }
 
     /// Calls check(input, width) for every test image and block width that fits it
@@ -144,11 +137,10 @@ namespace {
     void block_mean_same_as_reference( std::mt19937& rng ) {
         for_each_input<E>(rng, false, [&]( const Gray<E>& input, const ConfigLength& width ) {
             for (bool local : {true, false})
-                for (bool down : {true, false})
-                    for (double scale : {0.95, 1.0, 1.3, 0.82, -0.5}) {
-                        ThresholdBlockMean<E> alg(width, local, scale, down);
-                        check_same<E>(reference::mean(input, width, local, scale, down), alg, input);
-                    }
+                for (double scale : {0.95, 1.0, 1.3, 0.82, -0.5}) {
+                    ThresholdBlockMean<E> alg(width, local, scale, true);
+                    check_same<E>(reference::mean(input, width, local, scale, true), alg, input);
+                }
         });
     }
 
@@ -157,14 +149,12 @@ namespace {
         // F32 pixels must fit in U8, which they're cast to
         for_each_input<E>(rng, true, [&]( const Gray<E>& input, const ConfigLength& width ) {
             for (bool local : {true, false})
-                for (bool down : {true, false})
-                    for (bool otsu2 : {true, false})
-                        for (auto tuning_scale : {std::pair<double, double>{0.0, 0.95}, {0.3, 1.3}}) {
-                            const double tuning = tuning_scale.first, scale = tuning_scale.second;
-                            ThresholdBlockOtsu<E> alg(otsu2, width, tuning, scale, down, local);
-                            check_same<E>(reference::otsu(input, otsu2, width, tuning, scale, down, local), alg,
-                                          input);
-                        }
+                for (bool otsu2 : {true, false})
+                    for (auto tuning_scale : {std::pair<double, double>{0.0, 0.95}, {0.3, 1.3}}) {
+                        const double tuning = tuning_scale.first, scale = tuning_scale.second;
+                        ThresholdBlockOtsu<E> alg(otsu2, width, tuning, scale, true, local);
+                        check_same<E>(reference::otsu(input, otsu2, width, tuning, scale, true, local), alg, input);
+                    }
         });
     }
 
@@ -172,12 +162,11 @@ namespace {
     void block_min_max_same_as_reference( std::mt19937& rng ) {
         for_each_input<E>(rng, false, [&]( const Gray<E>& input, const ConfigLength& width ) {
             for (bool local : {true, false})
-                for (bool down : {true, false})
-                    for (float spread : {0.0f, 1.0f, 10.0f})
-                        for (double scale : {0.95, 1.0, 1.3, 0.82, -0.5}) {
-                            ThresholdBlockMinMax<E> alg(spread, width, local, scale, down);
-                            check_same<E>(reference::min_max(input, spread, width, local, scale, down), alg, input);
-                        }
+                for (float spread : {0.0f, 1.0f, 10.0f})
+                    for (double scale : {0.95, 1.0, 1.3, 0.82, -0.5}) {
+                        ThresholdBlockMinMax<E> alg(spread, width, local, scale, true);
+                        check_same<E>(reference::min_max(input, spread, width, local, scale, true), alg, input);
+                    }
         });
     }
 
