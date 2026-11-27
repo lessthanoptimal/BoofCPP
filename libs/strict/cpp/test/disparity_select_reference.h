@@ -350,7 +350,7 @@ namespace reference {
     };
 
     /// Builds block matching with the selectors above and 32-bit scores
-    struct BlockMatchParts {
+    struct BlockMatchParts : boofcv::BlockMatchParts {
         template<class S, class D>
         using SelectError = SelectErrorWithChecks<S, D>;
 

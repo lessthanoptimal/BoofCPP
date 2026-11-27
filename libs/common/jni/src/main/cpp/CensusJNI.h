@@ -1,14 +1,15 @@
 #ifndef BOOFCPP_CENSUS_JNI_H
 #define BOOFCPP_CENSUS_JNI_H
 
-/// The JNI code of a variant's NativeCensusTransform, for the variant's census transform class 'Census', e.g.
-/// boofcv::CensusTransform. Include the variant's census header first. The variant's JNI file defines the JNI
-/// functions with BOOFCPP_CENSUS_JNI
+/// The JNI code of a variant's NativeCensusTransform, for the variant's census transform classes, e.g.
+/// boofcv::CensusTransform and boofcv::CensusTransform_MT. Include the variant's census headers first. The variant's
+/// JNI file defines the JNI functions with BOOFCPP_CENSUS_JNI
 
 #include <jni.h>
 #include <memory>
 #include <vector>
 #include "JNIBoofCPP.h"
+#include "boofcv/concurrency.h"
 
 namespace census_jni {
     using namespace boofcv;
@@ -75,19 +76,27 @@ namespace census_jni {
 }
 
 /// The JNI functions of NativeCensusTransform for one input pixel type T, e.g. PREFIX_nativeDenseU8(). PREFIX is the
-/// Java class's JNI prefix, e.g. Java_org_boofcpp_transform_NativeCensusTransform. C++ exceptions become Java
-/// exceptions
-#define BOOFCPP_CENSUS_JNI(PREFIX, CENSUS, T) \
+/// Java class's JNI prefix, e.g. Java_org_boofcpp_transform_NativeCensusTransform. CENSUS is used with one thread and
+/// CENSUS_MT with more. C++ exceptions become Java exceptions
+#define BOOFCPP_CENSUS_JNI(PREFIX, CENSUS, CENSUS_MT, T) \
 JNIEXPORT void JNICALL PREFIX##_nativeDense##T( \
         JNIEnv* env, jclass, jint width, jobject jinput, jobject joutput, jboolean has_border, jobject jtype, \
         jdouble value ) { \
-    jni_call(env, [&] { census_jni::dense<CENSUS, T>(env, width, jinput, joutput, has_border, jtype, value); }); \
+    jni_call(env, [&] { \
+        if (boofcv::BoofConcurrency::max_threads() > 1) \
+            census_jni::dense<CENSUS_MT, T>(env, width, jinput, joutput, has_border, jtype, value); \
+        else \
+            census_jni::dense<CENSUS, T>(env, width, jinput, joutput, has_border, jtype, value); \
+    }); \
 } \
 JNIEXPORT void JNICALL PREFIX##_nativeSampleS64##T( \
         JNIEnv* env, jclass, jobject jinput, jintArray jxs, jintArray jys, jobject joutput, jboolean has_border, \
         jobject jtype, jdouble value ) { \
     jni_call(env, [&] { \
-        census_jni::sample_s64<CENSUS, T>(env, jinput, jxs, jys, joutput, has_border, jtype, value); \
+        if (boofcv::BoofConcurrency::max_threads() > 1) \
+            census_jni::sample_s64<CENSUS_MT, T>(env, jinput, jxs, jys, joutput, has_border, jtype, value); \
+        else \
+            census_jni::sample_s64<CENSUS, T>(env, jinput, jxs, jys, joutput, has_border, jtype, value); \
     }); \
 }
 
