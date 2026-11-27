@@ -51,3 +51,14 @@ tasks.register<JavaExec>("benchmarkRun") {
         runnerArgs += listOf("--save", rootProject.file("results/benchmark/${platformName()}").path)
     args(runnerArgs)
 }
+
+// Writes results/benchmark/<platform>.md and .html, comparing the implementations saved in
+// results/benchmark/<platform>. -Presults=<dir> reads another directory of results instead, and writes <dir>.md and
+// <dir>.html next to it. A relative directory is relative to the repository root
+tasks.register<BenchmarkReportTask>("benchmarkReport") {
+    description = "Writes the markdown and HTML reports of this platform's saved benchmark results"
+    val dir = rootProject.file(providers.gradleProperty("results").getOrElse("results/benchmark/${platformName()}"))
+    results = dir
+    report = dir.resolveSibling("${dir.name}.md")
+    html = dir.resolveSibling("${dir.name}.html")
+}

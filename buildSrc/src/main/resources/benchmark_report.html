@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<style>
+/* Tables of times and speedups, Java's rows shaded and speedups below the minimum flagged */
+:root { --bg: #fbfbfd; --fg: #1a1c24; --muted: #5f6475; --line: #d9dbe3; --head: #eef0f5; --java: #f1f3fa;
+        --slow: #a4001d; --slow-bg: #fde6ea; }
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg: #15161b; --fg: #e4e6ee; --muted: #9da2b3; --line: #31343f;
+        --head: #20222b; --java: #1b1d26; --slow: #ff9a9a; --slow-bg: #3a1d21; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #15161b; --fg: #e4e6ee; --muted: #9da2b3; --line: #31343f; --head: #20222b;
+    --java: #1b1d26; --slow: #ff9a9a; --slow-bg: #3a1d21; color-scheme: dark; }
+body { background: var(--bg); color: var(--fg); font: 14px/1.4 system-ui, sans-serif; margin: 0;
+       padding-block: 16px; padding-left: max(16px, env(safe-area-inset-left, 0px));
+       padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+td { font-variant-numeric: tabular-nums; }
+th:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--fg); outline-offset: 1px; }
+h1 { font-size: 1.4em; }
+h2 { font-size: 1.15em; margin-top: 28px; }
+.wrap { overflow-x: auto; }
+table { border-collapse: collapse; margin: 8px 0; }
+th, td { border: 1px solid var(--line); padding: 3px 8px; text-align: right; white-space: nowrap; }
+th { background: var(--head); }
+#typed th, #untyped th { cursor: pointer; user-select: none; }
+th.sorted::after { content: " \25B2"; }
+th.sorted.desc::after { content: " \25BC"; }
+.text { text-align: left; }
+tr.java td { background: var(--java); }
+td.slow { color: var(--slow); background: var(--slow-bg); font-weight: 600; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: center; margin: 16px 0 8px; }
+.muted { color: var(--muted); }
+.warning { color: var(--slow); font-weight: 600; }
+</style>
+</head>
+<body>
+<h1>__TITLE__</h1>
+<div class="wrap"><table id="metadata"></table></div>
+<p id="warning" class="warning" hidden>The implementations ran on different CPUs or JDKs, so their times can't be
+    compared.</p>
+<div class="controls">
+    <label>Show <select id="mode">
+        <option value="speedup">Java's time and speedups</option>
+        <option value="time">Times</option>
+    </select></label>
+    <label>Threads <select id="threads"></select></label>
+    <label>Benchmark <select id="benchmark"></select></label>
+    <span id="impls"></span>
+    <label>Op <input id="search" type="search" placeholder="filter"></label>
+</div>
+<p class="muted">Times are JMH averages; hover over a cell for its 99.9% confidence error. Speedup is Java's time
+    divided by the implementation's, and below <span id="min"></span>x it's highlighted. Click a column to sort by it.</p>
+<h2>Ops with an image type</h2>
+<div class="wrap"><table id="typed"></table></div>
+<h2>Other ops</h2>
+<div class="wrap"><table id="untyped"></table></div>
+<script>
+"use strict";
+const REPORT = /*DATA*/null;
+
+const state = { mode: "speedup", threads: "all", benchmark: "all", impls: new Set(REPORT.impls), search: "",
+                sort: { typed: null, untyped: null } };
+
+// Java's result of each op, thread count and column, which the speedups divide
+const java = new Map();
+const keyOf = ( r, column ) => r.label + "|" + r.threads + "|" + column;
+const columnOf = r => r.type === null ? "time" : r.type;
+for (const r of REPORT.results)
+    if (r.impl === "java") java.set(keyOf(r, columnOf(r)), r);
+
+/// Three significant digits, without an exponent
+function number( v ) {
+    if (v === null || Number.isNaN(v))
+        return "NaN";
+    const a = Math.abs(v);
+    return v.toFixed(a >= 100 ? 0 : a >= 10 ? 1 : a >= 1 ? 2 : 3);
+}
+
+/// A row for each op, thread count and implementation, with its result in each column
+function rows( results ) {
+    const found = new Map();
+    for (const r of results) {
+        const k = r.label + "|" + r.threads + "|" + r.impl;
+        if (!found.has(k))
+            found.set(k, { impl: r.impl, label: r.label, threads: r.threads, benchmark: r.benchmark, cells: {} });
+        found.get(k).cells[columnOf(r)] = r;
+    }
+    return [...found.values()];
+}
+
+/// What a cell shows: a time, or a speedup over Java's time
+function shown( row, column ) {
+    const r = row.cells[column];
+    if (!r)
+        return null;
+    const base = java.get(keyOf(r, column));
+    if (state.mode === "time" || row.impl === "java" || !base)
+        return { value: r.score, speedup: false, result: r };
+    return { value: base.score/r.score, speedup: true, result: r };
+}
+
+function visible( row ) {
+    return state.impls.has(row.impl) &&
+        (state.threads === "all" || row.threads === state.threads) &&
+        (state.benchmark === "all" || row.benchmark === state.benchmark) &&
+        row.label.toLowerCase().includes(state.search.toLowerCase());
+}
+
+const implIndex = impl => REPORT.impls.indexOf(impl);
+const byDefault = ( a, b ) => a.label.localeCompare(b.label) || Number(a.threads) - Number(b.threads) ||
+    implIndex(a.impl) - implIndex(b.impl);
+
+function compare( sort ) {
+    return ( a, b ) => {
+        let c;
+        if (sort.column === "impl") c = implIndex(a.impl) - implIndex(b.impl);
+        else if (sort.column === "op") c = a.label.localeCompare(b.label);
+        else if (sort.column === "threads") c = Number(a.threads) - Number(b.threads);
+        else {
+            const x = shown(a, sort.column), y = shown(b, sort.column);
+            // empty cells last in either direction
+            if (!x || !y) return (x ? 0 : 1) - (y ? 0 : 1);
+            c = x.value - y.value;
+        }
+        return (sort.desc ? -c : c) || byDefault(a, b);
+    };
+}
+
+function cell( tr, text, className, title ) {
+    const td = document.createElement("td");
+    td.textContent = text;
+    if (className) td.className = className;
+    if (title) td.title = title;
+    tr.appendChild(td);
+}
+
+function renderTable( id, results, columns ) {
+    const table = document.getElementById(id);
+    table.replaceChildren();
+    const all = rows(results);
+    table.hidden = all.length === 0;
+    table.parentElement.previousElementSibling.hidden = all.length === 0;
+    if (all.length === 0)
+        return;
+
+    const head = document.createElement("tr");
+    for (const name of ["impl", "op", "threads", ...columns]) {
+        const th = document.createElement("th");
+        th.textContent = name;
+        if (["impl", "op"].includes(name)) th.className = "text";
+        const sort = state.sort[id];
+        if (sort && sort.column === name) th.classList.add("sorted", ...(sort.desc ? ["desc"] : []));
+        th.tabIndex = 0;
+        th.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); th.onclick(); } };
+        th.onclick = () => {
+            const old = state.sort[id];
+            state.sort[id] = { column: name, desc: old !== null && old.column === name && !old.desc };
+            render();
+        };
+        head.appendChild(th);
+    }
+    table.appendChild(head);
+
+    const list = all.filter(visible);
+    list.sort(state.sort[id] ? compare(state.sort[id]) : byDefault);
+    for (const row of list) {
+        const tr = document.createElement("tr");
+        if (row.impl === "java") tr.className = "java";
+        cell(tr, row.impl, "text");
+        cell(tr, row.label, "text");
+        cell(tr, row.threads);
+        for (const column of columns) {
+            const s = shown(row, column);
+            if (!s) {
+                cell(tr, "");
+                continue;
+            }
+            const r = s.result;
+            const title = number(r.score) + (r.error === null ? "" : " ± " + number(r.error)) + " " + r.unit;
+            if (s.speedup)
+                cell(tr, s.value.toFixed(2) + "x", s.value < REPORT.minSpeedup ? "slow" : "", title);
+            else
+                cell(tr, number(s.value) + " " + r.unit.replace("/op", ""), "", title);
+        }
+        table.appendChild(tr);
+    }
+}
+
+function render() {
+    const typed = REPORT.results.filter(r => r.type !== null);
+    renderTable("typed", typed, REPORT.types.filter(t => typed.some(r => r.type === t)));
+    renderTable("untyped", REPORT.results.filter(r => r.type === null), ["time"]);
+}
+
+function options( select, values ) {
+    for (const v of ["all", ...values]) {
+        const o = document.createElement("option");
+        o.value = v;
+        o.textContent = v === "all" ? "All" : v;
+        select.appendChild(o);
+    }
+}
+
+function setup() {
+    const meta = document.getElementById("metadata");
+    const head = document.createElement("tr");
+    for (const name of ["Implementation", "Date", "Build", "CPU", "JDK"]) {
+        const th = document.createElement("th");
+        th.textContent = name;
+        th.className = "text";
+        head.appendChild(th);
+    }
+    meta.appendChild(head);
+    for (const m of REPORT.metadata) {
+        const tr = document.createElement("tr");
+        for (const v of [m.impl, m.date, m.build, m.cpu, m.jdk])
+            cell(tr, v === null ? "metadata missing" : v, "text");
+        meta.appendChild(tr);
+    }
+    document.getElementById("warning").hidden = !REPORT.warning;
+    document.getElementById("min").textContent = REPORT.minSpeedup;
+
+    const threads = [...new Set(REPORT.results.map(r => r.threads))].sort((a, b) => a - b);
+    options(document.getElementById("threads"), threads);
+    options(document.getElementById("benchmark"), [...new Set(REPORT.results.map(r => r.benchmark))].sort());
+
+    const impls = document.getElementById("impls");
+    for (const impl of REPORT.impls) {
+        const label = document.createElement("label");
+        const box = document.createElement("input");
+        box.type = "checkbox";
+        box.checked = true;
+        box.onchange = () => {
+            box.checked ? state.impls.add(impl) : state.impls.delete(impl);
+            render();
+        };
+        label.append(box, " " + impl + " ");
+        impls.appendChild(label);
+    }
+
+    for (const id of ["mode", "threads", "benchmark"])
+        document.getElementById(id).onchange = e => { state[id] = e.target.value; render(); };
+    document.getElementById("search").oninput = e => { state.search = e.target.value; render(); };
+    render();
+}
+
+setup();
+</script>
+</body>
+</html>

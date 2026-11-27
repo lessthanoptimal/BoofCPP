@@ -67,7 +67,7 @@
     one op, named after it, e.g. `global_otsu`, with a `@Hook` naming the hook field it uses. The implementation,
     image type and other settings are `@Param`s
   - `BenchmarkRunner` runs each op once for BoofCV's Java code and for each variant that has a hook for it. Only a
-    run of every op is saved, in `results/benchmark/<platform>`
+    run of every op is saved, in `results/benchmark/<platform>`, which `benchmarkReport` compares
   - A short benchmark is written on one line
 - JNI
   - C++ exceptions must never escape a JNI function. `jni_call()` turns them into Java exceptions
