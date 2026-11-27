@@ -155,10 +155,14 @@ Results are written to `libs/benchmark/build/reports/benchmark`, one file per im
 ./gradlew :boofcpp-benchmark:benchmarkRun -Pquick
 ```
 `-Pquick` only checks that the benchmarks run. `-Psave` saves a run of every op in `results/benchmark/<platform>`,
-replacing only the implementations that ran:
+replacing only the implementations that ran, and `benchmarkReport` writes a markdown comparison of the saved results
+to `results/benchmark/<platform>.md`:
 ```bash
 ./gradlew :boofcpp-benchmark:benchmarkRun -Psave
+./gradlew :boofcpp-benchmark:benchmarkReport
 ```
+`-Presults=<dir>` makes a report of results in another directory, e.g. a copy of another machine's, and writes it
+next to that directory.
 
 Example Results: Java/JNI Benchmark
 ```
