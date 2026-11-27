@@ -67,7 +67,8 @@ TEST_F(ImageMiscOpsTest, fill_border_LargeRadius) {
 }
 
 TEST_F(ImageMiscOpsTest, fill_uniform_INTEGER) {
-    Gray<U8> image(30,40);
+    Gray<U8> parent(34,45);
+    Gray<U8> image = parent.makeSubimage(2,3,32,43);
 
     U8 min_value = 5;
     U8 max_value = 10;
@@ -92,7 +93,8 @@ TEST_F(ImageMiscOpsTest, fill_uniform_INTEGER) {
 }
 
 TEST_F(ImageMiscOpsTest, fill_uniform_FLOAT) {
-    Gray<F32> image(30,40);
+    Gray<F32> parent(34,45);
+    Gray<F32> image = parent.makeSubimage(2,3,32,43);
 
     F32 min_value = 5;
     F32 max_value = 10;

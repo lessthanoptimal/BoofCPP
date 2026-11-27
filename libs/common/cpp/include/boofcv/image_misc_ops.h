@@ -79,22 +79,23 @@ namespace boofcv {
         static void fill_uniform( Gray<E>& image , E min_value , E max_value , RNG& rng, typename std::enable_if<std::is_integral<E>::value >::type* = 0) {
 
             std::uniform_int_distribution<E> dis(min_value, max_value-1);
-
-            E* ptr = image.data;
-            E* end = &ptr[image.total_pixels()];
-            while( ptr != end ) {
-                *ptr++ = dis(rng);
-            }
+            fill_rows(image, [&] { return dis(rng); });
         }
 
         template<class E, class RNG>
         static void fill_uniform( Gray<E>& image , E min_value , E max_value , RNG& rng, typename std::enable_if<std::is_floating_point<E>::value >::type* = 0) {
             std::uniform_real_distribution<E> dis(min_value, max_value);
+            fill_rows(image, [&] { return dis(rng); });
+        }
 
-            E* ptr = image.data;
-            E* end = &ptr[image.total_pixels()];
-            while( ptr != end ) {
-                *ptr++ = dis(rng);
+    private:
+        /// Sets every pixel inside the image, row by row, to value()
+        template<class E, class Value>
+        static void fill_rows( Gray<E>& image, Value value ) {
+            for( uint32_t y = 0; y < image.height; y++ ) {
+                E* row = &image.data[image.offset + y*image.stride];
+                for( uint32_t x = 0; x < image.width; x++ )
+                    row[x] = value();
             }
         }
     };
