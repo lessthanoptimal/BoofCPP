@@ -2,7 +2,6 @@
 #include "testing_concurrency.h"
 #include "boofcv/census_transform_mt.h"
 #include "boofcv/image_misc_ops.h"
-#include "boofcv/stereo_disparity.h"
 
 #include <memory>
 #include <string>
@@ -71,19 +70,4 @@ TEST_F(CensusTransform_MTTest, dense5x5) {
 TEST_F(CensusTransform_MTTest, sample_S64) {
     check_all<U8, S64>();
     check_all<F32, S64>();
-}
-
-/// Every variant from FactoryCensusTransform runs the _MT code with more than one thread
-TEST_F(CensusTransform_MTTest, factory_is_concurrent) {
-    BoofConcurrency::set_max_threads(2);
-    BoofConcurrency::set_testing_blocks(4);
-    Gray<U8> input(30, 20);
-    auto check = [&]( auto census, auto output ) {
-        const uint64_t before = BoofConcurrency::testing_loops();
-        census->process(input, output);
-        EXPECT_LT(before, BoofConcurrency::testing_loops());
-    };
-    check(FactoryCensusTransform::variant<U8, U8>(CensusVariants::BLOCK_3_3, REFLECT), Gray<U8>());
-    check(FactoryCensusTransform::variant<U8, S32>(CensusVariants::BLOCK_5_5, REFLECT), Gray<S32>());
-    check(FactoryCensusTransform::variant<U8, S64>(CensusVariants::CIRCLE_9, REFLECT), Gray<S64>());
 }

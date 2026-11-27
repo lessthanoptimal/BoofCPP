@@ -7,13 +7,12 @@
 #include <stdexcept>
 #include <type_traits>
 
-#include "boofcv/census_transform_mt.h"
+#include "boofcv/census_transform.h"
 #include "boofcv/config_disparity.h"
 #include "boofcv/disparity_block_match.h"
-#include "boofcv/disparity_block_match_mt.h"
 #include "boofcv/image_convert.h"
 #include "boofcv/image_misc_ops.h"
-#include "boofcv/image_normalization_mt.h"
+#include "boofcv/image_normalization.h"
 
 namespace boofcv {
 
@@ -147,7 +146,10 @@ namespace boofcv {
 
     /// Converts the input images to F32, optionally normalizing them, then block matching on F32 images.
     /// BoofCV's DisparityBlockMatchPreFilter
-    template<class E, class D>
+    struct BlockMatchParts;
+
+    /// @tparam Parts Its Normalization and convert() prepare the input, see BlockMatchParts
+    template<class E, class D, class Parts = BlockMatchParts>
     class StereoDisparityBlockMatchPreFilter : public StereoDisparityBlockMatch<E, D> {
     public:
         /// @param normalize If true then the left image is normalized to zero mean and a maximum absolute value of
@@ -172,12 +174,12 @@ namespace boofcv {
     protected:
         void process_images( const Gray<E>& left, const Gray<E>& right ) override {
             if (normalize) {
-                ImageNormalization_MT::zero_mean_max_one(left, adjusted_left, parameters);
+                Parts::Normalization::zero_mean_max_one(left, adjusted_left, parameters);
                 // The same parameters for both images since the cameras' gain and exposure are assumed to be the same
-                ImageNormalization_MT::apply(right, parameters, adjusted_right);
+                Parts::Normalization::apply(right, parameters, adjusted_right);
             } else {
-                ConvertImage_MT::convert(left, adjusted_left);
-                ConvertImage_MT::convert(right, adjusted_right);
+                Parts::convert(left, adjusted_left);
+                Parts::convert(right, adjusted_right);
             }
             alg->process(adjusted_left, adjusted_right);
         }
@@ -190,11 +192,12 @@ namespace boofcv {
         Gray<F32> adjusted_right{1, 1};
     };
 
-    /// Creates census transforms. BoofCV's FactoryCensusTransform
-    class FactoryCensusTransform {
+    /// Creates census transforms that use 'Census', CensusTransform or CensusTransform_MT. BoofCV's
+    /// FactoryCensusTransform
+    template<class Census>
+    class FactoryCensus {
     public:
-        /// Throws std::invalid_argument if the variant doesn't produce a 'C' image. The transform is
-        /// CensusTransform_MT, single threaded when BoofConcurrency::max_threads() is 1
+        /// Throws std::invalid_argument if the variant doesn't produce a 'C' image
         ///
         /// @param border How the census transform reads pixels outside the image. SKIP if the image border isn't
         /// processed. NORMALIZED isn't supported.
@@ -209,17 +212,17 @@ namespace boofcv {
             switch (type) {
                 case CensusVariants::BLOCK_3_3:
                     if constexpr (std::is_same<C, U8>::value)
-                        return std::make_unique<FilterCensusTransformD33U8<E, CensusTransform_MT>>(image_border);
+                        return std::make_unique<FilterCensusTransformD33U8<E, Census>>(image_border);
                     break;
 
                 case CensusVariants::BLOCK_5_5:
                     if constexpr (std::is_same<C, S32>::value)
-                        return std::make_unique<FilterCensusTransformD55S32<E, CensusTransform_MT>>(image_border);
+                        return std::make_unique<FilterCensusTransformD55S32<E, Census>>(image_border);
                     break;
 
                 default:
                     if constexpr (std::is_same<C, S64>::value)
-                        return std::make_unique<FilterCensusTransformSampleS64<E, CensusTransform_MT>>(samples(type),
+                        return std::make_unique<FilterCensusTransformSampleS64<E, Census>>(samples(type),
                                                                                                     image_border);
                     break;
             }
@@ -238,7 +241,10 @@ namespace boofcv {
         }
     };
 
-    /// The parts FactoryBlockMatch builds block matching from that a variant can replace
+    /// Single threaded census transforms
+    using FactoryCensusTransform = FactoryCensus<CensusTransform>;
+
+    /// The single threaded parts FactoryBlockMatch builds block matching from that a variant can replace
     struct BlockMatchParts {
         /// Selects the disparity from error scores
         template<class S, class D>
@@ -252,6 +258,23 @@ namespace boofcv {
         /// below its maximum. int32_t if there's none. The running sums of 16-bit scores are exact modulo 2^16, so
         /// region scores below 65535 are exact
         using SmallScore = uint16_t;
+
+        /// Block matching on the row scores
+        template<class E, class S>
+        using RowFormat = DisparityBlockMatchRowFormat<E, S>;
+
+        using RowScoreZssd = BlockRowScoreZssd;
+        using RowScoreNcc = BlockRowScoreNcc;
+
+        /// The census transform, CensusTransform or CensusTransform_MT
+        using Census = CensusTransform;
+
+        /// Normalizes the input of NCC
+        using Normalization = ImageNormalization;
+
+        /// Converts the input of ZSSD, and NCC's if it isn't normalized
+        template<class I, class O>
+        static void convert( const Gray<I>& input, Gray<O>& output ) { boofcv::convert(input, output); }
     };
 
     /// Creates stereo disparity algorithms from 'Parts'. BoofCV's FactoryStereoDisparity
@@ -297,12 +320,12 @@ namespace boofcv {
 
                 case DisparityError::ZSSD:
                     // Not normalized, unlike NCC, since rescaling the input would change the scale of the error
-                    ret = create_pre_filter<E, D>(config, std::make_shared<BlockRowScoreZssd_MT>(
+                    ret = create_pre_filter<E, D>(config, std::make_shared<typename Parts::RowScoreZssd>(
                             config.region_radius_x, config.region_radius_y, config.border), false);
                     break;
 
                 case DisparityError::NCC:
-                    ret = create_pre_filter<E, D>(config, std::make_shared<BlockRowScoreNcc_MT>(
+                    ret = create_pre_filter<E, D>(config, std::make_shared<typename Parts::RowScoreNcc>(
                             config.region_radius_x, config.region_radius_y, config.border,
                             (F32)config.config_ncc.eps), config.config_ncc.normalize_input);
                     break;
@@ -375,12 +398,11 @@ namespace boofcv {
             return ret;
         }
 
-        /// DisparityBlockMatchRowFormat_MT, which is single threaded when BoofConcurrency::max_threads() is 1
         template<class E, class S>
         static std::unique_ptr<DisparityBlockMatchRowFormat<E, S>> create_block_matching(
                 const ConfigDisparityBM& config, std::shared_ptr<BlockRowScore<E, S>> row_score,
                 std::shared_ptr<DisparitySelect<S>> select ) {
-            auto alg = std::make_unique<DisparityBlockMatchRowFormat_MT<E, S>>(
+            auto alg = std::make_unique<typename Parts::template RowFormat<E, S>>(
                     config.region_radius_x, config.region_radius_y, std::move(row_score), std::move(select));
             alg->configure(config.disparity_min, config.disparity_range);
             alg->set_catastrophic_reset(config.catastrophic_reset);
@@ -402,7 +424,7 @@ namespace boofcv {
                 const ConfigDisparityBM& config, std::shared_ptr<BlockRowScore<F32, F32>> row_score, bool normalize ) {
             auto select = create_select<F32, D>(config);
             auto alg = create_block_matching<F32, F32>(config, std::move(row_score), select.scores);
-            return std::make_unique<StereoDisparityBlockMatchPreFilter<E, D>>(
+            return std::make_unique<StereoDisparityBlockMatchPreFilter<E, D, Parts>>(
                     std::move(alg), select.output, select.saves_score, normalize);
         }
 
@@ -419,7 +441,8 @@ namespace boofcv {
         static std::unique_ptr<StereoDisparityBlockMatch<E, D>> create_census( const ConfigDisparityBM& config,
                                                                                int32_t bits ) {
             auto select = create_select<S, D>(config);
-            auto census = FactoryCensusTransform::variant<E, C>(config.config_census.variant, config.border);
+            auto census = FactoryCensus<typename Parts::Census>::template variant<E, C>(config.config_census.variant,
+                                                                                        config.border);
             auto alg = create_block_matching<C, S>(config, std::make_shared<BlockRowScoreCensus<C, S>>(bits),
                                                    select.scores);
             return std::make_unique<StereoDisparityBlockMatchCensus<E, C, D>>(
@@ -427,7 +450,7 @@ namespace boofcv {
         }
     };
 
-    /// Strict's block matching
+    /// Strict's single threaded block matching
     using FactoryStereoDisparity = FactoryBlockMatch<BlockMatchParts>;
 }
 

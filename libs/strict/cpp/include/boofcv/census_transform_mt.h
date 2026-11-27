@@ -15,7 +15,7 @@ namespace boofcv {
     ///
     /// BoofCV's ImplCensusTransformInner_MT only splits the inner image. The border is a large part of the time, so
     /// here it's split too. Each pixel is computed by the same code as CensusTransform, so the results are identical
-    /// for any number of threads. With BoofConcurrency::max_threads() == 1 it's CensusTransform
+    /// for any number of threads
     class CensusTransform_MT {
     public:
         /// See CensusTransform::dense3x3()
@@ -63,10 +63,6 @@ namespace boofcv {
         template<class E, class C, class Single, class Inner, class BorderRows>
         static void rows( const Gray<E>& input, Gray<C>& output, ImageBorder<E>* border, uint32_t radius,
                           uint32_t samples, Single single, Inner inner, BorderRows border_rows ) {
-            if (BoofConcurrency::max_threads() == 1) {
-                single();
-                return;
-            }
             if (border != nullptr)
                 border->setImage(input);
             BoofConcurrency::loop_blocks(0, input.height)

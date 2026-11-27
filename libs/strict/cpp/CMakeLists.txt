@@ -46,6 +46,7 @@ if (test)
     list(APPEND TestList test_pixel_math)
     list(APPEND TestList test_pixel_math_mt)
     list(APPEND TestList test_stereo_disparity)
+    list(APPEND TestList test_stereo_disparity_mt)
     list(APPEND TestList test_threshold_block_filters)
     list(APPEND TestList test_threshold_block_filters_mt)
 

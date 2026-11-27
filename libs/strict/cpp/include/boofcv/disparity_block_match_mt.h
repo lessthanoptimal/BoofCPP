@@ -21,7 +21,7 @@ namespace boofcv {
     /// of catastrophic_reset at or before its first row, where the single threaded code also does, and runs the sum
     /// to its first row without selecting. BoofCV's DisparityScoreBM_F32 with USE_CONCURRENT starts its blocks on
     /// those multiples instead. The results are identical to DisparityBlockMatchRowFormat for any number of
-    /// threads. With BoofConcurrency::max_threads() == 1 it's DisparityBlockMatchRowFormat::process()
+    /// threads
     template<class E, class S>
     class DisparityBlockMatchRowFormat_MT : public DisparityBlockMatchRowFormat<E, S> {
         using Base = DisparityBlockMatchRowFormat<E, S>;
@@ -29,10 +29,6 @@ namespace boofcv {
         using Base::Base;
 
         void process( const Gray<E>& left, const Gray<E>& right ) override {
-            if (BoofConcurrency::max_threads() == 1) {
-                Base::process(left, right);
-                return;
-            }
             this->prepare(left, right);
 
             // with floating point scores a block's sum starts at the multiple of reset at or before its first row

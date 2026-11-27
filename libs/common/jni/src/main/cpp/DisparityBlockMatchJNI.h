@@ -1,25 +1,32 @@
 #ifndef BOOFCPP_DISPARITY_BLOCK_MATCH_JNI_H
 #define BOOFCPP_DISPARITY_BLOCK_MATCH_JNI_H
 
-/// The JNI code of a variant's NativeDisparityBlockMatch, for the variant's FactoryStereoDisparity. Include the
-/// variant's stereo disparity header first. The variant's JNI file defines the JNI functions with
-/// BOOFCPP_DISPARITY_BLOCK_MATCH_JNI
+/// The JNI code of a variant's NativeDisparityBlockMatch, for the variant's FactoryStereoDisparity and
+/// FactoryStereoDisparity_MT. Include the variant's stereo disparity headers first. The variant's JNI file defines the
+/// JNI functions with BOOFCPP_DISPARITY_BLOCK_MATCH_JNI
 
 #include <jni.h>
 #include <memory>
 #include <stdexcept>
 #include "JNIBoofCPP.h"
 #include "ConfigDisparityJNI.h"
+#include "boofcv/concurrency.h"
 
 namespace disparity_jni {
     using namespace boofcv;
 
     /// The algorithm for whichever input and disparity type was configured. Only one is set
-    struct NativeBlockMatch {
+    struct BlockMatch {
         std::unique_ptr<StereoDisparityBlockMatch<U8, U8>> u8_pixel;
         std::unique_ptr<StereoDisparityBlockMatch<U8, F32>> u8_subpixel;
         std::unique_ptr<StereoDisparityBlockMatch<F32, U8>> f32_pixel;
         std::unique_ptr<StereoDisparityBlockMatch<F32, F32>> f32_subpixel;
+    };
+
+    /// The single threaded algorithm, used with one thread, and the concurrent one, used with more
+    struct NativeBlockMatch {
+        BlockMatch single;
+        BlockMatch concurrent;
     };
 
     template<class E>
@@ -59,27 +66,35 @@ namespace disparity_jni {
 
     /// Creates the algorithm for the configuration with 'Factory'
     template<class Factory>
+    void create( const ConfigDisparityBM& config, jboolean image_f32, BlockMatch& alg ) {
+        if (image_f32) {
+            if (config.subpixel)
+                alg.f32_subpixel = Factory::template block_match<F32, F32>(config);
+            else
+                alg.f32_pixel = Factory::template block_match<F32, U8>(config);
+        } else {
+            if (config.subpixel)
+                alg.u8_subpixel = Factory::template block_match<U8, F32>(config);
+            else
+                alg.u8_pixel = Factory::template block_match<U8, U8>(config);
+        }
+    }
+
+    /// Creates the single threaded algorithm with 'Factory' and the concurrent one with 'Factory_MT'
+    template<class Factory, class Factory_MT>
     NativeBlockMatch* create( JNIEnv* env, jobject jconfig, jboolean image_f32 ) {
         ConfigDisparityBM config = config_from_java<ConfigDisparityBM>(env, jconfig);
         auto alg = std::make_unique<NativeBlockMatch>();
-        if (image_f32) {
-            if (config.subpixel)
-                alg->f32_subpixel = Factory::template block_match<F32, F32>(config);
-            else
-                alg->f32_pixel = Factory::template block_match<F32, U8>(config);
-        } else {
-            if (config.subpixel)
-                alg->u8_subpixel = Factory::template block_match<U8, F32>(config);
-            else
-                alg->u8_pixel = Factory::template block_match<U8, U8>(config);
-        }
+        create<Factory>(config, image_f32, alg->single);
+        create<Factory_MT>(config, image_f32, alg->concurrent);
         return alg.release();
     }
 
-    inline void process_any( JNIEnv* env, NativeBlockMatch* alg, jobject jleft, jobject jright, jobject jdisparity,
+    inline void process_any( JNIEnv* env, NativeBlockMatch* native, jobject jleft, jobject jright, jobject jdisparity,
                              jobject jscore ) {
-        if (alg == nullptr)
+        if (native == nullptr)
             throw std::runtime_error("Native algorithm has been destroyed");
+        BlockMatch* alg = BoofConcurrency::max_threads() > 1 ? &native->concurrent : &native->single;
         if (alg->u8_subpixel || alg->f32_subpixel) {
             ImageAndInfo<Gray<F32>, JImageInfo> disparity = wrapCriticalGrayF32(env, jdisparity);
             if (alg->u8_subpixel)
@@ -97,12 +112,12 @@ namespace disparity_jni {
 }
 
 /// The JNI functions of NativeDisparityBlockMatch. PREFIX is the Java class's JNI prefix, e.g.
-/// Java_org_boofcpp_disparity_NativeDisparityBlockMatch, and FACTORY the variant's FactoryStereoDisparity. C++
-/// exceptions become Java exceptions
-#define BOOFCPP_DISPARITY_BLOCK_MATCH_JNI(PREFIX, FACTORY) \
+/// Java_org_boofcpp_disparity_NativeDisparityBlockMatch, FACTORY the variant's FactoryStereoDisparity and FACTORY_MT
+/// its FactoryStereoDisparity_MT. C++ exceptions become Java exceptions
+#define BOOFCPP_DISPARITY_BLOCK_MATCH_JNI(PREFIX, FACTORY, FACTORY_MT) \
 JNIEXPORT void JNICALL PREFIX##_nativeinit( JNIEnv* env, jobject obj, jobject jconfig, jboolean image_f32 ) { \
     try { \
-        disparity_jni::NativeBlockMatch* alg = disparity_jni::create<FACTORY>(env, jconfig, image_f32); \
+        disparity_jni::NativeBlockMatch* alg = disparity_jni::create<FACTORY, FACTORY_MT>(env, jconfig, image_f32); \
         static const jfieldID native_ptr = class_field_id(env, obj, "nativePtr", "J"); \
         env->SetLongField(obj, native_ptr, (jlong)alg); \
     } catch (...) { \
