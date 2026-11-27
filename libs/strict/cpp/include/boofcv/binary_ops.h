@@ -277,33 +277,23 @@ namespace boofcv
             Gray<T>& mean = storage1;
 
             BlurImageOps::mean(input,mean,radius,storage2);
-            threshold_mean(input, mean, scale, down, output);
+            threshold_local(input, mean, scale, down, output);
         }
 
-        /// localMean()'s threshold of each pixel with its local mean. 'mean' and 'output' have the input's shape
+        /// Thresholds each pixel with its own threshold, from the 'local' image, e.g. a local mean:
+        ///
+        ///     down:  output(x,y) = input(x,y) <= local(x,y)*scale
+        ///     up:    output(x,y) = input(x,y)*scale > local(x,y)
+        ///
+        /// 'local' and 'output' have the input's shape
         template<class T>
-        static void threshold_mean( const Gray<T>& input, const Gray<T>& mean, float scale, bool down,
-                                    Gray<U8>& output ) {
-            if( down ) {
-                for( uint32_t y = 0; y < input.height; y++ ) {
-                    T* mean_ptr = &mean.data[mean.offset + y*mean.stride];
-                    T* input_ptr = &input.data[input.offset + y*input.stride];
-                    U8* output_ptr = &output.data[output.offset + y*output.stride];
-
-                    for( uint32_t i = input.width; i; i-- ) {
-                        *output_ptr++ = static_cast<U8>( *input_ptr++ <= (*mean_ptr++)*scale);
-                    }
-                }
-            } else {
-                for( uint32_t y = 0; y < input.height; y++ ) {
-                    T* mean_ptr = &mean.data[mean.offset + y*mean.stride];
-                    T* input_ptr = &input.data[input.offset + y*input.stride];
-                    U8* output_ptr = &output.data[output.offset + y*output.stride];
-
-                    for( uint32_t i = input.width; i; i-- ) {
-                        *output_ptr++ = static_cast<U8>((*input_ptr++)*scale > *mean_ptr++);
-                    }
-                }
+        static void threshold_local( const Gray<T>& input, const Gray<T>& local, float scale, bool down,
+                                     Gray<U8>& output ) {
+            for (uint32_t y = 0; y < input.height; y++) {
+                const T* local_row = &local.data[local.offset + y*local.stride];
+                threshold_local_row(&input.data[input.offset + y*input.stride],
+                                    &output.data[output.offset + y*output.stride], input.width, scale, down,
+                                    [=]( uint32_t x ) { return local_row[x]; });
             }
         }
 
@@ -314,6 +304,18 @@ namespace boofcv
                                        bool down, uint32_t y0, uint32_t y1 );
 
     private:
+        /// threshold_local() of a row, with the threshold of pixel x from local(x)
+        template<class T, class Local>
+        static void threshold_local_row( const T* in, U8* out, uint32_t width, float scale, bool down, Local local ) {
+            if (down) {
+                for (uint32_t x = 0; x < width; x++)
+                    out[x] = static_cast<U8>(in[x] <= local(x)*scale);
+            } else {
+                for (uint32_t x = 0; x < width; x++)
+                    out[x] = static_cast<U8>(in[x]*scale > local(x));
+            }
+        }
+
         /// localMean() for U8, with the same results, in one pass over the image and without its storage:
         ///
         ///     for each row y:
@@ -342,8 +344,7 @@ namespace boofcv
         virtual void process(const T& input , Gray<U8>& output ) = 0;
     };
 
-    /// @tparam Ops ThresholdOps or ThresholdOps_MT
-    template<class T, class Ops = ThresholdOps>
+    template<class T>
     class GlobalFixedBinaryFilter : public InputToBinary<Gray<T>>
     {
     public:
@@ -356,12 +357,17 @@ namespace boofcv
         { }
 
         void process(const Gray<T>& input , Gray<U8>& output ) override {
+            process_with<ThresholdOps>(input, output);
+        }
+
+        /// process() with the functions of Ops, ThresholdOps or ThresholdOps_MT
+        template<class Ops>
+        void process_with( const Gray<T>& input, Gray<U8>& output ) {
             Ops::threshold_double(input,threshold,down,output);
         }
     };
 
-    /// @tparam Ops ThresholdOps or ThresholdOps_MT
-    template<class T, class Ops = ThresholdOps>
+    template<class T>
     class GlobalOtsuBinaryFilter : public InputToBinary<Gray<T>>
     {
     public:
@@ -377,6 +383,12 @@ namespace boofcv
         {  }
 
         void process(const Gray<T>& input , Gray<U8>& output ) override {
+            process_with<ThresholdOps>(input, output);
+        }
+
+        /// process() with the functions of Ops, ThresholdOps or ThresholdOps_MT
+        template<class Ops>
+        void process_with( const Gray<T>& input, Gray<U8>& output ) {
             // BoofCV's GlobalBinaryFilter.process()
             double adjusted_scale = down ? scale : (scale <= 0.0 ? 0.0 : 1.0/scale);
             // computeOtsu() returns a histogram index
@@ -386,8 +398,7 @@ namespace boofcv
         }
     };
 
-    /// @tparam Ops ThresholdOps or ThresholdOps_MT
-    template<class T, class Ops = ThresholdOps>
+    template<class T>
     class LocalMeanBinaryFilter : public InputToBinary<Gray<T>>
     {
     public:
@@ -404,6 +415,12 @@ namespace boofcv
         }
 
         void process(const Gray<T>& input , Gray<U8>& output ) override {
+            process_with<ThresholdOps>(input, output);
+        }
+
+        /// process() with the functions of Ops, ThresholdOps or ThresholdOps_MT
+        template<class Ops>
+        void process_with( const Gray<T>& input, Gray<U8>& output ) {
             Ops::localMean(input,output,regionWidth,scale,down,storage1,storage2);
         }
     };

@@ -1,13 +1,10 @@
 #include <jni.h>
 #include "boofcv/binary_ops_mt.h"
+#include "boofcv/threshold_block_filters.h"
 #include "JNIBoofCPP.h"
 #include "ThresholdJNI.h"
 
 using namespace boofcv;
-
-/// ThresholdOps_MT, which is single threaded when BoofConcurrency::max_threads() is 1
-template<class E>
-using Filter = GlobalFixedBinaryFilter<E, ThresholdOps_MT>;
 
 // double threshold, boolean down
 extern "C" {
@@ -19,9 +16,9 @@ JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeGlobalFixed_nativeinit(
 
     jlong ptr;
     if( isInteger ) {
-        ptr = (jlong)new Filter<U8>((double)threshold, (bool)down);
+        ptr = (jlong)new GlobalFixedBinaryFilter<U8>((double)threshold, (bool)down);
     } else {
-        ptr = (jlong)new Filter<F32>((double)threshold, (bool)down);
+        ptr = (jlong)new GlobalFixedBinaryFilter<F32>((double)threshold, (bool)down);
     }
     env->SetLongField(obj, fields.nativePtr, ptr);
 }
@@ -33,15 +30,15 @@ JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeGlobalFixed_nativedestro
     jlong nativePtr = env->GetLongField(obj, fields.nativePtr);
 
     if( isInteger ) {
-        delete (Filter<U8> *) nativePtr;
+        delete (GlobalFixedBinaryFilter<U8> *) nativePtr;
     } else {
-        delete (Filter<F32> *) nativePtr;
+        delete (GlobalFixedBinaryFilter<F32> *) nativePtr;
     }
 }
 
 JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeGlobalFixed_nativeprocess
     (JNIEnv *env, jobject obj, jobject jinput, jobject joutput) {
-    threshold_process<Filter>(env, obj, jinput, joutput);
+    threshold_process_with<GlobalFixedBinaryFilter, ThresholdOps_MT>(env, obj, jinput, joutput);
 }
 
 }

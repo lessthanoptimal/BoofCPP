@@ -6,7 +6,6 @@
 
 using namespace boofcv;
 
-/// ThresholdBlock_MT, which is single threaded when BoofConcurrency::max_threads() is 1
 template<class E>
 using Filter = ThresholdBlock_MT<ThresholdBlockMinMax<E>>;
 
@@ -45,7 +44,7 @@ JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeBlockMinMax_nativedestro
 
 JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeBlockMinMax_nativeprocess
     (JNIEnv *env, jobject obj, jobject jinput, jobject joutput) {
-    threshold_process<Filter>(env, obj, jinput, joutput);
+    threshold_process_block<Filter>(env, obj, jinput, joutput);
 }
 
 }

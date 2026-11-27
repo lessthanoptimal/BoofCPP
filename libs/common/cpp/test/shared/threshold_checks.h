@@ -159,8 +159,8 @@ namespace threshold_checks {
     }
 
     /// Local mean threshold computed pixel by pixel: the mean along x of the pixels inside the image, rounded, then
-    /// the mean of those along y, rounded. BoofCV's BlurImageOps.mean() for U8
-    inline Gray<U8> naive_local_mean( const Gray<U8>& input, const ConfigLength& region, float scale, bool down ) {
+    /// the mean of those along y, rounded. BoofCV's BlurImageOps.mean() for U8. Thresholds down
+    inline Gray<U8> naive_local_mean( const Gray<U8>& input, const ConfigLength& region, float scale ) {
         const auto radius = (int32_t)region.computeI(std::min(input.width, input.height))/2;
         const auto width = (int32_t)input.width, height = (int32_t)input.height;
         Gray<U8> horizontal(input.width, input.height), output(input.width, input.height);
@@ -178,15 +178,15 @@ namespace threshold_checks {
                 for (int32_t i = std::max(0, y - radius); i <= std::min(height - 1, y + radius); i++, count++)
                     sum += horizontal.at(x, i);
                 const auto mean = (U8)((sum + count/2)/count);
-                const U8 v = input.at(x, y);
-                output.at(x, y) = (U8)(down ? v <= mean*scale : v*scale > mean);
+                output.at(x, y) = (U8)(input.at(x, y) <= mean*scale);
             }
         }
         return output;
     }
 
     /// Compares with naive_local_mean() on random, flat and smooth images, where many pixels equal their mean, with
-    /// regions from 2 pixels to wider than the image, a region relative to the image size, and sub-images
+    /// regions from 2 pixels to wider than the image, a region relative to the image size, and sub-images. Only down:
+    /// 'down' only selects the comparison of ThresholdOps::threshold_local(), whose test covers both
     inline void local_mean_naive( std::mt19937& rng ) {
         const ConfigLength regions[] = {ConfigLength::fixed(2), ConfigLength::fixed(3), ConfigLength::fixed(8),
                                         ConfigLength::fixed(41), ConfigLength::fixed(1000),
@@ -203,21 +203,19 @@ namespace threshold_checks {
                             input.at(x, y) = (U8)((x*3 + y*2)%256);
                 }
                 for (const ConfigLength& region : regions) {
-                    for (bool down : {true, false}) {
-                        for (float scale : {0.95f, 1.0f, 1.05f}) {
-                            Gray<U8> expected = naive_local_mean(input, region, scale, down);
-                            tested::LocalMeanBinaryFilter<U8> alg(region, scale, down);
-                            Gray<U8> found(input.width, input.height);
-                            alg.process(input, found);
-                            check_equals(expected, found);
+                    for (float scale : {0.95f, 1.0f, 1.05f}) {
+                        Gray<U8> expected = naive_local_mean(input, region, scale);
+                        tested::LocalMeanBinaryFilter<U8> alg(region, scale, true);
+                        Gray<U8> found(input.width, input.height);
+                        alg.process(input, found);
+                        check_equals(expected, found);
 
-                            Gray<U8> sub_input = create_subimage(input);
-                            Gray<U8> sub_found = create_subimage(found);
-                            alg.process(sub_input, sub_found);
-                            check_equals(expected, sub_found);
-                            sub_input.subimage = false;
-                            sub_found.subimage = false;
-                        }
+                        Gray<U8> sub_input = create_subimage(input);
+                        Gray<U8> sub_found = create_subimage(found);
+                        alg.process(sub_input, sub_found);
+                        check_equals(expected, sub_found);
+                        sub_input.subimage = false;
+                        sub_found.subimage = false;
                     }
                 }
             }

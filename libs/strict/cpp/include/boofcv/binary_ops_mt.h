@@ -12,8 +12,7 @@ namespace boofcv {
     ///
     ///     for each block of rows, concurrently:  ThresholdOps' code on the block's rows
     ///
-    /// Every pixel is computed the same way, so the results are identical to ThresholdOps for any number of threads.
-    /// With BoofConcurrency::max_threads() == 1 it's ThresholdOps
+    /// Every pixel is computed the same way, so the results are identical to ThresholdOps for any number of threads
     class ThresholdOps_MT {
     public:
         /// ThresholdOps::computeOtsu() with the histogram from ImageStatistics_MT
@@ -53,10 +52,6 @@ namespace boofcv {
         template<class T>
         static void localMean( const Gray<T>& input, Gray<U8>& output, const ConfigLength& width, float scale,
                                bool down, Gray<T>& storage1, Gray<T>& storage2 ) {
-            if (BoofConcurrency::max_threads() == 1) {
-                ThresholdOps::localMean(input, output, width, scale, down, storage1, storage2);
-                return;
-            }
             output.reshape(input.width, input.height);
             const uint32_t radius = (uint32_t)width.computeI(std::min(input.width, input.height))/2;
             if constexpr (std::is_same_v<T, U8>) {
@@ -78,10 +73,10 @@ namespace boofcv {
                 storage1.reshape(input.width, input.height);
                 storage2.reshape(input.width, input.height);
                 BlurImageOps_MT::mean(input, storage1, radius, radius, storage2);
-                rows(input, output, [&] { ThresholdOps::threshold_mean(input, storage1, scale, down, output); },
+                rows(input, output, [&] { ThresholdOps::threshold_local(input, storage1, scale, down, output); },
                      [&]( const Gray<T>& in, Gray<U8>& out, uint32_t y0, uint32_t y1 ) {
-                         ThresholdOps::threshold_mean(in, storage1.makeSubimage(0, y0, storage1.width, y1), scale,
-                                                      down, out);
+                         ThresholdOps::threshold_local(in, storage1.makeSubimage(0, y0, storage1.width, y1), scale,
+                                                       down, out);
                      });
             }
         }
@@ -98,10 +93,6 @@ namespace boofcv {
         /// Calls block(input rows, output rows, y0, y1) for each block. 'output' has the input's shape
         template<class T, class Single, class Block>
         static void rows( const Gray<T>& input, Gray<U8>& output, Single single, Block block ) {
-            if (BoofConcurrency::max_threads() == 1) {
-                single();
-                return;
-            }
             BoofConcurrency::loop_blocks(0, input.height)
                     .element_cost(std::max<uint64_t>(1, input.width))
                     .single(single)

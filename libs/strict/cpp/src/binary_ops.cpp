@@ -297,18 +297,6 @@ namespace boofcv {
                 }
             }
         }
-
-        /// Thresholds a row with its mean, as ThresholdOps::localMean()
-        template<class Mean>
-        void threshold_row( const U8* in, U8* out, uint32_t width, float scale, bool down, Mean mean ) {
-            if (down) {
-                for (uint32_t x = 0; x < width; x++)
-                    out[x] = static_cast<U8>(in[x] <= mean(x)*scale);
-            } else {
-                for (uint32_t x = 0; x < width; x++)
-                    out[x] = static_cast<U8>(in[x]*scale > mean(x));
-            }
-        }
     }
 
     void ThresholdOps::localMean_U8( const Gray<U8>& input, Gray<U8>& output, const ConfigLength& width_config,
@@ -388,7 +376,7 @@ namespace boofcv {
             // The lambdas below capture by value, so stores to U8 pixels can't change what they read
             if (add && remove && divisor.uses_multiply32()) {
                 // Window inside the image: update the sums, divide and threshold in one loop
-                threshold_row(in, out, w, scale, down, [=]( uint32_t x ) {
+                threshold_local_row(in, out, w, scale, down, [=]( uint32_t x ) {
                     const uint32_t total = sums[x] + (add[x] - remove[x]);
                     sums[x] = total;
                     return divisor.multiply32(total);
@@ -405,7 +393,7 @@ namespace boofcv {
                 for (uint32_t x = 0; x < w; x++)
                     sums[x] -= remove[x];
             }
-            threshold_row(in, out, w, scale, down, [=]( uint32_t x ) { return divisor(sums[x]); });
+            threshold_local_row(in, out, w, scale, down, [=]( uint32_t x ) { return divisor(sums[x]); });
         }
     }
 }
