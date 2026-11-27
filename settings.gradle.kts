@@ -19,6 +19,8 @@ include("boofcpp-jni")
 project(":boofcpp-jni").projectDir = file("libs/strict/jni")
 include("boofcpp-fast")
 project(":boofcpp-fast").projectDir = file("libs/fast/jni")
+include("boofcpp-benchmark")
+project(":boofcpp-benchmark").projectDir = file("libs/benchmark")
 
 // The Android module is optional so that the rest of the project builds without an Android SDK.
 // The SDK is located the same way the Android Gradle Plugin does it.

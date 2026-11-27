@@ -17,5 +17,6 @@ android/.cxx/
 android/build/
 local.properties
 libs/*/jni/build/
+libs/benchmark/build/
 buildSrc/build/
 BoofCPPVersion.java

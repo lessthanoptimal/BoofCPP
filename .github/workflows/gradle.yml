@@ -38,7 +38,7 @@ jobs:
     - name: Java Unit Tests
       run: ./gradlew test
     - name: Compile the JMH benchmarks and the accuracy tool
-      run: ./gradlew compileBenchmarkJava compileAccuracyJava
+      run: ./gradlew :boofcpp-benchmark:compileJava compileAccuracyJava
     - name: Native jars work on their own
       run: |
         mv build build_hidden

@@ -137,7 +137,7 @@ The main benchmarks are done to directly compare Java and JNI code. There is als
 as a form of sanity check to make sure JNI or simply building the C++ code as a library does slow it down too much.
 
 C++ Benchmark: benchmark
-Java/JNI Benchmark: libs/strict/jni/src/benchmark and libs/fast/jni/src/benchmark
+Java/JNI Benchmark: libs/benchmark
 
 To run a C++ benchmark, run the generated executable from the `datasets` directory, which has the test image:
 ```bash
@@ -146,32 +146,30 @@ cd datasets
 ```
 Every file in `benchmark/src` that has a `main()` is its own executable.
 
-The Java benchmark code is created using JMH (https://openjdk.java.net/projects/code-tools/jmh/). Run all of them,
-or only the ones matching a regex with `-Pinclude`. Results are saved in the module's `build/reports/benchmark`.
+The Java benchmarks use JMH (https://openjdk.java.net/projects/code-tools/jmh/) and call BoofCV's API, once with
+BoofCV's Java code and once for each library that has a native hook for the op, with 1 thread and every core.
+Results are written to `libs/benchmark/build/reports/benchmark`, one file per implementation.
 ```bash
-./gradlew :boofcpp-jni:benchmarkRun
-./gradlew :boofcpp-jni:benchmarkRun -Pinclude=BenchmarkThresholding
-./gradlew :boofcpp-fast:benchmarkRun
+./gradlew :boofcpp-benchmark:benchmarkRun
+./gradlew :boofcpp-benchmark:benchmarkRun -Pinclude=ThresholdingBenchmark -Pimpl=java,strict -Pthreads=1,8
+./gradlew :boofcpp-benchmark:benchmarkRun -Pquick
 ```
-They can also be run from IntelliJ with the JMH plugin.
+`-Pquick` only checks that the benchmarks run. `-Psave` saves a run of every op in `results/benchmark/<platform>`,
+replacing only the implementations that ran:
+```bash
+./gradlew :boofcpp-benchmark:benchmarkRun -Psave
+```
 
 Example Results: Java/JNI Benchmark
 ```
-Benchmark                                     Mode  Cnt   Score   Error  Units
-BenchmarkThresholding.block_mean_java_U8      avgt    5  15.746 ± 0.220  ms/op
-BenchmarkThresholding.block_mean_native_U8    avgt    5   2.570 ± 0.043  ms/op
-BenchmarkThresholding.block_minmax_java_U8    avgt    5  18.857 ± 0.085  ms/op
-BenchmarkThresholding.block_minmax_native_U8  avgt    5   1.363 ± 0.004  ms/op
-BenchmarkThresholding.block_otsu_java_U8      avgt    5  36.033 ± 1.305  ms/op
-BenchmarkThresholding.block_otsu_native_U8    avgt    5  11.561 ± 0.082  ms/op
-BenchmarkThresholding.global_fixed_java_U8    avgt    5   7.615 ± 0.195  ms/op
-BenchmarkThresholding.global_fixed_native_U8  avgt    5   0.606 ± 0.028  ms/op
-BenchmarkThresholding.global_otsu_java_F32    avgt    5  15.900 ± 0.980  ms/op
-BenchmarkThresholding.global_otsu_java_U8     avgt    5  15.291 ± 1.036  ms/op
-BenchmarkThresholding.global_otsu_native_F32  avgt    5  12.003 ± 0.158  ms/op
-BenchmarkThresholding.global_otsu_native_U8   avgt    5   4.971 ± 0.261  ms/op
-BenchmarkThresholding.local_mean_java_U8      avgt    5  47.901 ± 1.058  ms/op
-BenchmarkThresholding.local_mean_native_U8    avgt    5   8.906 ± 0.038  ms/op
+| Op | threads | type | java (ms/op) | strict (ms/op) | strict speedup |
+|---|---|---|---|---|---|
+| block_mean | 1 | U8 | 15.7 ± 0.2 | 2.60 ± 0.02 | 6.04x |
+| block_min_max | 1 | U8 | 19.3 ± 0.9 | 1.39 ± 0.11 | 13.85x |
+| block_otsu | 1 | U8 | 35.8 ± 0.3 | 11.7 ± 0.4 | 3.07x |
+| global_fixed | 1 | U8 | 7.69 ± 0.30 | 0.576 ± 0.011 | 13.35x |
+| global_otsu | 1 | U8 | 15.3 ± 0.5 | 4.95 ± 0.15 | 3.09x |
+| local_mean | 1 | U8 | 33.2 ± 1.5 | 9.07 ± 0.38 | 3.66x |
 ```
 
 Example Results: C++ Benchmark

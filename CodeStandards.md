@@ -63,8 +63,11 @@
     class>.<field>` for each hook field it's registered with, or `/// BOOFCPP_IGNORE true` if it isn't registered.
     Each variant's `TestHookContracts` checks them against the hooks it registers
 - Benchmarks
-  - JMH benchmark names are `<op>_<native|java>_<image type>`, e.g. `global_otsu_native_U8`, unless a `@Param`
-    selects the image type
+  - JMH benchmarks are in `libs/benchmark` and call BoofCV's API, so they time what users get. A benchmark method is
+    one op, named after it, e.g. `global_otsu`, with a `@Hook` naming the hook field it uses. The implementation,
+    image type and other settings are `@Param`s
+  - `BenchmarkRunner` runs each op once for BoofCV's Java code and for each variant that has a hook for it. Only a
+    run of every op is saved, in `results/benchmark/<platform>`
   - A short benchmark is written on one line
 - JNI
   - C++ exceptions must never escape a JNI function. `jni_call()` turns them into Java exceptions
@@ -99,15 +102,16 @@ libs/
   common/   Code independent of any variant, see Common below
   strict/   Results identical to BoofCV
   fast/     Results within floating point tolerance of BoofCV
+  benchmark/ JMH benchmarks of BoofCV's Java code and every variant
 android/    One module that packages the native libraries of every variant
 benchmark/  C++ benchmarks
 datasets/   Test images
-results/    Accuracy records, see Accuracy
+results/    Accuracy and benchmark records, see Accuracy and Benchmarks
 ```
 
-- Each library in `libs/` has `cpp/` and `jni/`
+- Each library in `libs/`, except `benchmark/`, has `cpp/` and `jni/`
   - `cpp/` has `include/boofcv/` for headers, `src/` and `test/`
-  - `jni/` is the Java module with its JNI code: `src/main/java`, `src/main/cpp`, `src/test` and `src/benchmark`
+  - `jni/` is the Java module with its JNI code: `src/main/java`, `src/main/cpp` and `src/test`
   - JNI functions only tests use are in `src/test/cpp` and built into a test-only library, e.g. common's
     `JNIBoofCPPCommonTest`, never into a library that's shipped
 - Fast uses strict's code for what it doesn't speed up, so fast depends on strict. Strict never depends on fast, and
@@ -165,8 +169,8 @@ results/    Accuracy records, see Accuracy
     `Tolerance.IDENTICAL` by default, and fast's test classes set `Tolerance.FLOAT`
   - When fast adds an op, that op's strict tests are moved into shared tests first, without removing or weakening any
 - Benchmark against strict's native code and BoofCV's Java code
-- Fast's tests check its results. Fast's benchmarks call BoofCV after `BoofCPPStrict.initialize()` and
-  `BoofCPPFast.initialize()`, so they show if fast isn't hooked in
+- Fast's tests check its results. The benchmarks in `libs/benchmark` run fast after strict, as a user registers them,
+  and only on the ops it hooks
 - When fast adds an op, the op is added to the accuracy tool of strict and fast
 - Non-deterministic multithreaded code is run 10 times with more threads than cores. Each result must be within
   floating point tolerance of the single threaded implementation
