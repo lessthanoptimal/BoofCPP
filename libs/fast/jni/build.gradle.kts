@@ -10,7 +10,7 @@ nativeLibrary {
 
 dependencies {
     api(project(":boofcpp-common"))
-    // Fast's native code uses strict's for what it doesn't speed up, and BoofCPP.initialize() registers fast
+    // Fast's native code uses strict's for what it doesn't speed up
     api(project(":boofcpp-jni"))
     api(libs.boofcv.ip)
 

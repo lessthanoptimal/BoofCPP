@@ -4,6 +4,6 @@ import org.boofcpp.testing.HookContractChecks;
 
 public class TestHookContracts extends HookContractChecks {
     @Override protected void registerHooks() {
-        BoofCPP.initialize();
+        BoofCPPStrict.initialize();
     }
 }

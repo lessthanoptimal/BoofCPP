@@ -4,7 +4,7 @@ import boofcv.factory.disparity.ConfigDisparityBM;
 import boofcv.factory.disparity.DisparityError;
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayU8;
-import org.boofcpp.BoofCPP;
+import org.boofcpp.BoofCPPStrict;
 import org.boofcpp.testing.NativeDisparityBlockMatchChecks;
 import org.boofcpp.testing.NativeSingleThreaded;
 import org.junit.jupiter.api.Test;
@@ -16,7 +16,7 @@ import static org.boofcpp.testing.BoofCPPTesting.assertConcurrentToggle;
 @ExtendWith(NativeSingleThreaded.class)
 public class TestNativeDisparityBlockMatch extends NativeDisparityBlockMatchChecks {
     static {
-        BoofCPP.loadlib();
+        BoofCPPStrict.loadlib();
     }
 
     public TestNativeDisparityBlockMatch() {

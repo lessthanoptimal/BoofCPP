@@ -10,7 +10,7 @@ import boofcv.struct.image.GrayS32;
 import boofcv.struct.image.GrayU8;
 import georegression.struct.point.Point2D_I32;
 import org.boofcpp.testing.BenchmarkUtils;
-import org.boofcpp.BoofCPP;
+import org.boofcpp.BoofCPPStrict;
 import org.ddogleg.struct.DogArray;
 import org.openjdk.jmh.annotations.*;
 
@@ -35,7 +35,7 @@ public class BenchmarkContour {
     BinaryLabelContourFinder algJava = new BinaryLabelContourFinderChang2004();
 
     static {
-        BoofCPP.loadlib();
+        BoofCPPStrict.loadlib();
         // The speed target is against single-threaded Java
         boofcv.concurrency.BoofConcurrency.USE_CONCURRENT = false;
     }

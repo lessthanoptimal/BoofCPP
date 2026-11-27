@@ -15,7 +15,7 @@ import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayS16;
 import boofcv.struct.image.GrayU8;
 import org.boofcpp.testing.BenchmarkUtils;
-import org.boofcpp.BoofCPP;
+import org.boofcpp.BoofCPPStrict;
 import org.boofcpp.NativeConcurrency;
 import org.openjdk.jmh.annotations.*;
 import java.awt.image.BufferedImage;
@@ -53,7 +53,7 @@ public class BenchmarkConvolveImage {
     NativeConvolveImage nativeOps = new NativeConvolveImage();
 
     static {
-        BoofCPP.loadlib();
+        BoofCPPStrict.loadlib();
     }
 
     public BenchmarkConvolveImage() {

@@ -7,13 +7,13 @@ import boofcv.struct.image.GrayS32;
 import boofcv.struct.image.GrayS8;
 import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
-import org.boofcpp.BoofCPP;
+import org.boofcpp.BoofCPPStrict;
 import org.boofcpp.testing.NativeAverageDownSampleChecks;
 
 /// The average down sampling checks shared with the other variants. Strict supports every type BoofCV does
 public class TestNativeAverageDownSampleOps extends NativeAverageDownSampleChecks {
     static {
-        BoofCPP.loadlib();
+        BoofCPPStrict.loadlib();
     }
 
     public TestNativeAverageDownSampleOps() {

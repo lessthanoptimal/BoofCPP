@@ -9,7 +9,7 @@ import boofcv.factory.disparity.FactoryStereoDisparity;
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
-import org.boofcpp.BoofCPP;
+import org.boofcpp.BoofCPPStrict;
 import org.boofcpp.NativeConcurrency;
 import org.boofcpp.testing.BenchmarkUtils;
 import org.openjdk.jmh.annotations.*;
@@ -41,7 +41,7 @@ public class BenchmarkDisparityBlockMatch {
     StereoDisparity nativeAlg;
 
     static {
-        BoofCPP.loadlib();
+        BoofCPPStrict.loadlib();
     }
 
     /// Default configuration, which has subpixel and all checks on

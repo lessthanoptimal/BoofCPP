@@ -48,18 +48,23 @@ through its BOverride API. Before invoking certain functions or creating
 certain classes BoofCV will check to see if there exists a BOverride. If so it will invoke that instead.
 
 ```Java
-BoofCPP.initialize()
+BoofCPPStrict.initialize()
 ```
 
 Now all functions which BoofCPP supports will be overrided. This will also override any previously loaded overrides.
-Initialize must be called before any image processing is done.
+Initialize must be called before any image processing is done. `BOverrideManager.clear()` removes them again.
 
 The `fast` library is optional. Its results are within floating point tolerance of BoofCV instead of identical, and
-it's at least 1.3x faster than the default library for the functions it has. With it on the classpath,
-`BoofCPP.initialize()` uses it for those functions:
+it's at least 1.3x faster than the default library for the functions it has. Add it as a dependency and register it
+after strict, which handles the functions fast doesn't have:
 
 ```Gradle
 implementation group: 'org.boofcpp', name: "boofcpp-fast", version: '0.30', classifier: "linux-amd64"
+```
+
+```Java
+BoofCPPStrict.initialize()
+BoofCPPFast.initialize()
 ```
 
 # Dependencies

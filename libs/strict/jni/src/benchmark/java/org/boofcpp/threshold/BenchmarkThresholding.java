@@ -9,7 +9,7 @@ import boofcv.struct.ConfigLength;
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayU8;
 import org.boofcpp.testing.BenchmarkUtils;
-import org.boofcpp.BoofCPP;
+import org.boofcpp.BoofCPPStrict;
 import org.boofcpp.NativeConcurrency;
 import org.openjdk.jmh.annotations.*;
 
@@ -56,7 +56,7 @@ public class BenchmarkThresholding
     InputToBinary<GrayU8> block_otsu_java;
 
     static {
-        BoofCPP.loadlib();
+        BoofCPPStrict.loadlib();
     }
 
     @Setup public void setup() {

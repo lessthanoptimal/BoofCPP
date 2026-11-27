@@ -12,14 +12,16 @@ import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayF64;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
-import org.boofcpp.BoofCPP;
+import org.boofcpp.BoofCPPStrict;
+import org.boofcpp.fast.BoofCPPFast;
 import org.boofcpp.testing.BenchmarkUtils;
 import org.openjdk.jmh.annotations.*;
 
 import java.util.concurrent.TimeUnit;
 
 /// Fast's mean, without and with a border, against strict's and BoofCV's single-threaded Java. Fast is called through
-/// BoofCV after BoofCPP.initialize(), so if it isn't hooked in, its time is strict's or Java's
+/// BoofCV after BoofCPPStrict.initialize() and BoofCPPFast.initialize(), so if it isn't hooked in, its time is strict's
+/// or Java's
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @Warmup(iterations = 2)
@@ -37,17 +39,18 @@ public class BenchmarkImageBlurOps {
 
     int radius = 5;
 
-    /// The mean hook BoofCPP.initialize() registered
+    /// The mean hook BoofCPPFast.initialize() registered
     BOverrideBlurImageOps.Mean registered;
     org.boofcpp.convolve.NativeImageBlurOps strict = new org.boofcpp.convolve.NativeImageBlurOps();
 
     static {
-        BoofCPP.loadlib();
+        BoofCPPStrict.loadlib();
         boofcv.concurrency.BoofConcurrency.USE_CONCURRENT = false;
     }
 
     @Setup public void setup() {
-        BoofCPP.initialize();
+        BoofCPPStrict.initialize();
+        BoofCPPFast.initialize();
         registered = BOverrideBlurImageOps.mean;
 
         GrayU8 gray = ConvertBufferedImage.convertFrom(BenchmarkUtils.loadImage(BenchmarkUtils.TEST_IMAGE),

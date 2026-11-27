@@ -6,7 +6,7 @@ import boofcv.concurrency.BoofConcurrency;
 import boofcv.core.image.GeneralizedImageOps;
 import boofcv.struct.image.ImageDataType;
 import boofcv.struct.image.ImageGray;
-import org.boofcpp.BoofCPP;
+import org.boofcpp.BoofCPPStrict;
 import org.openjdk.jmh.annotations.*;
 
 import java.util.Random;
@@ -33,7 +33,7 @@ public class BenchmarkAverageDownSample {
     NativeAverageDownSampleOps nativeOps = new NativeAverageDownSampleOps();
 
     static {
-        BoofCPP.loadlib();
+        BoofCPPStrict.loadlib();
         // The speed target is against single-threaded Java
         BoofConcurrency.USE_CONCURRENT = false;
     }

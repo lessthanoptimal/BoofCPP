@@ -10,7 +10,7 @@ import boofcv.struct.convolve.Kernel2D_S32;
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayU8;
 import org.boofcpp.testing.BenchmarkUtils;
-import org.boofcpp.BoofCPP;
+import org.boofcpp.BoofCPPStrict;
 import org.boofcpp.NativeConcurrency;
 import org.openjdk.jmh.annotations.*;
 
@@ -46,7 +46,7 @@ public class BenchmarkConvolveNormalized {
     public int threads;
 
     static {
-        BoofCPP.loadlib();
+        BoofCPPStrict.loadlib();
     }
 
     @Setup public void setup() {
