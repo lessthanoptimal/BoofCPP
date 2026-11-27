@@ -1,6 +1,7 @@
 package org.boofcpp.threshold;
 
 import boofcv.abst.filter.binary.InputToBinary;
+import boofcv.concurrency.BoofConcurrency;
 import boofcv.factory.filter.binary.FactoryThresholdBinary;
 import boofcv.core.image.ConvertImage;
 import boofcv.io.image.ConvertBufferedImage;
@@ -9,6 +10,7 @@ import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayU8;
 import org.boofcpp.testing.BenchmarkUtils;
 import org.boofcpp.BoofCPP;
+import org.boofcpp.NativeConcurrency;
 import org.openjdk.jmh.annotations.*;
 
 import java.awt.image.BufferedImage;
@@ -32,35 +34,54 @@ public class BenchmarkThresholding
     ConfigLength regionWidth = ConfigLength.fixed(40);
     boolean local_blocks = false;
 
+    /// Threads of native and of BoofCV's Java code. 1 is single threaded, which is the speed target against Java
+    @Param({"1", "4"})
+    public int threads;
 
-    InputToBinary<GrayU8> global_fixed_native = new NativeGlobalFixed<>(125,down, type);
-    InputToBinary<GrayU8> global_fixed_java = FactoryThresholdBinary.globalFixed(125,down, type);
-
-    InputToBinary<GrayU8> global_otsu_native = new NativeGlobalOtsu<>(0,255,1.0,down, type);
-    InputToBinary<GrayU8> global_otsu_java = FactoryThresholdBinary.globalOtsu(0,255,1.0,down, type);
-
-    InputToBinary<GrayF32> global_otsu_native_F32 = new NativeGlobalOtsu<>(0,255,1.0,down, GrayF32.class);
-    InputToBinary<GrayF32> global_otsu_java_F32 = FactoryThresholdBinary.globalOtsu(0,255,1.0,down, GrayF32.class);
-
-    InputToBinary<GrayU8> local_mean_native = new NativeLocalMean<>(regionWidth, scale, down, type);
-    InputToBinary<GrayU8> local_mean_java = FactoryThresholdBinary.localMean(regionWidth, scale, down, type);
-
-    InputToBinary<GrayU8> block_minmax_native = new NativeBlockMinMax<>(regionWidth, scale, down, 1, local_blocks,type);
-    InputToBinary<GrayU8> block_minmax_java = FactoryThresholdBinary.blockMinMax( regionWidth, scale, down, local_blocks, 1, type);
-    InputToBinary<GrayF32> block_minmax_native_F32 = new NativeBlockMinMax<>(regionWidth, scale, down, 1, local_blocks, GrayF32.class);
-    InputToBinary<GrayF32> block_minmax_java_F32 = FactoryThresholdBinary.blockMinMax(regionWidth, scale, down, local_blocks, 1, GrayF32.class);
-    InputToBinary<GrayU8> block_mean_native = new NativeBlockMean<>(regionWidth, scale, down, local_blocks, type);
-    InputToBinary<GrayU8> block_mean_java = FactoryThresholdBinary.blockMean( regionWidth, scale, down, local_blocks, type);
-    InputToBinary<GrayU8> block_otsu_native = new NativeBlockOtsu<>(true, regionWidth, 0, scale, down, local_blocks, type);
-    InputToBinary<GrayU8> block_otsu_java = FactoryThresholdBinary.blockOtsu(regionWidth, scale, down, local_blocks, true, 0, type);
+    InputToBinary<GrayU8> global_fixed_native;
+    InputToBinary<GrayU8> global_fixed_java;
+    InputToBinary<GrayU8> global_otsu_native;
+    InputToBinary<GrayU8> global_otsu_java;
+    InputToBinary<GrayF32> global_otsu_native_F32;
+    InputToBinary<GrayF32> global_otsu_java_F32;
+    InputToBinary<GrayU8> local_mean_native;
+    InputToBinary<GrayU8> local_mean_java;
+    InputToBinary<GrayU8> block_minmax_native;
+    InputToBinary<GrayU8> block_minmax_java;
+    InputToBinary<GrayF32> block_minmax_native_F32;
+    InputToBinary<GrayF32> block_minmax_java_F32;
+    InputToBinary<GrayU8> block_mean_native;
+    InputToBinary<GrayU8> block_mean_java;
+    InputToBinary<GrayU8> block_otsu_native;
+    InputToBinary<GrayU8> block_otsu_java;
 
     static {
         BoofCPP.loadlib();
-        // The speed target is against single-threaded Java
-        boofcv.concurrency.BoofConcurrency.USE_CONCURRENT = false;
     }
-    public BenchmarkThresholding ()
-    {
+
+    @Setup public void setup() {
+        NativeConcurrency.setMaxThreads(threads);
+        BoofConcurrency.USE_CONCURRENT = threads > 1;
+        BoofConcurrency.setMaxThreads(threads);
+
+        // BoofCV's factories pick concurrent implementations when the filters are created
+        global_fixed_native = new NativeGlobalFixed<>(125,down, type);
+        global_fixed_java = FactoryThresholdBinary.globalFixed(125,down, type);
+        global_otsu_native = new NativeGlobalOtsu<>(0,255,1.0,down, type);
+        global_otsu_java = FactoryThresholdBinary.globalOtsu(0,255,1.0,down, type);
+        global_otsu_native_F32 = new NativeGlobalOtsu<>(0,255,1.0,down, GrayF32.class);
+        global_otsu_java_F32 = FactoryThresholdBinary.globalOtsu(0,255,1.0,down, GrayF32.class);
+        local_mean_native = new NativeLocalMean<>(regionWidth, scale, down, type);
+        local_mean_java = FactoryThresholdBinary.localMean(regionWidth, scale, down, type);
+        block_minmax_native = new NativeBlockMinMax<>(regionWidth, scale, down, 1, local_blocks,type);
+        block_minmax_java = FactoryThresholdBinary.blockMinMax( regionWidth, scale, down, local_blocks, 1, type);
+        block_minmax_native_F32 = new NativeBlockMinMax<>(regionWidth, scale, down, 1, local_blocks, GrayF32.class);
+        block_minmax_java_F32 = FactoryThresholdBinary.blockMinMax(regionWidth, scale, down, local_blocks, 1, GrayF32.class);
+        block_mean_native = new NativeBlockMean<>(regionWidth, scale, down, local_blocks, type);
+        block_mean_java = FactoryThresholdBinary.blockMean( regionWidth, scale, down, local_blocks, type);
+        block_otsu_native = new NativeBlockOtsu<>(true, regionWidth, 0, scale, down, local_blocks, type);
+        block_otsu_java = FactoryThresholdBinary.blockOtsu(regionWidth, scale, down, local_blocks, true, 0, type);
+
         BufferedImage buffered = BenchmarkUtils.loadImage(BenchmarkUtils.TEST_IMAGE);
         input=ConvertBufferedImage.convertFrom(buffered,(GrayU8)null);
         inputF32 = ConvertImage.convert(input, (GrayF32)null);
