@@ -24,7 +24,7 @@ string(STRIP "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${BOOFCPP_BUILD_TYPE_UPPER}}"
 target_compile_definitions(JNIBoofCPPCommon PRIVATE BOOFCPP_BUILD_TYPE="${CMAKE_BUILD_TYPE}"
         BOOFCPP_CXX_FLAGS="${BOOFCPP_CXX_FLAGS}")
 
-# Test-only JNI library for common's Java tests, e.g. NativeConfigs. Not packaged in any jar
-add_library(JNIBoofCPPCommonTest SHARED src/test/cpp/ConfigTestsJNI.cpp)
+# Test-only JNI library for common's Java tests, e.g. NativeConfigs and NativeToggleCall. Not packaged in any jar
+add_library(JNIBoofCPPCommonTest SHARED src/test/cpp/ConfigTestsJNI.cpp src/test/cpp/ConcurrencyTestsJNI.cpp)
 target_link_libraries(JNIBoofCPPCommonTest JNIBoofCPPCommon)
 set_target_properties(JNIBoofCPPCommonTest PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/boofcpp-common-test)

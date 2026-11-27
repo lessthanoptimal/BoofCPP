@@ -8,6 +8,7 @@ import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayF64;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
+import org.boofcpp.NativeConcurrency;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;
 
@@ -127,6 +128,20 @@ public class TestBoofCPPTesting extends BoofCPPStandardJUnit {
         } finally {
             BoofConcurrency.USE_CONCURRENT = previous;
         }
+    }
+
+    /// Fails if the switch isn't what's expected, and restores the threads and testing blocks
+    @Test public void assertConcurrentToggle() {
+        BoofCPPTesting.assertConcurrentToggle(true, NativeToggleCall::call);
+        BoofCPPTesting.assertConcurrentToggle(false, () -> {});
+        assertThrows(AssertionFailedError.class, () -> BoofCPPTesting.assertConcurrentToggle(false, NativeToggleCall::call));
+        assertThrows(AssertionFailedError.class, () -> BoofCPPTesting.assertConcurrentToggle(true, () -> {}));
+
+        int threads = NativeConcurrency.getMaxThreads();
+        int blocks = NativeConcurrency.getTestingBlocks();
+        assertThrows(AssertionFailedError.class, () -> BoofCPPTesting.assertConcurrentToggle(true, () -> {}));
+        assertEquals(threads, NativeConcurrency.getMaxThreads());
+        assertEquals(blocks, NativeConcurrency.getTestingBlocks());
     }
 
     /// Inside the image the pixel's value, outside it the border's
