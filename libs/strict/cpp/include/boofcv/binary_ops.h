@@ -277,7 +277,13 @@ namespace boofcv
             Gray<T>& mean = storage1;
 
             BlurImageOps::mean(input,mean,radius,storage2);
+            threshold_mean(input, mean, scale, down, output);
+        }
 
+        /// localMean()'s threshold of each pixel with its local mean. 'mean' and 'output' have the input's shape
+        template<class T>
+        static void threshold_mean( const Gray<T>& input, const Gray<T>& mean, float scale, bool down,
+                                    Gray<U8>& output ) {
             if( down ) {
                 for( uint32_t y = 0; y < input.height; y++ ) {
                     T* mean_ptr = &mean.data[mean.offset + y*mean.stride];
@@ -301,6 +307,12 @@ namespace boofcv
             }
         }
 
+        /// The output rows y0 to y1 of localMean() for U8, with the local region's radius. 'output' has the input's
+        /// shape, and the radius and image size aren't 0. The sums start at row y0, so any range gives the same
+        /// results
+        static void localMean_U8_rows( const Gray<U8>& input, Gray<U8>& output, uint32_t radius, float scale,
+                                       bool down, uint32_t y0, uint32_t y1 );
+
     private:
         /// localMean() for U8, with the same results, in one pass over the image and without its storage:
         ///
@@ -309,7 +321,8 @@ namespace boofcv
         ///         sums[x] += the horizontal mean of the row entering the window - that of the row leaving it
         ///         out[x] = threshold of in[x] with sums[x]/(rows in the window)
         ///
-        /// Only the horizontal means of the rows in the window, the row leaving it and those computed ahead are kept
+        /// Only the horizontal means of the rows in the window, the row leaving it and those computed ahead are kept.
+        /// See localMean_U8_rows()
         static void localMean_U8( const Gray<U8>& input, Gray<U8>& output, const ConfigLength& width, float scale,
                                   bool down );
     };
@@ -373,7 +386,8 @@ namespace boofcv
         }
     };
 
-    template<class T>
+    /// @tparam Ops ThresholdOps or ThresholdOps_MT
+    template<class T, class Ops = ThresholdOps>
     class LocalMeanBinaryFilter : public InputToBinary<Gray<T>>
     {
     public:
@@ -390,7 +404,7 @@ namespace boofcv
         }
 
         void process(const Gray<T>& input , Gray<U8>& output ) override {
-            ThresholdOps::localMean(input,output,regionWidth,scale,down,storage1,storage2);
+            Ops::localMean(input,output,regionWidth,scale,down,storage1,storage2);
         }
     };
 }

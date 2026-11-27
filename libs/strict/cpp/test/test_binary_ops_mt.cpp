@@ -34,6 +34,12 @@ protected:
                 check_identical(expected, found, name + " threshold_double " + to_string(threshold));
             }
         }
+        Gray<E> storage1, storage2;
+        for (uint32_t region : {3u, 61u}) {
+            ThresholdOps::localMean(input, expected, ConfigLength::fixed(region), 0.95f, true, storage1, storage2);
+            ThresholdOps_MT::localMean(input, found, ConfigLength::fixed(region), 0.95f, true, storage1, storage2);
+            check_identical(expected, found, name + " localMean " + to_string(region));
+        }
         EXPECT_EQ(ThresholdOps::computeOtsu(input, 5, 210), ThresholdOps_MT::computeOtsu(input, 5, 210)) << name;
     }
 

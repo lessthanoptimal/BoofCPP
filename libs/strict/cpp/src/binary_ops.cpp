@@ -317,9 +317,14 @@ namespace boofcv {
         const uint32_t radius = (uint32_t)width_config.computeI(std::min(input.width, input.height))/2;
         if (radius == 0)
             throw std::invalid_argument("Radius must be > 0");
-        const uint32_t width = input.width, height = input.height;
-        if (width == 0 || height == 0)
+        if (input.width == 0 || input.height == 0)
             return;
+        localMean_U8_rows(input, output, radius, scale, down, 0, input.height);
+    }
+
+    void ThresholdOps::localMean_U8_rows( const Gray<U8>& input, Gray<U8>& output, uint32_t radius, float scale,
+                                          bool down, uint32_t y0, uint32_t y1 ) {
+        const uint32_t width = input.width, height = input.height;
         // A window larger than the image covers the same pixels
         const uint32_t radius_x = std::min(radius, width);
         const uint32_t radius_y = std::min(radius, height);
@@ -330,7 +335,9 @@ namespace boofcv {
         const uint32_t slots = 2*radius_y + 1 + ROWS;
         std::vector<U8> means(slots*width);
         std::vector<uint32_t> prefix;
-        uint32_t computed = 0;
+        // Before row y0 the sums have the window's rows except the one row y0 adds, and the row it removes
+        const uint32_t first = y0 > radius_y ? y0 - radius_y - 1 : 0;
+        uint32_t computed = first;
         auto row_mean = [&]( uint32_t y ) { return &means[(y%slots)*width]; };
         auto compute_rows = [&]( uint32_t rows_needed ) {
             while (computed < rows_needed) {
@@ -356,14 +363,15 @@ namespace boofcv {
         const uint32_t w = width;
         std::vector<uint32_t> totals(w, 0);
         uint32_t* sums = totals.data();
-        compute_rows(radius_y);
-        for (uint32_t y = 0; y < radius_y; y++) {
+        const uint32_t last = std::min(height, y0 + radius_y);
+        compute_rows(last);
+        for (uint32_t y = first; y < last; y++) {
             const U8* m = row_mean(y);
             for (uint32_t x = 0; x < w; x++)
                 sums[x] += m[x];
         }
 
-        for (uint32_t y = 0; y < height; y++) {
+        for (uint32_t y = y0; y < y1; y++) {
             const U8* add = nullptr;
             const U8* remove = nullptr;
             if (y + radius_y < height) {
