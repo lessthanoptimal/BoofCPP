@@ -75,6 +75,23 @@
     library, so it needs no other jar. `./gradlew nativeJarCheck` loads each one from its jar alone
   - If a configuration isn't supported natively, BoofCV must fall back to its Java implementation, e.g. the override returns `null`
 
+## Compositional testing
+
+Test each piece of logic once, at the lowest layer that owns it
+
+- C++
+  - Tests use sub-images by default, so offsets and strides aren't the defaults
+  - When possible, prove inner functions are correct with their own tests
+  - Tests of functions that call them don't permute through inputs the inner function's tests already cover
+  - Templated code is tested with integer and floating point types when their math differs
+- Multithreaded code only demonstrates it produces the same results as the single threaded code, with multiple
+  threads and blocks processed in different orders
+- JNI
+  - A few cases show the results match BoofCV's Java, identical for `strict` and within tolerance for `fast`
+  - Multithreaded code only checks the switch between single threaded and multithreaded code
+- Each unit test aims to run in under 0.2 s in a Release build. Mention tests that exceed this value after writing
+  them.
+
 # Directory Layout
 
 ```
