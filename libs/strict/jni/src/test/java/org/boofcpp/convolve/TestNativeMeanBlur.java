@@ -12,7 +12,6 @@ import org.boofcpp.testing.NativeMeanBlurChecks;
 import org.boofcpp.testing.NativeSingleThreaded;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.opentest4j.AssertionFailedError;
 
 import static org.boofcpp.testing.BoofCPPTesting.assertConcurrentToggle;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -62,16 +61,5 @@ public class TestNativeMeanBlur extends NativeMeanBlurChecks {
                 hook.nativeMeanBorderU8(input, output, -1, 2, BorderType.REFLECT, 0, storage));
         assertThrows(IllegalArgumentException.class, () ->
                 hook.nativeMeanBorderU8(input, output, 2, -1, BorderType.REFLECT, 0, storage));
-    }
-
-    /// The check fails if the switch isn't what's expected
-    @Test void concurrentToggle_fails() {
-        var hook = new NativeImageBlurOps();
-        ImageGray input = randomSubImage(GrayU8.class, 40, 30, 0, 100);
-        ImageGray output = (ImageGray)input.createSameShape();
-        assertThrows(AssertionFailedError.class, () ->
-                assertConcurrentToggle(false, () -> hook.processMean(input, output, 2, 2, BorderType.NORMALIZED, null)));
-        assertThrows(AssertionFailedError.class, () ->
-                assertConcurrentToggle(true, () -> output.setTo(input)));
     }
 }

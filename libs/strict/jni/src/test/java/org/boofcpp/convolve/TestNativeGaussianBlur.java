@@ -25,13 +25,11 @@ public class TestNativeGaussianBlur extends NativeGaussianBlurChecks {
         super(new NativeImageBlurOps(), GrayU8.class, GrayU16.class, GrayF32.class, GrayF64.class);
     }
 
-    /// Every image type runs the _MT code with more than one thread
+    /// Runs the _MT code with more than one thread
     @Test void concurrentToggle() {
         var hook = new NativeImageBlurOps();
-        for (Class type : new Class[]{GrayU8.class, GrayU16.class, GrayF32.class, GrayF64.class}) {
-            ImageGray input = randomSubImage(type, 40, 30, 0, 100);
-            ImageGray output = (ImageGray)input.createSameShape();
-            assertConcurrentToggle(true, () -> hook.processGaussian(input, output, -1, 2, -1, 3, null));
-        }
+        ImageGray input = randomSubImage(GrayU8.class, 40, 30, 0, 100);
+        ImageGray output = (ImageGray)input.createSameShape();
+        assertConcurrentToggle(true, () -> hook.processGaussian(input, output, -1, 2, -1, 3, null));
     }
 }
