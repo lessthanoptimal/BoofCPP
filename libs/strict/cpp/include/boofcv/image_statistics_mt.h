@@ -15,14 +15,9 @@ namespace boofcv {
         ///
         ///     for each block of rows, concurrently:  histogram of the block's rows, added to 'histogram'
         ///
-        /// Counts don't depend on the order they're added in, so the results are identical for any number of threads.
-        /// With BoofConcurrency::max_threads() == 1 it's ImageStatistics::histogram()
+        /// Counts don't depend on the order they're added in, so the results are identical for any number of threads
         template<class T, class V>
         static void histogram( const Gray<T>& input, V minValue, GrowArray<uint32_t>& histogram ) {
-            if (BoofConcurrency::max_threads() == 1) {
-                ImageStatistics::histogram(input, minValue, histogram);
-                return;
-            }
             std::mutex lock;
             histogram.fill(0);
             BoofConcurrency::loop_blocks(0, input.height)

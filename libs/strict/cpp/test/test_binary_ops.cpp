@@ -160,6 +160,41 @@ TEST_F(ThresholdOpsTest, threshold_outside_range) {
     for( uint32_t i = 0; i < out.total_pixels(); i++ ) EXPECT_EQ(1,out.data[i]);
 }
 
+/// threshold_local() on sub-images, with pixels at and next to their thresholds. Row 0 is near its down threshold and
+/// row 1 near its up one, so a wrong inequality, or scaling the wrong side of it, changes the output
+template<class E>
+void check_threshold_local() {
+    Gray<E> input_parent(5, 6), local_parent(5, 6);
+    Gray<U8> output_parent(5, 6);
+    Gray<E> input = input_parent.makeSubimage(1, 2, 4, 4);
+    Gray<E> local = local_parent.makeSubimage(1, 2, 4, 4);
+    Gray<U8> output = output_parent.makeSubimage(1, 2, 4, 4);
+    const E input_values[2][3] = {{4, 5, 6}, {8, 10, 12}};
+    const E local_values[2] = {10, 5};
+    for (uint32_t y = 0; y < 2; y++) {
+        for (uint32_t x = 0; x < 3; x++) {
+            input.at(x, y) = input_values[y][x];
+            local.at(x, y) = local_values[y];
+        }
+    }
+
+    // down: input <= local*scale, up: input*scale > local
+    const U8 expected_down[2][3] = {{1, 1, 0}, {0, 0, 0}};
+    const U8 expected_up[2][3] = {{0, 0, 0}, {0, 0, 1}};
+    for (bool down : {true, false}) {
+        ThresholdOps::threshold_local(input, local, 0.5f, down, output);
+        for (uint32_t y = 0; y < 2; y++) {
+            for (uint32_t x = 0; x < 3; x++) {
+                const U8 expected = down ? expected_down[y][x] : expected_up[y][x];
+                EXPECT_EQ(expected, output.at(x, y)) << x << " " << y << " down " << down;
+            }
+        }
+    }
+}
+
+TEST_F(ThresholdOpsTest, threshold_local_U8) { check_threshold_local<U8>(); }
+TEST_F(ThresholdOpsTest, threshold_local_F32) { check_threshold_local<F32>(); }
+
 class GlobalOtsuBinaryFilterTest : public boofcv::BoofCPPTest {};
 
 TEST_F(GlobalOtsuBinaryFilterTest, scale) { threshold_checks::global_otsu_scale(); }

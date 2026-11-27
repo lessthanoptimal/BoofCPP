@@ -13,22 +13,19 @@ namespace boofcv {
     ///         a copy of the filter thresholds the band with ThresholdBlockCommon::process_blocks()
     ///
     /// With local blocks a band also computes the statistics of the row of blocks above and below it. A block's
-    /// statistics don't depend on the band, so the results are identical for any number of threads. With
-    /// BoofConcurrency::max_threads() == 1 it's the filter
+    /// statistics don't depend on the band, so the results are identical for any number of threads
     template<class Filter>
     class ThresholdBlock_MT : public Filter {
     public:
         using Filter::Filter;
         using E = typename Filter::pixel_type;
+        /// The single threaded filter
+        using single_threaded = Filter;
 
         /// A copy of 'filter', with its settings
         explicit ThresholdBlock_MT( const Filter& filter ) : Filter(filter) {}
 
         void process( const Gray<E>& input, Gray<U8>& output ) override {
-            if (BoofConcurrency::max_threads() == 1) {
-                Filter::process(input, output);
-                return;
-            }
             this->select_blocks(input, output);
             // Pixels per row of blocks, and the extra two rows of blocks of statistics each band computes
             const uint64_t row_cost = (uint64_t)this->blockHeight*input.width;
