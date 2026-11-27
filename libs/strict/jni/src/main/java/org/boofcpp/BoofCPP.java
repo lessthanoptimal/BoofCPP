@@ -9,7 +9,6 @@ import boofcv.factory.disparity.BOverrideStereoDisparity;
 import boofcv.factory.filter.binary.BOverrideFactoryBinaryContourFinder;
 import boofcv.factory.filter.binary.BOverrideFactoryThresholdBinary;
 import boofcv.override.BOverrideManager;
-import boofcv.struct.image.GrayU16;
 import org.boofcpp.contour.NativeChang2004;
 import org.boofcpp.convolve.NativeConvolveImage;
 import org.boofcpp.convolve.NativeImageBlurOps;
@@ -50,8 +49,7 @@ public class BoofCPP {
         BOverrideFactoryThresholdBinary.blockOtsu = NativeBlockOtsu::new;
         BOverrideFactoryThresholdBinary.localMean = NativeLocalMean::new;
 
-        // Native U8, F32 and F64 means are slower than BoofCV's
-        BOverrideBlurImageOps.mean = new NativeImageBlurOps(GrayU16.class);
+        BOverrideBlurImageOps.mean = new NativeImageBlurOps();
         BOverrideBlurImageOps.gaussian = new NativeImageBlurOps();
 
         BOverrideConvolveImageNormalized.horizontal = new NativeImageConvolveNormalized();
