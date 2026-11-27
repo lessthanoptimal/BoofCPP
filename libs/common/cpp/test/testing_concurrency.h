@@ -37,12 +37,13 @@ namespace boofcv {
         /// Calls 'compare(scale)' for scale 1, 2, 4, ... until its blocks finish out of sequence, with more threads
         /// than cores and one block for each row. 'compare' runs the single threaded and _MT code on images 'scale'
         /// times larger and compares them. Fails if blocks never finish out of sequence, unless there's one core
-        static void check_shuffled( const std::function<void(uint32_t scale)>& compare, uint32_t max_scale = 64 ) {
+        static void check_blocks_out_of_order( const std::function<void(uint32_t scale)>& compare,
+                                               uint32_t max_scale = 64 ) {
             BoofConcurrency::set_max_threads(many_threads());
             BoofConcurrency::set_testing_blocks(1000);
             const uint64_t before = BoofConcurrency::testing_out_of_order();
             for (uint32_t scale = 1; scale <= max_scale; scale *= 2) {
-                SCOPED_TRACE("shuffled, scale " + std::to_string(scale));
+                SCOPED_TRACE("out of order, scale " + std::to_string(scale));
                 compare(scale);
                 if (BoofConcurrency::testing_out_of_order() > before)
                     return;

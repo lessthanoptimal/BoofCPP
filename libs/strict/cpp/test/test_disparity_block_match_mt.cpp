@@ -53,7 +53,7 @@ protected:
             for (uint32_t height : {2u, 23u})
                 check_matches_single_threaded<E, S, D>(30, height, create_row_score(), create_select);
         });
-        check_shuffled([&]( uint32_t scale ) {
+        check_blocks_out_of_order([&]( uint32_t scale ) {
             check_matches_single_threaded<E, S, D>(30, 32*scale, create_row_score(), create_select);
         });
     }

@@ -72,7 +72,7 @@ protected:
                     check_matches_single_threaded<E, R>(op, width, height, kernel_width, offset);
                 });
             });
-            check_shuffled([&]( uint32_t scale ) {
+            check_blocks_out_of_order([&]( uint32_t scale ) {
                 check_matches_single_threaded<E, R>(op, 64*scale, 32*scale, 5, 2);
             });
         }
@@ -138,7 +138,7 @@ protected:
                 if (std::is_floating_point<E>::value)
                     check_matches_single_threaded<E>(op, 41, 23, 5, 1, true);
             });
-            check_shuffled([&]( uint32_t scale ) {
+            check_blocks_out_of_order([&]( uint32_t scale ) {
                 check_matches_single_threaded<E>(op, 64*scale, 32*scale, 5, 2);
             });
         }

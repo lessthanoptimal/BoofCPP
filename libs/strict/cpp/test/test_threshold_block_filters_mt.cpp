@@ -36,7 +36,9 @@ protected:
             for (auto size : {make_pair(4u, 4u), make_pair(13u, 40u), make_pair(40u, 13u), make_pair(41u, 23u)})
                 check_matches_single_threaded<Filter, E>(size.first, size.second, create);
         });
-        check_shuffled([&]( uint32_t scale ) { check_matches_single_threaded<Filter, E>(64*scale, 32*scale, create); });
+        check_blocks_out_of_order([&]( uint32_t scale ) {
+            check_matches_single_threaded<Filter, E>(64*scale, 32*scale, create);
+        });
     }
 };
 

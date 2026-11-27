@@ -49,7 +49,7 @@ protected:
                 for (auto size : {make_pair(1u, 1u), make_pair(3u, 30u), make_pair(30u, 3u), make_pair(41u, 23u)})
                     check_matches_single_threaded<E, C>(size.first, size.second, with_border);
             });
-            check_shuffled([&]( uint32_t scale ) {
+            check_blocks_out_of_order([&]( uint32_t scale ) {
                 check_matches_single_threaded<E, C>(64*scale, 32*scale, with_border);
             });
         }
