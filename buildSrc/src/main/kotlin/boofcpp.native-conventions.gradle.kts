@@ -1,10 +1,7 @@
-// A Java module with a JNI library built by CMake: the native jar for this platform, JMH benchmarks and the accuracy
-// tool
+// A Java module with a JNI library built by CMake: the native jar for this platform and the accuracy tool
 plugins {
     id("boofcpp.java-conventions")
 }
-
-val libs = the<VersionCatalogsExtension>().named("libs")
 
 val nativeLibrary = extensions.create<NativeLibraryExtension>("nativeLibrary")
 
@@ -14,17 +11,9 @@ if (!nativeBuild.exists())
     throw GradleException("Native build directory $nativeBuild does not exist!")
 
 // Classifier of the native jar, e.g. linux-amd64
-val osArch = System.getProperty("os.arch").lowercase()
-val osName = System.getProperty("os.name").lowercase()
-val platform = when {
-    osName.contains("linux") -> "linux-$osArch"
-    osName.contains("mac") -> "macos-$osArch"
-    osName.contains("windows") -> "windows-$osArch"
-    File.separatorChar == '/' -> "unix-$osArch"
-    else -> "unknown_$osArch"
-}
+val platform = platformName()
 
-println("  Platform:        ${System.getProperty("os.name")} ${System.getProperty("os.version")} $osArch")
+println("  Platform:        ${System.getProperty("os.name")} ${System.getProperty("os.version")} ${System.getProperty("os.arch")}")
 println("  Classifier name: $platform")
 println("  Native location: $nativeBuild")
 
@@ -51,11 +40,6 @@ tasks.register<JavaExec>("nativeJarCheck") {
     argumentProviders.add(CommandLineArgumentProvider { listOf(nativeLibrary.name.get(), nativeLibrary.directory.get()) })
 }
 
-val benchmark by sourceSets.creating {
-    compileClasspath += sourceSets.main.get().output + sourceSets.main.get().compileClasspath
-    runtimeClasspath += sourceSets.main.get().output + sourceSets.main.get().runtimeClasspath
-}
-
 // Measures how far the native results are from BoofCV's Java code. See CodeStandards.md, Accuracy
 val accuracy by sourceSets.creating {
     compileClasspath += sourceSets.main.get().output + sourceSets.main.get().compileClasspath
@@ -64,25 +48,6 @@ val accuracy by sourceSets.creating {
 
 dependencies {
     "accuracyImplementation"(testFixtures(project(":boofcpp-common")))
-    "benchmarkImplementation"(libs.findLibrary("jmh-core").get())
-    "benchmarkImplementation"(libs.findLibrary("jmh-generator-annprocess").get())
-    "benchmarkAnnotationProcessor"(libs.findLibrary("jmh-generator-annprocess").get())
-    "benchmarkImplementation"(testFixtures(project(":boofcpp-common")))
-}
-
-// Runs the JMH benchmarks matching -Pinclude=<regex>. Results are saved in build/reports/benchmark
-tasks.register<JavaExec>("benchmarkRun") {
-    description = "Executing JMH benchmarks"
-    classpath = benchmark.runtimeClasspath + sourceSets.main.get().runtimeClasspath
-    mainClass = "org.openjdk.jmh.Main"
-    jvmArgs("--enable-native-access=ALL-UNNAMED")
-
-    val include = providers.gradleProperty("include").getOrElse(".*Benchmark*")
-    val format = providers.gradleProperty("format").getOrElse("json")
-    val resultFile = layout.buildDirectory.file("reports/benchmark/result.$format").get().asFile
-    doFirst { resultFile.parentFile.mkdirs() }
-
-    args(include, "-rf", format, "-rff", resultFile)
 }
 
 // Runs the module's accuracy tool, the main class set by the module, and saves its record in results/accuracy

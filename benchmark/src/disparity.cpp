@@ -1,4 +1,4 @@
-// Benchmark for stereo block matching. Same input and configuration as the JMH BenchmarkDisparityBlockMatch:
+// Benchmark for stereo block matching. Same input and configuration as the JMH DisparityBlockMatchBenchmark:
 // the test image downsampled by 6 (672x504), the right image is the left shifted by 16 pixels plus noise, and the
 // default ConfigDisparityBM (range 100, radius 3, subpixel, right to left 1, texture 0.15, REFLECT, score saved)
 // with only the error type changed.
