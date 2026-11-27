@@ -144,10 +144,11 @@ namespace boofcv {
         Gray<C> census_right{1, 1};
     };
 
-    /// Converts the input images to F32, optionally normalizing them, then block matching on F32 images.
-    /// BoofCV's DisparityBlockMatchPreFilter
     struct BlockMatchParts;
 
+    /// Converts the input images to F32, optionally normalizing them, then block matching on F32 images.
+    /// BoofCV's DisparityBlockMatchPreFilter
+    ///
     /// @tparam Parts Its Normalization and convert() prepare the input, see BlockMatchParts
     template<class E, class D, class Parts = BlockMatchParts>
     class StereoDisparityBlockMatchPreFilter : public StereoDisparityBlockMatch<E, D> {

@@ -218,31 +218,29 @@ namespace boofcv
          * Integer images: threshold is cast to int. Values outside of the pixel range are handled without wrapping,
          * while the inner loop stays in the image's data type so it can be vectorized.
          * Floating point images: threshold is cast to float.
+         *
+         * @tparam Ops Its threshold() and reshape_then_fill() are used, ThresholdOps or ThresholdOps_MT
          */
-        template<class T>
-        static void threshold_double( const Gray<T> &input , double threshold , bool down , Gray<U8> &output ) {
-            threshold_double(input, threshold, down, output, std::is_integral<T>());
-        }
-
-        template<class T>
-        static void threshold_double( const Gray<T> &input , double threshold_d , bool down , Gray<U8> &output,
-                                      std::true_type ) {
-            auto threshold = static_cast<int64_t>(threshold_d);
-            if( threshold < std::numeric_limits<T>::min() ) {
-                output.reshape(input.width,input.height);
-                ImageMiscOps::fill(output,static_cast<U8>(down ? 0 : 1));
-            } else if( threshold >= std::numeric_limits<T>::max() ) {
-                output.reshape(input.width,input.height);
-                ImageMiscOps::fill(output,static_cast<U8>(down ? 1 : 0));
+        template<class T, class Ops = ThresholdOps>
+        static void threshold_double( const Gray<T>& input, double threshold_d, bool down, Gray<U8>& output ) {
+            if constexpr (std::is_integral_v<T>) {
+                const auto threshold = static_cast<int64_t>(threshold_d);
+                if (threshold < std::numeric_limits<T>::min())
+                    Ops::reshape_then_fill(input, static_cast<U8>(down ? 0 : 1), output);
+                else if (threshold >= std::numeric_limits<T>::max())
+                    Ops::reshape_then_fill(input, static_cast<U8>(down ? 1 : 0), output);
+                else
+                    Ops::threshold(input, static_cast<T>(threshold), down, output);
             } else {
-                ThresholdOps::threshold(input,static_cast<T>(threshold),down,output);
+                Ops::threshold(input, static_cast<float>(threshold_d), down, output);
             }
         }
 
+        /// 'output' reshaped to the input and filled with 'value'
         template<class T>
-        static void threshold_double( const Gray<T> &input , double threshold , bool down , Gray<U8> &output,
-                                      std::false_type ) {
-            ThresholdOps::threshold(input,static_cast<float>(threshold),down,output);
+        static void reshape_then_fill( const Gray<T>& input, U8 value, Gray<U8>& output ) {
+            output.reshape(input.width, input.height);
+            ImageMiscOps::fill(output, value);
         }
 
         /**

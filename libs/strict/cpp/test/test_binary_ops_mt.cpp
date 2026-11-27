@@ -11,8 +11,7 @@ using namespace boofcv;
 /// ThresholdOps_MT must be identical to ThresholdOps for any number of threads. U8 has its own local mean code
 class ThresholdOps_MTTest : public boofcv::ConcurrentTest {
 protected:
-    /// Every function on a sub-image. threshold_double() with thresholds inside and outside the pixel range in both
-    /// directions, and local mean with regions smaller and larger than the image
+    /// Every function on a sub-image, and local mean with regions smaller and larger than the image
     template<class E>
     void check_matches_single_threaded( uint32_t width, uint32_t height ) {
         Gray<E> parent;
@@ -26,14 +25,14 @@ protected:
         ThresholdOps::threshold(input, (E)100, true, expected);
         ThresholdOps_MT::threshold(input, (E)100, true, found);
         check_identical(expected, found, name + " threshold");
-        for (bool down : {true, false}) {
-            for (double threshold : {-1e10, 99.5, 1e10}) {
-                ImageMiscOps::fill(found, (U8)7);
-                ThresholdOps::threshold_double(input, threshold, down, expected);
-                ThresholdOps_MT::threshold_double(input, threshold, down, found);
-                check_identical(expected, found, name + " threshold_double " + to_string(threshold));
-            }
-        }
+        ThresholdOps::reshape_then_fill(input, (U8)1, expected);
+        ThresholdOps_MT::reshape_then_fill(input, (U8)1, found);
+        check_identical(expected, found, name + " reshape_then_fill");
+        // One threshold: ThresholdOps::threshold_double() is shared, and its clamping is tested single threaded
+        ImageMiscOps::fill(found, (U8)7);
+        ThresholdOps::threshold_double(input, 99.5, true, expected);
+        ThresholdOps_MT::threshold_double(input, 99.5, true, found);
+        check_identical(expected, found, name + " threshold_double");
         Gray<E> storage1, storage2;
         for (uint32_t region : {3u, 61u}) {
             ThresholdOps::localMean(input, expected, ConfigLength::fixed(region), 0.95f, true, storage1, storage2);

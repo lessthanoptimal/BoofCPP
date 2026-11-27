@@ -21,6 +21,7 @@ namespace boofcv {
             return ThresholdOps::computeOtsu<T, ImageStatistics_MT>(input, min_value, max_value, otsu2);
         }
 
+        /// ThresholdOps::threshold()
         template<class T, class TH = T>
         static void threshold( const Gray<T>& input, TH threshold, bool down, Gray<U8>& output ) {
             output.reshape(input.width, input.height);
@@ -30,21 +31,10 @@ namespace boofcv {
                  });
         }
 
-        /// ThresholdOps::threshold_double()
+        /// ThresholdOps::threshold_double() with the functions of ThresholdOps_MT
         template<class T>
         static void threshold_double( const Gray<T>& input, double threshold_d, bool down, Gray<U8>& output ) {
-            if constexpr (std::is_integral_v<T>) {
-                const auto threshold = static_cast<int64_t>(threshold_d);
-                if (threshold < std::numeric_limits<T>::min()) {
-                    fill(input, static_cast<U8>(down ? 0 : 1), output);
-                } else if (threshold >= std::numeric_limits<T>::max()) {
-                    fill(input, static_cast<U8>(down ? 1 : 0), output);
-                } else {
-                    ThresholdOps_MT::threshold(input, static_cast<T>(threshold), down, output);
-                }
-            } else {
-                ThresholdOps_MT::threshold(input, static_cast<float>(threshold_d), down, output);
-            }
+            ThresholdOps::threshold_double<T, ThresholdOps_MT>(input, threshold_d, down, output);
         }
 
         /// ThresholdOps::localMean(). U8 splits ThresholdOps::localMean_U8_rows() into blocks of rows, each of which
@@ -81,14 +71,15 @@ namespace boofcv {
             }
         }
 
-    private:
-        /// 'output' reshaped to the input and filled with 'value'
+        /// ThresholdOps::reshape_then_fill()
         template<class T>
-        static void fill( const Gray<T>& input, U8 value, Gray<U8>& output ) {
+        static void reshape_then_fill( const Gray<T>& input, U8 value, Gray<U8>& output ) {
             output.reshape(input.width, input.height);
             rows(input, output, [&] { ImageMiscOps::fill(output, value); },
                  [&]( const Gray<T>&, Gray<U8>& out, uint32_t, uint32_t ) { ImageMiscOps::fill(out, value); });
         }
+
+    private:
 
         /// Calls block(input rows, output rows, y0, y1) for each block. 'output' has the input's shape
         template<class T, class Single, class Block>
