@@ -1,10 +1,14 @@
 #include <jni.h>
 #include "boofcv/binary_ops.h"
-#include "boofcv/threshold_block_filters.h"
+#include "boofcv/threshold_block_filters_mt.h"
 #include "JNIBoofCPP.h"
 #include "ThresholdJNI.h"
 
 using namespace boofcv;
+
+/// ThresholdBlock_MT, which is single threaded when BoofConcurrency::max_threads() is 1
+template<class E>
+using Filter = ThresholdBlock_MT<ThresholdBlockOtsu<E>>;
 
 extern "C" {
 JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeBlockOtsu_nativeinit(
@@ -18,9 +22,9 @@ JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeBlockOtsu_nativeinit(
 
         jlong ptr;
         if( isInteger ) {
-            ptr = (jlong)new ThresholdBlockOtsu<U8>((bool)otsu2,region_width,(double)tuning,(double)scale,(bool)down,(bool)thresholdFromLocalBlocks);
+            ptr = (jlong)new Filter<U8>((bool)otsu2,region_width,(double)tuning,(double)scale,(bool)down,(bool)thresholdFromLocalBlocks);
         } else {
-            ptr = (jlong)new ThresholdBlockOtsu<F32>((bool)otsu2,region_width,(double)tuning,(double)scale,(bool)down,(bool)thresholdFromLocalBlocks);
+            ptr = (jlong)new Filter<F32>((bool)otsu2,region_width,(double)tuning,(double)scale,(bool)down,(bool)thresholdFromLocalBlocks);
         }
         env->SetLongField(obj, fields.nativePtr, ptr);
     });
@@ -33,15 +37,15 @@ JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeBlockOtsu_nativedestroy(
     jlong nativePtr = env->GetLongField(obj, fields.nativePtr);
 
     if( isInteger ) {
-        delete (ThresholdBlockOtsu<U8> *) nativePtr;
+        delete (Filter<U8> *) nativePtr;
     } else {
-        delete (ThresholdBlockOtsu<F32> *) nativePtr;
+        delete (Filter<F32> *) nativePtr;
     }
 }
 
 JNIEXPORT void JNICALL Java_org_boofcpp_threshold_NativeBlockOtsu_nativeprocess
     (JNIEnv *env, jobject obj, jobject jinput, jobject joutput) {
-    threshold_process<ThresholdBlockOtsu>(env, obj, jinput, joutput);
+    threshold_process<Filter>(env, obj, jinput, joutput);
 }
 
 }

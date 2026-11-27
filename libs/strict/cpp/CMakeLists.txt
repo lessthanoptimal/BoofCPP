@@ -47,6 +47,7 @@ if (test)
     list(APPEND TestList test_pixel_math_mt)
     list(APPEND TestList test_stereo_disparity)
     list(APPEND TestList test_threshold_block_filters)
+    list(APPEND TestList test_threshold_block_filters_mt)
 
     FOREACH(FILENAME ${TestList})
         add_executable(${FILENAME} test/${FILENAME}.cpp)

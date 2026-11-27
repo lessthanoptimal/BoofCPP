@@ -62,6 +62,13 @@ namespace boofcv
                 : requestedBlockWidth(requestedBlockWidth), thresholdFromLocalBlocks(thresholdFromLocalBlocks) {}
 
         void process( const Gray<E>& input, Gray<U8>& output ) override {
+            select_blocks(input, output);
+            begin(input.width);
+            process_blocks(input, output, 0, blocksY);
+        }
+
+        /// Checks the images and selects the blocks for an image this size
+        void select_blocks( const Gray<E>& input, const Gray<U8>& output ) {
             checkSameShape(input, output);
 
             auto requested = (uint32_t)requestedBlockWidth.computeI(std::min(input.width, input.height));
@@ -73,17 +80,26 @@ namespace boofcv
             selectBlockSize(input.width, input.height, requested);
             blocksX = input.width/blockWidth;
             blocksY = input.height/blockHeight;
+        }
 
-            begin(input.width);
-            for (uint32_t by = 0; by < blocksY; by++) {
-                statistics(input, by);
-                if (!thresholdFromLocalBlocks)
+        /// Thresholds the rows of blocks b0 to b1, after select_blocks() and begin(). With local blocks the
+        /// statistics of the row of blocks above and below are computed too, so any range gives the same results
+        void process_blocks( const Gray<E>& input, Gray<U8>& output, uint32_t b0, uint32_t b1 ) {
+            if (!thresholdFromLocalBlocks) {
+                for (uint32_t by = b0; by < b1; by++) {
+                    statistics(input, by);
                     threshold_rows(input, output, by);
-                else if (by > 0)
+                }
+                return;
+            }
+            const uint32_t s0 = b0 > 0 ? b0 - 1 : 0, s1 = std::min(blocksY, b1 + 1);
+            for (uint32_t by = s0; by < s1; by++) {
+                statistics(input, by);
+                if (by > b0 && by <= b1)
                     threshold_rows(input, output, by - 1);
             }
-            if (thresholdFromLocalBlocks)
-                threshold_rows(input, output, blocksY - 1);
+            if (s1 == b1)
+                threshold_rows(input, output, b1 - 1);
         }
 
         /// Selects a block size which is close to the requested block size, so that the last block in each row and
