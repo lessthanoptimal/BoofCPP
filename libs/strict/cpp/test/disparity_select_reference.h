@@ -9,16 +9,16 @@
 namespace reference {
     using namespace boofcv;
 
-    /// Winner takes all with optional checks for maximum error, right to left consistency, and texture. Same as
+    /// Winner takes all with optional checks for maximum error, right to left consistency, and texture.
     /// BoofCV's SelectErrorWithChecks_S32 and SelectErrorWithChecks_F32. If the disparity type 'D' is F32 then the
-    /// disparity is refined to subpixel precision, same as BoofCV's SelectErrorSubpixel.
+    /// disparity is refined to subpixel precision, BoofCV's SelectErrorSubpixel.
     ///
     /// @tparam S Score type, int32_t or F32
     /// @tparam D Disparity image type, U8 or F32
     template<class S, class D>
     class SelectErrorWithChecks : public DisparitySelect<S>, public DisparityOutput<D> {
     public:
-        /// Integer texture thresholds are scaled by this. Same as BoofCV
+        /// Integer texture thresholds are scaled by this
         static constexpr int32_t DISCRETIZER = 10000;
 
         /// @param max_error Maximum allowed region error. <= 0 means no limit.
@@ -194,11 +194,11 @@ namespace reference {
     using SelectErrorWithChecks_F32 = SelectErrorWithChecks<F32, D>;
 
     /// Selects the disparity with the largest correlation, with optional checks for right to left consistency and
-    /// texture. Same as BoofCV's SelectCorrelationWithChecks_F32. If the disparity type 'D' is F32 then the disparity
-    /// is refined to subpixel precision, same as BoofCV's SelectCorrelationSubpixel.F32_F32.
+    /// texture. BoofCV's SelectCorrelationWithChecks_F32. If the disparity type 'D' is F32 then the disparity
+    /// is refined to subpixel precision, BoofCV's SelectCorrelationSubpixel.F32_F32.
     ///
     /// Columns which can't be estimated have a score of NaN. If the texture check is done, the saved score is
-    /// relative to the worst score. Both are the same as BoofCV.
+    /// relative to the worst score.
     ///
     /// @tparam D Disparity image type, U8 or F32
     template<class D>

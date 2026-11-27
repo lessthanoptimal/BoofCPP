@@ -27,8 +27,8 @@ namespace boofcv {
     }
 
     /// The image border of a normalized convolution. Each border pixel is the sum of the kernel weights inside the
-    /// image times their pixels, divided by the sum of those weights. Same results as BoofCV's
-    /// ConvolveNormalized_JustBorder_SB, including the order of every sum, arranged so the rows vectorize:
+    /// image times their pixels, divided by the sum of those weights. BoofCV's
+    /// ConvolveNormalized_JustBorder_SB. The order of the sums, arranged so the rows vectorize:
     ///
     ///     horizontal:  for each border column:  weight = the previous column's, updated by one kernel element
     ///                      for each row:  out = sum of the kernel elements inside times their pixels / weight
@@ -39,8 +39,8 @@ namespace boofcv {
     ///                  for each top and bottom border row:  one weight, the row by sum_row()
     class ConvolveNormalized_JustBorder {
     public:
-        /// Left and right borders. BoofCV updates the float weight incrementally from column to column, which is done
-        /// here for every type. For integers it's the same as summing the weights inside
+        /// Left and right borders. The weight is updated incrementally from column to column. For integers it's the
+        /// same as summing the weights inside
         template<class E>
         static void horizontal( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel,
                                 const Gray<E>& input, Gray<E>& output ) {
@@ -109,7 +109,7 @@ namespace boofcv {
                 border_row(y, 0, input.height - (y - offsetL));
         }
 
-        /// The border of a 2D kernel, with sums over kernel rows then columns as BoofCV does
+        /// The border of a 2D kernel, with sums over kernel rows then columns
         template<class E>
         static void convolve( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel,
                               const Gray<E>& input, Gray<E>& output ) {
@@ -205,7 +205,7 @@ namespace boofcv {
                 return static_cast<E>(total/weight);
         }
 
-        /// BoofCV's Java code throws an ArithmeticException for integers
+        /// Throws if an integer weight is zero
         template<class K>
         static void check_weight( K weight ) {
             if constexpr (std::is_integral<K>::value) {
@@ -589,8 +589,8 @@ namespace boofcv {
             convolve_blocked(kernel, input, output, [=]( signed_type total ) { return (E)(total/divisor); });
         }
 
-        /// convolve() without a divisor, with W set to the kernel's width for centered kernels 3, 5, 7, 9 and 11 wide,
-        /// the widths BoofCV unrolls. Other kernels use W = 0
+        /// convolve() without a divisor, with W set to the kernel's width for centered kernels 3, 5, 7, 9 and 11
+        /// wide. Other kernels use W = 0
         template<typename E, typename R>
         static void convolve_switch( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel ,
                                      const Gray<E>& input, Gray<R>& output )
@@ -607,7 +607,7 @@ namespace boofcv {
             convolve(kernel,input,output);
         }
 
-        /// Mirrors BoofCV ConvolveImageUnrolled_SB_F32_F32.convolve{3,5,7,9,11}: each kernel row is summed separately,
+        /// BoofCV's ConvolveImageUnrolled_SB_F32_F32.convolve{3,5,7,9,11}: each kernel row is summed separately,
         /// the first row is written to output and the following rows are added to it. W is the width of a centered
         /// kernel
         template<int W, typename E, typename R>
@@ -647,8 +647,7 @@ namespace boofcv {
         }
 
         /// Convolution without a divisor. W is the width of a centered kernel, or 0 if it's only known at run time. With
-        /// a width it sums one kernel row at a time, as BoofCV's unrolled code does, so floating point results are bit
-        /// identical. Integer results don't depend on the order
+        /// a width it sums one kernel row at a time. Integer results don't depend on the order
         template<int W = 0, typename E, typename R>
         static void convolve( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel ,
                               const Gray<E>& input, Gray<R>& output )
@@ -866,7 +865,7 @@ namespace boofcv {
         }
 
         /**
-         * Same as BoofCV KernelMath.normalizeSumToOne() applied to a copy of the kernel
+         * BoofCV's KernelMath.normalizeSumToOne() applied to a copy of the kernel
          */
         template<class E>
         static void normalize_sum_to_one( const Kernel1D<E>& kernel, Kernel1D<E>& out ) {
@@ -884,7 +883,7 @@ namespace boofcv {
             }
         }
 
-        /// The kernel BoofCV's ConvolveImageNormalized uses, after check_sum(): for floats a copy in 'storage' that sums
+        /// The kernel after check_sum(): for floats a copy in 'storage' that sums
         /// to one, unless the kernel's sum is within 1e-4 of one. Otherwise the kernel itself
         template<class K>
         static const Kernel1D<K>& normalized_kernel( const Kernel1D<K>& kernel, Kernel1D<K>& storage ) {
@@ -947,7 +946,7 @@ namespace boofcv {
                 ConvolveImage_Inner::convolve_switch(kernel, input, output);
         }
 
-        /// Normalized convolution along x. Same as BoofCV's ConvolveImageNormalized.horizontal(): kernels as wide as
+        /// Normalized convolution along x. BoofCV's ConvolveImageNormalized.horizontal(). Kernels as wide as
         /// the image use the naive code, otherwise the inner image and the border are done separately
         template<class E>
         static void horizontal( const Kernel1D<typename TypeInfo<E>::signed_type>& kernel, const Gray<E>& input,
@@ -1002,7 +1001,7 @@ namespace boofcv {
         }
 
         /// Normalized 2D convolution: each pixel is the kernel weighted sum of the pixels inside the image, divided by
-        /// the sum of those weights. Same as BoofCV's ConvolveImageNormalized.convolve(): kernels as wide as the image
+        /// the sum of those weights. BoofCV's ConvolveImageNormalized.convolve(). Kernels as wide as the image
         /// use the naive code. Otherwise integers divide the inner image by the kernel's sum, and floats rescale the
         /// kernel to sum to one unless its sum is within 1e-4 of one
         template<class E>

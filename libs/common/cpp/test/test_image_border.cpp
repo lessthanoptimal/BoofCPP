@@ -101,7 +101,7 @@ TEST_F(ImageBorderReflectTest, check) {
     ASSERT_EQ(image.at(29,39),border.get(29,39));
 }
 
-/// Images smaller than the distance outside are reflected more than once. Same as BoofCV's
+/// Images smaller than the distance outside are reflected more than once. From BoofCV's
 /// TestBorderIndex1D_Reflect.smallerThanOffset
 TEST_F(ImageBorderReflectTest, smaller_than_offset) {
     ImageBorderReflect<U8> border;
@@ -116,7 +116,7 @@ TEST_F(ImageBorderReflectTest, smaller_than_offset) {
     x = 5; border.adjust(x, 3); EXPECT_EQ(1, x);
 }
 
-/// Images smaller than the distance outside are wrapped more than once. Same as BoofCV's
+/// Images smaller than the distance outside are wrapped more than once. From BoofCV's
 /// TestBorderIndex1D_Wrap.smallerThanOffset
 TEST_F(ImageBorderWrapTest, smaller_than_offset) {
     ImageBorderWrap<U8> border;

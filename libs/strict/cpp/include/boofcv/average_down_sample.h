@@ -18,7 +18,7 @@ namespace boofcv {
         return (total + ((half ^ sign) - sign))/count;
     }
 
-    /// Mean of the pixels in a region with 'count' pixels, the same as BoofCV. Floats divide by 'count' and integers
+    /// Mean of the pixels in a region with 'count' pixels. Floats divide by 'count' and integers
     /// round to the nearest value, half away from zero
     template<class E>
     class RegionMean {
@@ -41,7 +41,7 @@ namespace boofcv {
         sum_type half;
     };
 
-    /// Down samples an image by averaging the pixels inside regions, the same as BoofCV's AverageDownSampleOps.
+    /// Down samples an image by averaging the pixels inside regions. BoofCV's AverageDownSampleOps.
     class AverageDownSampleOps {
     public:
         /// Type of the image between the horizontal and vertical passes: F64 for F64 images and F32 otherwise
@@ -82,7 +82,7 @@ namespace boofcv {
 
         /// Down samples to the size of 'output' by averaging rectangular regions, which can have a non-integer size
         /// and partially cover pixels. If 'centered' the regions are shifted so the output's pixels are centered on
-        /// the input's. Same as BoofCV's AverageDownSampleOps.down(input, centered, output, middle). 'middle' stores
+        /// the input's. BoofCV's AverageDownSampleOps.down(input, centered, output, middle). 'middle' stores
         /// the horizontal pass and is reshaped
         template<class E>
         static void down( const Gray<E>& input, bool centered, Gray<E>& output, Gray<middle_type<E>>& middle ) {
@@ -91,7 +91,7 @@ namespace boofcv {
             vertical(middle, centered, output);
         }
 
-        /// Down samples along the x-axis only, the same as BoofCV's AverageDownSampleOps.horizontal(). 'output' has the
+        /// Down samples along the x-axis only. BoofCV's AverageDownSampleOps.horizontal(). 'output' has the
         /// same height and is no wider than 'input'. Output pixel x averages the input from x0 to x1, and the pixels at
         /// the ends count by how much of them is inside:
         ///
@@ -124,7 +124,7 @@ namespace boofcv {
                 horizontal_rows<1, E, F>(input, output, y, regions.data(), centered, offset, scale);
         }
 
-        /// Down samples along the y-axis only, the same as BoofCV's AverageDownSampleOps.vertical(). The input is the
+        /// Down samples along the y-axis only. BoofCV's AverageDownSampleOps.vertical(). The input is the
         /// output of horizontal(). 'output' has the same width and is no taller than 'input'. The same math as
         /// horizontal() along columns, except the last row's weight is fmod(y1, 1). Integer outputs round to the
         /// nearest value
@@ -195,13 +195,13 @@ namespace boofcv {
         }
 
     private:
-        /// Number of output pixels, starting from the first, whose regions are entirely inside the input. Same as
+        /// Number of output pixels, starting from the first, whose regions are entirely inside the input.
         /// BoofCV's ImplAverageDownSample.upperBorder()
         static uint32_t upper_border( uint32_t input_length, uint32_t output_length, float offset, float scale ) {
             return output_length*scale - offset > input_length ? output_length - 1 : output_length;
         }
 
-        /// Mean of the region of output pixel 'index' when it might extend outside the input, the same as BoofCV's
+        /// Mean of the region of output pixel 'index' when it might extend outside the input. BoofCV's
         /// naivePixelHorizontal() and naivePixelVertical(). 'pixel(i)' is the i-th of 'length' input pixels along the
         /// row or column, and F is the type of the sum. The region is clipped to the input, and each pixel is weighted
         /// by how much of it is inside:
@@ -246,7 +246,7 @@ namespace boofcv {
                 return static_cast<E>((total + COUNT/2)/COUNT);
         }
 
-        /// Regions which are 2 pixels wide, the same as BoofCV's ImplAverageDownSample2:
+        /// Regions which are 2 pixels wide. BoofCV's ImplAverageDownSample2:
         ///
         ///     out[y][x] = mean(in[2y][2x] + in[2y][2x + 1] + in[2y + 1][2x] + in[2y + 1][2x + 1])
         ///
@@ -289,14 +289,14 @@ namespace boofcv {
             }
         }
 
-        /// Integer regions of any width, the same as BoofCV's ImplAverageDownSampleN. Integer sums don't depend on the
+        /// Integer regions of any width. BoofCV's ImplAverageDownSampleN. Integer sums don't depend on the
         /// order, so each band of 'width' rows is summed in two steps:
         ///
         ///     column[x] = in[y][x] + in[y + 1][x] + ... + in[y + width - 1][x]       for every x
         ///     out[i] = mean(column[i*width] + ... + column[i*width + width - 1])
         ///
         /// The first step is the same for every x, so the compiler computes several at once. The sums are unsigned so
-        /// that S32 wraps like Java's int. Regions along the right and bottom borders have fewer pixels
+        /// that S32 wraps. Regions along the right and bottom borders have fewer pixels
         template<class E>
         static void down_integer( const Gray<E>& input, uint32_t width, Gray<E>& output ) {
             typedef typename TypeInfo<E>::sum_type sum_type;
@@ -341,8 +341,8 @@ namespace boofcv {
             }
         }
 
-        /// Float regions W pixels wide, the same as BoofCV's ImplAverageDownSampleN. Float sums depend on the order, so
-        /// each region is added in BoofCV's order:
+        /// Float regions W pixels wide. BoofCV's ImplAverageDownSampleN. Float sums depend on the order, so
+        /// each region is added in this order:
         ///
         ///     total = 0
         ///     for r in 0..W-1: for c in 0..W-1: total += in[y + r][x + c]

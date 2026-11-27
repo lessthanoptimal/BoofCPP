@@ -347,7 +347,7 @@ namespace boofcv {
         }
 
         /// Each pixel is the sum of the kernel weights inside the image times the pixels, divided by the sum of those
-        /// weights. Integers round the division. Same as BoofCV's ConvolveNormalizedNaive_SB.convolve()
+        /// weights. Integers round the division. BoofCV's ConvolveNormalizedNaive_SB.convolve()
         template<class E>
         static void convolve( const Kernel2D<typename TypeInfo<E>::signed_type>& kernel,
                               const Gray<E>& input, Gray<E>& output ) {
@@ -373,7 +373,6 @@ namespace boofcv {
                         }
                     }
                     if constexpr (std::is_integral<E>::value) {
-                        // BoofCV's Java code throws an ArithmeticException
                         if (weight == 0)
                             throw std::domain_error("Kernel weights inside the image sum to zero");
                         output.unsafe_at(x, y) = static_cast<E>((total + weight/2)/weight);

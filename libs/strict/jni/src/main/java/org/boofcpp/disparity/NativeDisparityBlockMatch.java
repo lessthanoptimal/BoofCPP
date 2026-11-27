@@ -11,7 +11,7 @@ import boofcv.struct.image.ImageGray;
 import boofcv.struct.image.ImageType;
 import org.boofcpp.BoofCPP;
 
-/// Native stereo block matching. Behaves the same as BoofCV's WrapBaseBlockMatch. Use [#isSupported] to see
+/// Native stereo block matching, a replacement for BoofCV's WrapBaseBlockMatch. Use [#isSupported] to see
 /// if a configuration can be computed natively.
 ///
 /// BOOFCPP_OVERRIDE BOverrideStereoDisparity.opCreateBlockMatch

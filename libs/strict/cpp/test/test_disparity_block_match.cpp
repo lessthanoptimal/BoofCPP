@@ -80,7 +80,7 @@ namespace {
     }
 }
 
-/// 16-bit scores, including large ones where "no second best" must be int32_t's maximum like BoofCV, and a few
+/// 16-bit scores, including large ones where "no second best" must be int32_t's maximum, and a few
 /// values so there are many ties
 TEST_F(SelectErrorWithChecks_S32Test, same_as_reference) {
     for (int trial = 0; trial < 20; trial++) {

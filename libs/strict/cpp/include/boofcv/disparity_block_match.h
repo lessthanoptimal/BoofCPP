@@ -17,23 +17,22 @@
 #include "boofcv/image_blur.h"
 #include "boofcv/pixel_math.h"
 
-// Stereo disparity using block matching. Mirrors BoofCV's DisparityScoreBM_S32 / DisparityScoreBM_F32,
-// BlockRowScore and the SelectError / SelectCorrelation classes so that results are identical, including the order
-// of floating point operations.
+// Stereo disparity using block matching. BoofCV's DisparityScoreBM_S32 / DisparityScoreBM_F32, BlockRowScore and the
+// SelectError / SelectCorrelation classes.
 //
-// Disparity convention (same as BoofCV): x_right = x_left - disparity. Scores for one image row are stored as
+// Disparity convention: x_right = x_left - disparity. Scores for one image row are stored as
 // scores[width*(d - disparity_min) + x], where x is the column in the left image.
 
 namespace boofcv {
 
     /// Copies image row 'y' plus 'radius' border pixels on each side into 'output', which has width + 2*radius
-    /// elements. Rows outside the image are read entirely from the border. Same as BoofCV's GrowBorderSB.growRow().
+    /// elements. Rows outside the image are read entirely from the border. BoofCV's GrowBorderSB.growRow().
     template<class E>
     void grow_row( const ImageBorder<E>& border, int32_t y, uint32_t radius, E* output ) {
         grow_row(border, y, -(int32_t)radius, (int32_t)(border.image->width + radius), output);
     }
 
-    /// Computes the score of every region along an image row for each disparity. Same as BoofCV's BlockRowScore.
+    /// Computes the score of every region along an image row for each disparity. BoofCV's BlockRowScore.
     ///
     /// @tparam E Image pixel type
     /// @tparam S Score type
@@ -55,7 +54,7 @@ namespace boofcv {
         /// Largest error a single pixel can have. Negative if there is no maximum.
         virtual int32_t max_per_pixel_error() const = 0;
 
-        /// Called with the images before their rows are scored. Same as BoofCV's BlockRowScore.setInput()
+        /// Called with the images before their rows are scored. BoofCV's BlockRowScore.setInput()
         virtual void set_input( const Gray<E>& left, const Gray<E>& right ) {
             (void)left;
             (void)right;
@@ -65,7 +64,7 @@ namespace boofcv {
         virtual bool require_normalize() const { return false; }
 
         /// Normalization applied to the region scores, the sum of the row scores, before the disparity is selected.
-        /// Only scores whose matched column is inside the image are written. Same as BoofCV's
+        /// Only scores whose matched column is inside the image are written. BoofCV's
         /// BlockRowScore.normalizeRegionScores().
         ///
         /// @param row Image row of the region centers
@@ -89,7 +88,7 @@ namespace boofcv {
         }
 
     protected:
-        /// Normalizes the scores of 'num_cols' regions in a row for one disparity. Same as BoofCV's
+        /// Normalizes the scores of 'num_cols' regions in a row for one disparity. BoofCV's
         /// BlockRowScore.normalizeScore()
         ///
         /// @param col_left Column of the first region in the left image
@@ -102,7 +101,7 @@ namespace boofcv {
         }
     };
 
-    /// Score type for an image type: int32_t for integer images and F32 for floating point images. Same as BoofCV
+    /// Score type for an image type: int32_t for integer images and F32 for floating point images
     template<class E>
     using BlockScoreType = typename std::conditional<std::is_floating_point<E>::value, F32, int32_t>::type;
 
@@ -150,7 +149,7 @@ namespace boofcv {
         }
     };
 
-    /// Absolute difference. Same as BoofCV's BlockRowScoreSad
+    /// Absolute difference. BoofCV's BlockRowScoreSad
     template<class E>
     struct ErrorSad {
         static BlockScoreType<E> compute( E a, E b ) {
@@ -161,7 +160,7 @@ namespace boofcv {
         }
     };
 
-    /// Sum of absolute differences. Same as BoofCV's BlockRowScoreSad
+    /// Sum of absolute differences. BoofCV's BlockRowScoreSad
     ///
     /// @tparam S Score type. A smaller integer than BoofCV's gives the same scores if the largest one fits, since
     /// the running sums are then exact modulo its size
@@ -173,7 +172,7 @@ namespace boofcv {
         }
     };
 
-    /// Squared difference. Same as BoofCV's BlockRowScoreSsd
+    /// Squared difference. BoofCV's BlockRowScoreSsd
     template<class E>
     struct ErrorSsd {
         static BlockScoreType<E> compute( E a, E b ) {
@@ -187,7 +186,7 @@ namespace boofcv {
         }
     };
 
-    /// Sum of squared differences. Same as BoofCV's BlockRowScoreSsd
+    /// Sum of squared differences. BoofCV's BlockRowScoreSsd
     template<class E>
     class BlockRowScoreSsd : public BlockRowScoreError<E, BlockScoreType<E>, ErrorSsd<E>> {
     public:
@@ -197,7 +196,7 @@ namespace boofcv {
     };
 
     /// Zero mean sum of squared differences, computed from the SSD and the local means:
-    /// ZSSD = SSD - N*(mean_left - mean_right)^2. Same as BoofCV's BlockRowScoreZssd.F32
+    /// ZSSD = SSD - N*(mean_left - mean_right)^2. BoofCV's BlockRowScoreZssd.F32
     class BlockRowScoreZssd : public BlockRowScoreError<F32, F32, ErrorSsd<F32>> {
     public:
         /// @param border How the local mean reads pixels outside the image
@@ -233,13 +232,13 @@ namespace boofcv {
         std::vector<F32> totals;
     };
 
-    /// Product of two pixels. Same as BoofCV's BlockRowScoreNcc
+    /// Product of two pixels. BoofCV's BlockRowScoreNcc
     struct ErrorProduct {
         static F32 compute( F32 a, F32 b ) { return a*b; }
     };
 
     /// Normalized cross correlation, computed from the sum of products and the local mean and standard deviation:
-    /// NCC = (sum(L*R)/N - mean_l*mean_r)/(eps + sigma_l*sigma_r). Larger is better. Same as BoofCV's
+    /// NCC = (sum(L*R)/N - mean_l*mean_r)/(eps + sigma_l*sigma_r). Larger is better. BoofCV's
     /// BlockRowScoreNcc.F32
     class BlockRowScoreNcc : public BlockRowScoreError<F32, F32, ErrorProduct> {
     public:
@@ -299,7 +298,7 @@ namespace boofcv {
         }
     };
 
-    /// Hamming distance between census transformed images. Same as BoofCV's BlockRowScoreCensus.
+    /// Hamming distance between census transformed images. BoofCV's BlockRowScoreCensus.
     ///
     /// @tparam E Census image type. U8, S32 or S64
     /// @tparam S Score type, see BlockRowScoreSad
@@ -318,7 +317,7 @@ namespace boofcv {
         int32_t bits;
     };
 
-    /// Selects the best disparity for each pixel in a row from the scores. Same as BoofCV's DisparitySelect.
+    /// Selects the best disparity for each pixel in a row from the scores. BoofCV's DisparitySelect.
     template<class S>
     class DisparitySelect {
     public:
@@ -330,8 +329,8 @@ namespace boofcv {
         /// Selects the disparity for every pixel in output row 'row'
         virtual void process( uint32_t row, const S* scores ) = 0;
 
-        /// A copy, with its settings and output, that another thread can call process() on for different rows. Same
-        /// as BoofCV's DisparitySelect.concurrentCopy()
+        /// A copy, with its settings and output, that another thread can call process() on for different rows.
+        /// BoofCV's DisparitySelect.concurrentCopy()
         virtual std::unique_ptr<DisparitySelect<S>> concurrent_copy() const = 0;
     };
 
@@ -355,7 +354,7 @@ namespace boofcv {
     };
 
     /// Best disparity of each right image column c, over the left columns c + d + disparity_min inside the image,
-    /// searched in increasing order like BoofCV: the first lowest score, or the first largest if LARGEST. Loops
+    /// searched in increasing order: the first lowest score, or the first largest if LARGEST. Loops
     /// over every column for one disparity at a time, contiguous in the score layout scores[width*d + x]
     ///
     /// @param score Work space. Best score of each column
@@ -389,7 +388,7 @@ namespace boofcv {
 
     /// Winner takes all with optional checks for maximum error, right to left consistency, and texture. Same as
     /// BoofCV's SelectErrorWithChecks_S32 and SelectErrorWithChecks_F32. If the disparity type 'D' is F32 then the
-    /// disparity is refined to subpixel precision, same as BoofCV's SelectErrorSubpixel.
+    /// disparity is refined to subpixel precision, BoofCV's SelectErrorSubpixel.
     ///
     /// Each loop goes over every column for one disparity at a time, which is contiguous in the score layout
     /// scores[width*(d - disparity_min) + x], so the compiler vectorizes it:
@@ -406,7 +405,7 @@ namespace boofcv {
     template<class S, class D>
     class SelectErrorWithChecks : public DisparitySelect<S>, public DisparityOutput<D> {
     public:
-        /// Integer texture thresholds are scaled by this. Same as BoofCV
+        /// Integer texture thresholds are scaled by this
         static constexpr int32_t DISCRETIZER = 10000;
 
         /// @param max_error Maximum allowed region error. <= 0 means no limit.
@@ -599,11 +598,11 @@ namespace boofcv {
     };
 
     /// Selects the disparity with the largest correlation, with optional checks for right to left consistency and
-    /// texture. Same as BoofCV's SelectCorrelationWithChecks_F32. If the disparity type 'D' is F32 then the disparity
-    /// is refined to subpixel precision, same as BoofCV's SelectCorrelationSubpixel.F32_F32.
+    /// texture. BoofCV's SelectCorrelationWithChecks_F32. If the disparity type 'D' is F32 then the disparity
+    /// is refined to subpixel precision, BoofCV's SelectCorrelationSubpixel.F32_F32.
     ///
     /// Columns which can't be estimated have a score of NaN. If the texture check is done, the saved score is
-    /// relative to the worst score. Both are the same as BoofCV.
+    /// relative to the worst score.
     ///
     /// The loops go over every column for one disparity at a time, like SelectErrorWithChecks. The largest score wins,
     /// the first one if there are several
@@ -722,7 +721,7 @@ namespace boofcv {
         }
 
         /// Largest score of each column excluding the selected disparity and its two neighbors, starting from the
-        /// worst score like BoofCV
+        /// worst score
         void select_second( const F32* scores, int32_t col0, int32_t col1 ) {
             const int32_t width = image_width;
             F32* __restrict sec = second.data();
@@ -789,9 +788,8 @@ namespace boofcv {
     };
 
     /// Block matching which computes the score one row at a time and reuses the previous row's scores with a
-    /// running sum. Same as BoofCV's DisparityScoreBM_S32 and DisparityScoreBM_F32. With floating point scores the
-    /// running sum is recomputed from scratch every 'catastrophic_reset' rows, at the same rows as BoofCV, so that
-    /// the result is identical.
+    /// running sum. BoofCV's DisparityScoreBM_S32 and DisparityScoreBM_F32. With floating point scores the running sum
+    /// is recomputed from scratch every 'catastrophic_reset' rows.
     ///
     /// @tparam E Image pixel type
     /// @tparam S Score type
@@ -823,7 +821,7 @@ namespace boofcv {
 
         uint32_t get_radius_y() const override { return radius_y; }
 
-        /// Rows between recomputing the floating point running sum from scratch. Same as BoofCV's
+        /// Rows between recomputing the floating point running sum from scratch. BoofCV's
         /// DisparityBlockMatch.catastrophicReset. Not used with integer scores, where it doesn't change the result
         void set_catastrophic_reset( int32_t rows ) {
             if (rows <= 0)
@@ -846,8 +844,8 @@ namespace boofcv {
     protected:
         /// Running sums of the scores and copies of the image rows, for one thread
         struct Workspace {
-            // horizontal scores of the last region_height rows. Row y is in horizontal[(y + radius_y)%region_height],
-            // the same index as BoofCV's, so a sum from scratch adds them in the same order. vertical is their sum
+            // horizontal scores of the last region_height rows. Row y is in horizontal[(y + radius_y)%region_height].
+            // vertical is their sum
             std::vector<std::vector<S>> horizontal;
             std::vector<S> vertical;
             // vertical after normalization, if the score requires it
@@ -882,7 +880,6 @@ namespace boofcv {
 
             width = left.width;
             height = left.height;
-            // BoofCV passes min(width, disparity_max) as the largest disparity
             row_disparity_max = std::min((int32_t)width, disparity_max);
             select->configure(disparity_min, disparity_max, width);
         }
@@ -916,7 +913,7 @@ namespace boofcv {
                 subtract(ws.vertical.data(), h, block);
                 score_image_row(ws, row, h);
                 if (std::is_floating_point<S>::value && (row - (int32_t)radius_y)%catastrophic_reset == 0) {
-                    // BoofCV restarts here to limit the floating point error
+                    // Restarts the sum to limit the floating point error
                     sum_from_scratch(ws);
                 } else {
                     add(ws.vertical.data(), h, block);
@@ -950,7 +947,7 @@ namespace boofcv {
                 v[j] -= h[j];
         }
 
-        /// vertical = the sum of the horizontal scores, added in index order as BoofCV does
+        /// vertical = the sum of the horizontal scores, added in index order
         void sum_from_scratch( Workspace& ws ) const {
             const uint32_t block = width*disparity_range;
             std::fill_n(ws.vertical.data(), block, (S)0);

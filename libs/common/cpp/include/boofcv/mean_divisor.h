@@ -11,7 +11,7 @@ namespace boofcv {
     /// Speeds up integer division by changing it into a multiplication and a shift. Multiply can be vectorized
     /// while an integer division can’t. This approach should apply to any modern CPU architecture.
     ///
-    /// Turns the sum of 'length' pixels into their mean, the same as BoofCV. Floats divide by the length and integers
+    /// Turns the sum of 'length' pixels into their mean. Floats divide by the length and integers
     /// round to the nearest value, (total + length/2)/length.
     ///
     /// Dividing by a number that's only known at run time is slow. For unsigned integers the division is done with a

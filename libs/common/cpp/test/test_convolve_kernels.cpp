@@ -188,12 +188,12 @@ TEST_F(FactoryKernelTest, float_to_int) {
 
     Kernel1D<S32> kernel_S32 = FactoryKernel::float_to_int<S32>(kernel_F64,(F64)0.1);
     ASSERT_EQ(1,kernel_S32.at(0));
-    ASSERT_EQ(2,kernel_S32.at(1)); // hmm should really be 3, but the java code doesn't round
+    ASSERT_EQ(2,kernel_S32.at(1)); // 0.3/0.1 is just below 3 and rounds towards zero
     ASSERT_EQ(5,kernel_S32.at(2));
     ASSERT_EQ(1,kernel_S32.at(3));
 }
 
-/// Elements smaller than min_frac times the largest are ignored when choosing the divisor, like BoofCV
+/// Elements smaller than min_frac times the largest are ignored when choosing the divisor
 TEST_F(FactoryKernelTest, float_to_int_tiny_elements) {
     Kernel1D<F32> kernel(2,{0.001f,0.2f,0.5f,0.2f,0.001f});
 
@@ -240,7 +240,7 @@ TEST_F(FactoryKernelTest, gaussian2D_S32_same_as_BoofCV) {
     }
 }
 
-/// Same as BoofCV's FactoryKernelGaussian.gaussian(Kernel2D_F32.class, -1, 1), bit for bit
+/// BoofCV's FactoryKernelGaussian.gaussian(Kernel2D_F32.class, -1, 1), bit for bit
 TEST_F(FactoryKernelTest, gaussian2D_F32_same_as_BoofCV) {
     const float corner = 0.027681809f, edge = 0.111014895f, center = 0.4452132f;
     const std::vector<F32> expected = {corner,edge,corner, edge,center,edge, corner,edge,corner};

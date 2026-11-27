@@ -63,7 +63,7 @@ public class NativeAverageDownSampleOps implements BOverrideAverageDownSampleOps
 
     native void nativeDownF64( GrayF64 input, int sampleWidth, GrayF64 output );
 
-    /// Regions with the size of the output. 'middle' is declared if null, the same as BoofCV
+    /// Regions with the size of the output. 'middle' is declared if null
     @Override
     public void processDown( ImageBase input, boolean centered, ImageBase output, ImageGray middle ) {
         if (!(input instanceof ImageGray))

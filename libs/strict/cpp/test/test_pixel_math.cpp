@@ -61,7 +61,7 @@ TEST_F(PixelMathTest, stdev) {
     PixelMath::stdev(mean, pow2, pow2);
     check_equals(found, pow2, 0.0f);
 
-    // NaN stays NaN, same as Java's Math.max()
+    // NaN stays NaN
     pow2.at(0, 0) = std::numeric_limits<F32>::quiet_NaN();
     PixelMath::stdev(mean, pow2, found);
     EXPECT_TRUE(std::isnan(found.at(0, 0)));

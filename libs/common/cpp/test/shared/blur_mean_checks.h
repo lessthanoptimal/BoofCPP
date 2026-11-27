@@ -101,7 +101,7 @@ namespace blur_mean_checks {
         return sum/((2*rx + 1)*(2*ry + 1));
     }
 
-    /// Integer division rounded the way BoofCV does it: (total + divisor/2)/divisor with truncation toward zero
+    /// Integer division rounded to the nearest value: (total + divisor/2)/divisor with truncation toward zero
     inline int64_t boofcv_round_div( int64_t total, int64_t divisor ) {
         return (total + divisor/2)/divisor;
     }
