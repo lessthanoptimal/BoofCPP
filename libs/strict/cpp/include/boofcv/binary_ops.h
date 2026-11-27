@@ -151,7 +151,8 @@ namespace boofcv
         /// @param max_value The maximum value of a pixel in the image (inclusive)
         /// @param otsu2 False for standard Otsu. True for the variant described in ComputeOtsu
         /// @return Selected threshold, as a histogram index
-        template<class T>
+        /// @tparam Statistics Computes the histogram, ImageStatistics or ImageStatistics_MT
+        template<class T, class Statistics = ImageStatistics>
         static uint32_t computeOtsu( const Gray<T>& input , double min_value , double max_value , bool otsu2=false ) {
             // The histogram needs 1 to INT32_MAX bins. C++'s casts of other values would be undefined
             const double range = std::trunc(1 + max_value - min_value);
@@ -163,9 +164,9 @@ namespace boofcv
                 const double min_int = std::trunc(min_value);
                 if (!(min_int >= std::numeric_limits<int32_t>::min() && min_int <= std::numeric_limits<int32_t>::max()))
                     throw std::invalid_argument("min_value doesn't fit an int");
-                ImageStatistics::histogram(input,(int32_t)min_int,histogram);
+                Statistics::histogram(input,(int32_t)min_int,histogram);
             } else {
-                ImageStatistics::histogram(input,(T)min_value,histogram);
+                Statistics::histogram(input,(T)min_value,histogram);
             }
 
             // this should configure so that all the really fancy stuff has been turned off
@@ -328,7 +329,8 @@ namespace boofcv
         virtual void process(const T& input , Gray<U8>& output ) = 0;
     };
 
-    template<class T>
+    /// @tparam Ops ThresholdOps or ThresholdOps_MT
+    template<class T, class Ops = ThresholdOps>
     class GlobalFixedBinaryFilter : public InputToBinary<Gray<T>>
     {
     public:
@@ -341,11 +343,12 @@ namespace boofcv
         { }
 
         void process(const Gray<T>& input , Gray<U8>& output ) override {
-            ThresholdOps::threshold_double(input,threshold,down,output);
+            Ops::threshold_double(input,threshold,down,output);
         }
     };
 
-    template<class T>
+    /// @tparam Ops ThresholdOps or ThresholdOps_MT
+    template<class T, class Ops = ThresholdOps>
     class GlobalOtsuBinaryFilter : public InputToBinary<Gray<T>>
     {
     public:
@@ -364,9 +367,9 @@ namespace boofcv
             // BoofCV's GlobalBinaryFilter.process()
             double adjusted_scale = down ? scale : (scale <= 0.0 ? 0.0 : 1.0/scale);
             // computeOtsu() returns a histogram index
-            double otsu = ThresholdOps::computeOtsu(input,min_value,max_value,false) + min_value;
+            double otsu = Ops::computeOtsu(input,min_value,max_value,false) + min_value;
             double threshold = otsu*adjusted_scale;
-            ThresholdOps::threshold_double(input,threshold,down,output);
+            Ops::threshold_double(input,threshold,down,output);
         }
     };
 
