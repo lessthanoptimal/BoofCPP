@@ -20,6 +20,13 @@ namespace boofcv {
         /// ImplConvolveBox.VERTICAL_RESTART
         static constexpr int32_t VERTICAL_RESTART = 64;
 
+        /// Rows of the integer mean along x computed at once
+        static constexpr int32_t INTEGER_ROWS = 4;
+
+        /// Rows of the floating point mean along x computed at once: as many as fit in 16 bytes
+        template< class E>
+        static constexpr int32_t FloatRows = (int32_t)(16/sizeof(E));
+
         /// Number of blocks of VERTICAL_RESTART inner rows for a kernel 'length' rows long. BoofCV's
         /// ImplConvolveBox.restartBlocks()
         static uint32_t restart_blocks( uint32_t height, uint32_t length ) {
@@ -39,33 +46,82 @@ namespace boofcv {
         template< class E>
         static void inner_horizontal(const Gray<E>& input, Gray<E>& output, uint32_t radius )
         {
+            integer_inner_horizontal(input, output, radius, radius*2 + 1, 0, input.height);
+        }
+
+        /// Integer mean along x of the inner image, rows y0 to y1. INTEGER_ROWS rows at a time, so their running
+        /// sums don't wait on each other. The sums go to a buffer that's then divided, which vectorizes
+        template< class E>
+        static void integer_inner_horizontal( const Gray<E>& input, Gray<E>& output, uint32_t offset,
+                                              uint32_t length_, uint32_t y0, uint32_t y1 ) {
             typedef typename TypeInfo<E>::sum_type sum_type;
-            uint32_t kernelWidth = radius*2 + 1;
-
-            const MeanDivisor<E> divisor(kernelWidth);
-
-            for( uint32_t y = 0; y < input.height; y++ ) {
-                uint32_t indexIn = input.offset + input.stride*y;
-                uint32_t indexOut = output.offset + output.stride*y + radius;
-                E* ptr_out = &output.data[indexOut];
-
-                sum_type total = 0;
-
-                uint32_t indexEnd = indexIn + kernelWidth;
-
-                for( ; indexIn < indexEnd; indexIn++ ) {
-                    total += input.data[indexIn];
+            const auto length = (int32_t)length_, width = (int32_t)input.width;
+            if (length > width)
+                return;
+            const MeanDivisor<E> divisor(length);
+            if (!divisor.uses_multiply32()) {
+                // the division doesn't vectorize, so it's done with the running sum
+                for (uint32_t y = y0; y < y1; y++) {
+                    const E* in = input.data + input.offset + y*input.stride;
+                    E* out = output.data + output.offset + y*output.stride + offset;
+                    sum_type total = 0;
+                    for (int32_t i = 0; i < length; i++)
+                        total += in[i];
+                    out[0] = divisor(total);
+                    for (int32_t i = length; i < width; i++) {
+                        total += in[i] - in[i - length];
+                        out[i - length + 1] = divisor(total);
+                    }
                 }
-                *ptr_out++ = divisor(total);
+                return;
+            }
+            const int32_t n = width - length + 1;
+            std::vector<sum_type> sums((size_t)INTEGER_ROWS*n);
+            for (uint32_t y = y0; y < y1; y += INTEGER_ROWS) {
+                const auto rows = (int32_t)std::min<uint32_t>(INTEGER_ROWS, y1 - y);
+                const E* in[INTEGER_ROWS];
+                sum_type* s[INTEGER_ROWS];
+                sum_type total[INTEGER_ROWS];
+                for (int32_t r = 0; r < INTEGER_ROWS; r++) {
+                    // past the last row, the last row is computed again
+                    in[r] = input.data + input.offset + (y + std::min(r, rows - 1))*input.stride;
+                    s[r] = sums.data() + (size_t)r*n;
+                    total[r] = 0;
+                }
+                for (int32_t i = 0; i < length; i++)
+                    for (int32_t r = 0; r < INTEGER_ROWS; r++)
+                        total[r] += in[r][i];
+                for (int32_t r = 0; r < INTEGER_ROWS; r++)
+                    s[r][0] = total[r];
+                for (int32_t i = length; i < width; i++) {
+                    for (int32_t r = 0; r < INTEGER_ROWS; r++) {
+                        total[r] += in[r][i] - in[r][i - length];
+                        s[r][i - length + 1] = total[r];
+                    }
+                }
+                for (int32_t r = 0; r < rows; r++) {
+                    E* out = output.data + output.offset + (y + r)*output.stride + offset;
+                    for (int32_t i = 0; i < n; i++)
+                        out[i] = divisor.multiply32(s[r][i]);
+                }
+            }
+        }
 
-                E* ptr_front = &input.data[ indexIn - kernelWidth ];
-                E* ptr_back = &input.data[ indexIn ];
-                uint32_t N = input.width - kernelWidth;
-
-                for( uint32_t i = N; i; i-- ) {
-                    total = (total - *ptr_front++) + *ptr_back++;
-
-                    *ptr_out++ = divisor(total);
+        /// One row of a running sum along y: totals += added - removed, out = their mean. With the 32-bit
+        /// multiplication the division is a second loop, which vectorizes
+        template< class E>
+        static void vertical_row( const MeanDivisor<E>& divisor, typename TypeInfo<E>::sum_type* totals,
+                                  const E* removed, const E* added, E* out, int32_t n ) {
+            if (divisor.uses_multiply32()) {
+                for (int32_t i = 0; i < n; i++)
+                    totals[i] = totals[i] - removed[i] + added[i];
+                for (int32_t i = 0; i < n; i++)
+                    out[i] = divisor.multiply32(totals[i]);
+            } else {
+                for (int32_t i = 0; i < n; i++) {
+                    const auto total = totals[i] - removed[i] + added[i];
+                    totals[i] = total;
+                    out[i] = divisor(total);
                 }
             }
         }
@@ -103,12 +159,7 @@ namespace boofcv {
                 E* ptr_back = &input.data[ indexIn ];
                 E* ptr_out = &output.data[indexOut];
 
-                for( uint32_t x = 0; x < input.width; x++) {
-                    sum_type total = totals[ x ]  - *ptr_front++;
-                    totals[ x ] = total += *ptr_back++;
-
-                    *ptr_out++ = divisor(total);
-                }
+                vertical_row(divisor, totals.data(), ptr_front, ptr_back, ptr_out, input.width);
             }
         }
 
@@ -190,20 +241,8 @@ namespace boofcv {
                 for (int32_t x = std::max(0, width - border_right); x < width; x++)
                     border_pixel(x);
 
-                // inner image with a running sum
-                if (len > width)
-                    continue;
-                const E* in = input.data + input.offset + y*input.stride;
-                sum_type total = 0;
-                for (int32_t i = 0; i < len; i++)
-                    total += in[i];
-                out[ofs] = divisor(total);
-                for (int32_t i = len; i < width; i++) {
-                    total -= in[i - len];
-                    total += in[i];
-                    out[ofs + i - len + 1] = divisor(total);
-                }
             }
+            integer_inner_horizontal(input, output, offset, length, y0, y1);
         }
 
         /// Mean along y over 'length' pixels starting 'offset' pixels above, where pixels outside the image
@@ -273,12 +312,7 @@ namespace boofcv {
                 const E* removed = input.data + input.offset + y*input.stride;
                 const E* added = removed + len*input.stride;
                 out = output.data + output.offset + (ofs + y + 1)*output.stride;
-                for (int32_t x = 0; x < width; x++) {
-                    sum_type total = totals[x] - removed[x];
-                    total += added[x];
-                    out[x] = divisor(total);
-                    totals[x] = total;
-                }
+                vertical_row(divisor, totals.data(), removed, added, out, width);
             }
         }
 
@@ -345,7 +379,8 @@ namespace boofcv {
             if (length > width)
                 return;
             const E divisor = (E)length;
-            for (int32_t y = y0; y < (int32_t)y1; y++) {
+            int32_t y = float_inner_rows(input, output, offset, length, y0, y1);
+            for (; y < (int32_t)y1; y++) {
                 const E* in = input.data + input.offset + y*input.stride;
                 E* out = output.data + output.offset + y*output.stride + offset;
                 E total = 0;
@@ -360,6 +395,63 @@ namespace boofcv {
         }
 
     private:
+        /// float_horizontal()'s inner image for groups of FloatRows<E> rows. Returns the first row it didn't do.
+        ///
+        /// Each row's running sum depends on its previous pixel, so a single row can't be vectorized. Instead the
+        /// rows of a group advance together: blocks of 4 columns are copied into arrays where the group's rows are
+        /// adjacent, which the compiler computes with vector instructions. Every row's operations are in the same
+        /// order as one row at a time
+        template< class E>
+        static int32_t float_inner_rows( const Gray<E>& input, Gray<E>& output, int32_t offset, int32_t length,
+                                         int32_t y0, int32_t y1 ) {
+            constexpr int32_t R = FloatRows<E>, K = 4;
+            const int32_t width = input.width;
+            const E divisor = (E)length;
+            int32_t y = y0;
+            for (; y + R <= y1; y += R) {
+                const E* in[R];
+                E* out[R];
+                E total[R];
+                for (int32_t r = 0; r < R; r++) {
+                    in[r] = input.data + input.offset + (y + r)*input.stride;
+                    out[r] = output.data + output.offset + (y + r)*output.stride + offset;
+                    total[r] = 0;
+                }
+                for (int32_t i = 0; i < length; i++)
+                    for (int32_t r = 0; r < R; r++)
+                        total[r] += in[r][i];
+                for (int32_t r = 0; r < R; r++)
+                    out[r][0] = total[r]/divisor;
+                int32_t i = length;
+                for (; i + K <= width; i += K) {
+                    // added[k][r] is pixel i + k of row r
+                    E added[K][R], removed[K][R], mean[K][R];
+                    for (int32_t r = 0; r < R; r++) {
+                        for (int32_t k = 0; k < K; k++) {
+                            added[k][r] = in[r][i + k];
+                            removed[k][r] = in[r][i + k - length];
+                        }
+                    }
+                    for (int32_t k = 0; k < K; k++) {
+                        for (int32_t r = 0; r < R; r++) {
+                            total[r] += added[k][r] - removed[k][r];
+                            mean[k][r] = total[r]/divisor;
+                        }
+                    }
+                    for (int32_t r = 0; r < R; r++)
+                        for (int32_t k = 0; k < K; k++)
+                            out[r][i + k - length + 1] = mean[k][r];
+                }
+                for (int32_t r = 0; r < R; r++) {
+                    for (int32_t j = i; j < width; j++) {
+                        total[r] += in[r][j] - in[r][j - length];
+                        out[r][j - length + 1] = total[r]/divisor;
+                    }
+                }
+            }
+            return y;
+        }
+
         /// Border of one row without an ImageBorder, when the kernel fits inside the image: the mean of the pixels
         /// inside the image, with a running sum along each side
         template< class E>
@@ -443,18 +535,18 @@ namespace boofcv {
                     for (int32_t i = 0; i < width; i++)
                         totals[i] += row[i];
                 }
-                for (int32_t y = start; y < end; y++) {
-                    if (y > start) {
-                        const E* removed = input.data + input.offset + (y - offset - 1)*input.stride;
-                        const E* added = removed + length*input.stride;
-                        for (int32_t i = 0; i < width; i++) {
-                            E total = totals[i] - removed[i];
-                            totals[i] = total + added[i];
-                        }
+                E* out = output.data + output.offset + start*output.stride;
+                for (int32_t i = 0; i < width; i++)
+                    out[i] = totals[i]/divisor;
+                for (int32_t y = start + 1; y < end; y++) {
+                    const E* removed = input.data + input.offset + (y - offset - 1)*input.stride;
+                    const E* added = removed + length*input.stride;
+                    out = output.data + output.offset + y*output.stride;
+                    for (int32_t i = 0; i < width; i++) {
+                        const E total = totals[i] - removed[i] + added[i];
+                        totals[i] = total;
+                        out[i] = total/divisor;
                     }
-                    E* out = output.data + output.offset + y*output.stride;
-                    for (int32_t i = 0; i < width; i++)
-                        out[i] = totals[i]/divisor;
                 }
                 start = end;
             }
