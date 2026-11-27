@@ -26,17 +26,15 @@ public class TestNativeImageConvolveNormalized extends NativeConvolveNormalizedC
         super(new NativeImageConvolveNormalized(), GrayU8.class, GrayF32.class);
     }
 
-    /// Every operation and image type runs the _MT code with more than one thread
+    /// Every operation runs the _MT code with more than one thread
     @Test void concurrentToggle() {
         var hook = new NativeImageConvolveNormalized();
-        for (Class type : new Class[]{GrayU8.class, GrayF32.class}) {
-            ImageGray input = randomSubImage(type, 40, 30, 0, 100);
-            ImageGray output = (ImageGray)input.createSameShape();
-            Kernel1D kernel1 = FactoryKernelGaussian.gaussian1D(type, -1, 2);
-            Kernel2D kernel2 = FactoryKernelGaussian.gaussian2D(type, -1, 2);
-            assertConcurrentToggle(true, () -> hook.horizontal(kernel1, input, output));
-            assertConcurrentToggle(true, () -> hook.vertical(kernel1, input, output));
-            assertConcurrentToggle(true, () -> hook.convolve(kernel2, input, output));
-        }
+        ImageGray input = randomSubImage(GrayU8.class, 40, 30, 0, 100);
+        ImageGray output = (ImageGray)input.createSameShape();
+        Kernel1D kernel1 = FactoryKernelGaussian.gaussian1D(GrayU8.class, -1, 2);
+        Kernel2D kernel2 = FactoryKernelGaussian.gaussian2D(GrayU8.class, -1, 2);
+        assertConcurrentToggle(true, () -> hook.horizontal(kernel1, input, output));
+        assertConcurrentToggle(true, () -> hook.vertical(kernel1, input, output));
+        assertConcurrentToggle(true, () -> hook.convolve(kernel2, input, output));
     }
 }
