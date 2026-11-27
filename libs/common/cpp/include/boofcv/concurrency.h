@@ -113,7 +113,7 @@ namespace boofcv {
         static void set_testing_blocks( uint32_t blocks );
 
         /// For tests only. Number of concurrent loops split by testing_blocks() that the calling thread ran, whose
-        /// blocks finished out of sequence. Tests use it to check that blocks ran in a shuffled order
+        /// blocks finished out of sequence. Tests use it to check that blocks ran out of order
         static uint64_t testing_out_of_order();
 
         /// For tests only. Number of concurrent loops split by testing_blocks() that the calling thread ran, even ones

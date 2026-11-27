@@ -29,7 +29,9 @@ protected:
             for (auto size : {make_pair(1u, 1u), make_pair(3u, 30u), make_pair(30u, 3u), make_pair(41u, 23u)})
                 check_histogram<E>(size.first, size.second, low, high, min_value, bins);
         });
-        check_shuffled([&]( uint32_t scale ) { check_histogram<E>(64*scale, 32*scale, low, high, min_value, bins); });
+        check_blocks_out_of_order([&]( uint32_t scale ) {
+            check_histogram<E>(64*scale, 32*scale, low, high, min_value, bins);
+        });
     }
 };
 

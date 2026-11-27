@@ -74,7 +74,7 @@ protected:
                         check_matches_single_threaded<E>(op, size.first, size.second, radius.first, radius.second);
                 }
             });
-            check_shuffled([&]( uint32_t scale ) {
+            check_blocks_out_of_order([&]( uint32_t scale ) {
                 check_matches_single_threaded<E>(op, 64*scale, 32*scale, 2, 3);
             });
         }
