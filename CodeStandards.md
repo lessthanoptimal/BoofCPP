@@ -32,6 +32,7 @@
   - JNI tests only check that hooks switch between it and single threaded code, with
     `BoofCPPTesting.assertConcurrentToggle()`, since the C++ tests cover its results
   - Number of threads is controlled centrally, similar to BoofCV's Java approach
+  - Doesn't check the number of threads to call single threaded code instead of the MT logic; that belongs in JNI.
 - Library version will match BoofCV's version
 - Templates are only used when they greatly simplify the code, e.g. image data types
 - Use virtual functions for polymorphism is preferred over templates except in hot loops or when it makes it more complex
