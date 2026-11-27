@@ -5,7 +5,7 @@
 #include <stdexcept>
 
 namespace boofcv {
-    /// Regions sampled by the census transform. Same as BoofCV's CensusVariants
+    /// Regions sampled by the census transform. BoofCV's CensusVariants
     enum class CensusVariants {
         BLOCK_3_3,
         BLOCK_5_5,
@@ -15,11 +15,11 @@ namespace boofcv {
         CIRCLE_9
     };
 
-    /// Names of CensusVariants values, in the same order. Same as the Java enum names
+    /// Java enum names of the CensusVariants values, in order
     inline const char* const CENSUS_VARIANTS_NAMES[] = {
             "BLOCK_3_3", "BLOCK_5_5", "BLOCK_7_7", "BLOCK_9_7", "BLOCK_13_5", "CIRCLE_9"};
 
-    /// Number of bits in the census descriptor. Same as BoofCV's CensusVariants.getBits()
+    /// Number of bits in the census descriptor. BoofCV's CensusVariants.getBits()
     inline uint32_t census_bits( CensusVariants variant ) {
         switch (variant) {
             case CensusVariants::BLOCK_3_3: return 3*3 - 1;

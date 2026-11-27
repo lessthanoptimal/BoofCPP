@@ -201,8 +201,8 @@ public:
         borderY0 = kernel2.offset;
         borderY1 = kernel2.width-1-kernel2.offset;
 
-        // Floating point inner convolution sums one kernel row at a time to match BoofCV, which is a different
-        // order than the naive implementation. Tolerance is made relative to the magnitude of the output.
+        // Floating point inner convolution sums one kernel row at a time, which is a different order than the
+        // naive implementation. Tolerance is made relative to the magnitude of the output.
         // Integer tolerance stays zero.
         double max_abs = 1.0;
         for( uint32_t i = 0; i < expected.total_pixels(); i++ )
@@ -851,7 +851,7 @@ TEST_F(ConvolveImageTest, F32) { convolve_checks::check_all<F32>(rng); }
 TEST_F(ConvolveImageTest, F64) { convolve_checks::check_all<F64>(rng); }
 
 /**
- * Kernel is only normalized when its sum isn't within 1e-4 of one, same as BoofCV
+ * Kernel is only normalized when its sum isn't within 1e-4 of one
  */
 TEST_F(ConvolveNormalizedTest, needs_normalization) {
     Kernel1D<F32> k(3,1);

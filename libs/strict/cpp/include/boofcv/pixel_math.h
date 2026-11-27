@@ -10,8 +10,7 @@
 
 namespace boofcv {
 
-    /// Per pixel math. Same as the functions with the same name in BoofCV's PixelMath, including the order of the
-    /// floating point operations.
+    /// Per pixel math. The functions with the same name in BoofCV's PixelMath.
     class PixelMath {
     public:
         /// output = input*input
@@ -35,7 +34,7 @@ namespace boofcv {
                 F32* out = stdev.data + stdev.offset + y*stdev.stride;
                 for (uint32_t x = 0; x < mean.width; x++) {
                     F32 v = p[x] - m[x]*m[x];
-                    // Java's Math.max(0, NaN) is NaN
+                    // NaN stays NaN
                     if (!(v != v) && v < 0)
                         v = 0;
                     out[x] = (F32)std::sqrt((double)v);

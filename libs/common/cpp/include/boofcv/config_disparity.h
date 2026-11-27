@@ -10,7 +10,7 @@
 
 namespace boofcv {
 
-    /// How the error between two blocks is computed. Same as BoofCV's DisparityError
+    /// How the error between two blocks is computed. BoofCV's DisparityError
     enum class DisparityError {
         /// Sum of Absolute Difference
         SAD,
@@ -24,10 +24,10 @@ namespace boofcv {
         NCC
     };
 
-    /// Names of DisparityError values, in the same order. Same as the Java enum names
+    /// Java enum names of the DisparityError values, in order
     inline const char* const DISPARITY_ERROR_NAMES[] = {"SAD", "SSD", "ZSSD", "CENSUS", "NCC"};
 
-    /// Configurations for different types of disparity error metrics. Same as BoofCV's ConfigDisparityError
+    /// Configurations for different types of disparity error metrics. BoofCV's ConfigDisparityError
     struct ConfigDisparityError {
         /// Configuration for Census
         class Census : public Configuration {
@@ -63,7 +63,7 @@ namespace boofcv {
         v("normalizeInput", c.normalize_input);
     }
 
-    /// Configuration for stereo block matching. Same fields and defaults as BoofCV's ConfigDisparityBM, in snake case.
+    /// Configuration for stereo block matching. BoofCV's ConfigDisparityBM, with its fields and defaults in snake case.
     /// Every field must also be listed in visit_fields() below.
     class ConfigDisparityBM : public Configuration {
     public:

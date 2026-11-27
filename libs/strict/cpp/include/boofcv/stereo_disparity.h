@@ -17,7 +17,7 @@
 
 namespace boofcv {
 
-    /// Stereo disparity using block matching. Owns the output images. Same as BoofCV's WrapBaseBlockMatch.
+    /// Stereo disparity using block matching. Owns the output images. BoofCV's WrapBaseBlockMatch.
     ///
     /// DISPARITY IMAGE FORMAT: The value is offset by the minimum disparity. Values >= the disparity range are invalid.
     ///
@@ -70,8 +70,8 @@ namespace boofcv {
         int32_t get_border_y() const { return (int32_t)radius_y; }
 
     protected:
-        /// @param select_saves_score false if the selector never writes the score. In BoofCV those are the basic
-        /// winner takes all selectors, whose score image is allocated but not written.
+        /// @param select_saves_score false if the selector never writes the score. Those are the basic winner
+        /// takes all selectors, whose score image is allocated but not written.
         StereoDisparityBlockMatch( std::shared_ptr<DisparityOutput<D>> select, bool select_saves_score,
                                    int32_t disparity_min, uint32_t disparity_range, uint32_t radius_y ) :
                 select(std::move(select)), select_saves_score(select_saves_score),
@@ -92,7 +92,7 @@ namespace boofcv {
         Gray<F32> score{1, 1};
     };
 
-    /// Block matching directly on the input images. Same as BoofCV's WrapDisparityBlockMatchRowFormat
+    /// Block matching directly on the input images. BoofCV's WrapDisparityBlockMatchRowFormat
     template<class E, class D>
     class StereoDisparityBlockMatchRowFormat : public StereoDisparityBlockMatch<E, D> {
     public:
@@ -111,7 +111,7 @@ namespace boofcv {
         std::unique_ptr<DisparityBlockMatch<E>> alg;
     };
 
-    /// Block matching on the census transform of the input images. Same as BoofCV's WrapDisparityBlockMatchCensus
+    /// Block matching on the census transform of the input images. BoofCV's WrapDisparityBlockMatchCensus
     ///
     /// @tparam C Census image type
     template<class E, class C, class D>
@@ -145,7 +145,7 @@ namespace boofcv {
         Gray<C> census_right{1, 1};
     };
 
-    /// Converts the input images to F32, optionally normalizing them, then block matching on F32 images. Same as
+    /// Converts the input images to F32, optionally normalizing them, then block matching on F32 images.
     /// BoofCV's DisparityBlockMatchPreFilter
     template<class E, class D>
     class StereoDisparityBlockMatchPreFilter : public StereoDisparityBlockMatch<E, D> {
@@ -190,7 +190,7 @@ namespace boofcv {
         Gray<F32> adjusted_right{1, 1};
     };
 
-    /// Creates census transforms. Same as BoofCV's FactoryCensusTransform
+    /// Creates census transforms. BoofCV's FactoryCensusTransform
     class FactoryCensusTransform {
     public:
         /// Throws std::invalid_argument if the variant doesn't produce a 'C' image. The transform is
@@ -238,8 +238,7 @@ namespace boofcv {
         }
     };
 
-    /// The parts FactoryBlockMatch builds block matching from that a variant can replace. Strict's give the same
-    /// results as BoofCV's
+    /// The parts FactoryBlockMatch builds block matching from that a variant can replace
     struct BlockMatchParts {
         /// Selects the disparity from error scores
         template<class S, class D>
@@ -255,7 +254,7 @@ namespace boofcv {
         using SmallScore = uint16_t;
     };
 
-    /// Creates stereo disparity algorithms from 'Parts'. Same as BoofCV's FactoryStereoDisparity
+    /// Creates stereo disparity algorithms from 'Parts'. BoofCV's FactoryStereoDisparity
     ///
     /// @tparam Parts Variant's parts, see BlockMatchParts
     template<class Parts>
@@ -343,11 +342,11 @@ namespace boofcv {
         struct Selector {
             std::shared_ptr<DisparitySelect<S>> scores;
             std::shared_ptr<DisparityOutput<D>> output;
-            // false for BoofCV's basic winner takes all selectors, which don't write the score
+            // false for the basic winner takes all selectors, which don't write the score
             bool saves_score;
         };
 
-        /// Same as BoofCV's FactoryStereoDisparity.createDisparitySelect(). With every check off and no subpixel,
+        /// BoofCV's FactoryStereoDisparity.createDisparitySelect(). With every check off and no subpixel,
         /// BoofCV uses a selector that doesn't save the score. The selector here selects the same disparity.
         template<class S, class D>
         static Selector<S, D> create_select( const ConfigDisparityBM& config ) {

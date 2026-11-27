@@ -87,8 +87,8 @@ void boofcv::BinaryImageOps::dilate4(const Gray<U8>& input, Gray<U8>& output) {
 }
 
 namespace {
-    /// Otsu's last step in BoofCV: penalizes regions with little texture by 'tuning', then scales the threshold.
-    /// The int casts are Java's, which saturate where a C++ cast is undefined. That only happens for an absurd tuning
+    /// Otsu's last step: penalizes regions with little texture by 'tuning', then scales the threshold.
+    /// The int casts saturate where a C++ cast would be undefined. That only happens for an absurd tuning
     /// or scale, whose binary image is useless either way
     void otsu_tune_and_scale( double& threshold, double& variance, double tuning, bool down, double scale ) {
         variance += 0.001; // avoid divide by zero

@@ -33,7 +33,7 @@ namespace disparity_block_match_checks {
         return sum;
     }
 
-    /// Brute force reference: score of every pixel and disparity, then select with the same rules as BoofCV
+    /// Brute force reference: score of every pixel and disparity, then select with BoofCV's rules
     struct NaiveBlockMatch {
         int32_t rx, ry, dmin, dmax;
         double max_error;
@@ -114,7 +114,7 @@ namespace disparity_block_match_checks {
                         continue;
                     second = std::min<int64_t>(second, at(x, y, d));
                 }
-                // 64-bit like BoofCV, so a pixel without any competing disparity is kept
+                // 64-bit, so a pixel without any competing disparity is kept
                 if (10000*(second - best_score) <= (int64_t)threshold*best_score)
                     result = invalid;
             }
@@ -584,7 +584,7 @@ namespace disparity_block_match_checks {
         EXPECT_NO_THROW(alg.set_catastrophic_reset(1));
     }
 
-    /// Brute force correlation selection of one pixel from a score volume. Same rules as BoofCV's
+    /// Brute force correlation selection of one pixel from a score volume. Same rules as
     /// tested::SelectCorrelationWithChecks_F32: largest score wins, the texture check is relative to the worst score
     struct NaiveCorrelation {
         int32_t width, dmin, dmax, r2l;

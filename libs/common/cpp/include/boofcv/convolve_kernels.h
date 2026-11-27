@@ -337,7 +337,7 @@ namespace boofcv {
             return ret;
         }
 
-        /// Product of two gaussian1D_pdf() kernels, normalized. Same as BoofCV's FactoryKernelGaussian.gaussian2D_F32()
+        /// Product of two gaussian1D_pdf() kernels, normalized. BoofCV's FactoryKernelGaussian.gaussian2D_F32()
         template< class E >
         static Kernel2D<E> gaussian2D(double sigma, int32_t width,
                                       typename std::enable_if<std::is_floating_point<E>::value>::type* = 0 )
@@ -369,7 +369,6 @@ namespace boofcv {
         template< class E>
         static Kernel1D<E> gaussian1D(double sigma, int32_t width,
                                       typename std::enable_if<std::is_integral<E>::value>::type* = 0 ) {
-            // BoofCV converts the F32 kernel
             Kernel1D<F32> kernel_float = gaussian1D<F32>(sigma, width);
 
             return float_to_int<E>(kernel_float, 1.0f/100.0f);
@@ -378,7 +377,6 @@ namespace boofcv {
         template< class E>
         static Kernel2D<E> gaussian2D(double sigma, int32_t width,
                                       typename std::enable_if<std::is_integral<E>::value>::type* = 0 ) {
-            // BoofCV converts the F32 kernel
             Kernel2D<F32> kernel_float = gaussian2D<F32>(sigma, width);
 
             return float_to_int<E>(kernel_float, 1.0f/100.0f);
@@ -391,7 +389,7 @@ namespace boofcv {
             return std::exp( - delta*delta/(2.0*sigma*sigma))/(sigma*SQRT_2_PI);
         }
 
-        /// Smallest absolute value in 'data' that's >= min_value. Same as BoofCV's KernelMath.minAbs()
+        /// Smallest absolute value in 'data' that's >= min_value. BoofCV's KernelMath.minAbs()
         template< class F>
         static F min_abs( const GrowArray<F>& data, F min_value ) {
             F min = std::numeric_limits<F>::max();
@@ -404,7 +402,7 @@ namespace boofcv {
         }
 
         /// Converts a floating point kernel into an integer kernel. Each element is divided by the smallest absolute
-        /// element that's at least min_frac times the largest absolute element, then rounded towards zero. Same as
+        /// element that's at least min_frac times the largest absolute element, then rounded towards zero.
         /// BoofCV's KernelMath.convert()
         template< class E, class F>
         static Kernel1D<E> float_to_int( const Kernel1D<F>& original, F min_frac,

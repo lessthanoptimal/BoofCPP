@@ -210,7 +210,7 @@ namespace boofcv {
         ZERO
     };
 
-    /// Names of BorderType values, in the same order. Same as the Java enum names
+    /// Java enum names of the BorderType values, in order
     inline const char* const BORDER_TYPE_NAMES[] = {"SKIP", "EXTENDED", "NORMALIZED", "REFLECT", "WRAP", "ZERO"};
 
     class FactoryImageBorder

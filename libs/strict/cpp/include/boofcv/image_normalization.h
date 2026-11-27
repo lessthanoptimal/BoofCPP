@@ -10,19 +10,18 @@
 
 namespace boofcv {
 
-    /// Parameters used to normalize an image: output = (input + offset)/divisor. Same as BoofCV's
+    /// Parameters used to normalize an image: output = (input + offset)/divisor. BoofCV's
     /// NormalizeParameters
     struct NormalizeParameters {
         double offset = 0;
         double divisor = 1;
     };
 
-    /// Normalizes images to improve numerical stability. Same as BoofCV's ImageNormalization, including the order of
-    /// the floating point operations. Statistics are summed like BoofCV's single threaded code.
+    /// Normalizes images to improve numerical stability. BoofCV's ImageNormalization.
     class ImageNormalization {
     public:
         /// Scales the image so that it has a mean of zero and a maximum absolute value of one.
-        /// Same as BoofCV's ImageNormalization.zeroMeanMaxOne(). If every pixel is zero, 'output' is only reshaped.
+        /// BoofCV's ImageNormalization.zeroMeanMaxOne(). If every pixel is zero, 'output' is only reshaped.
         ///
         /// @param parameters The offset and divisor that were applied
         template<class E>
@@ -56,14 +55,14 @@ namespace boofcv {
             parameters.divisor = scale*scale2;
         }
 
-        /// Applies normalization parameters to an image. Same as BoofCV's ImageNormalization.apply()
+        /// Applies normalization parameters to an image. BoofCV's ImageNormalization.apply()
         template<class E>
         static void apply( const Gray<E>& input, const NormalizeParameters& parameters, Gray<F32>& output ) {
             PixelMath::plus(input, (F32)parameters.offset, output);
             PixelMath::multiply(output, (F32)(1.0/parameters.divisor), output);
         }
 
-        /// Largest absolute pixel value. Same as BoofCV's ImageStatistics.maxAbs()
+        /// Largest absolute pixel value. BoofCV's ImageStatistics.maxAbs()
         template<class E>
         static E max_abs( const Gray<E>& input ) {
             E output = abs_value(input.data[input.offset]);

@@ -28,14 +28,14 @@ namespace boofcv {
         return (int32_t)(a & 0x3Fu);
     }
 
-    /// Number of bits which are 1 in a 64-bit value. Same as BoofCV's DescriptorDistance.hamming(long)
+    /// Number of bits which are 1 in a 64-bit value. BoofCV's DescriptorDistance.hamming(long)
     inline int32_t hamming( uint64_t a ) {
         return hamming((uint32_t)a) + hamming((uint32_t)(a >> 32));
     }
 
     /// The Census Transform computes a bit mask for each pixel in the image. If a neighboring pixel is greater than
     /// the center pixel then that bit is set to 1. The error between two pixels is the hamming distance of their
-    /// masks. Same as BoofCV's CensusTransform.
+    /// masks. BoofCV's CensusTransform.
     ///
     /// Bits are assigned to the neighbors in row-major order, skipping the center pixel.
     ///
@@ -72,7 +72,7 @@ namespace boofcv {
         /// samples[i] relative to the center is greater than the center. At most 64 samples.
         ///
         /// Pixels which are within the largest sample distance (x or y) of the image edge are only written if there
-        /// is a border. Same as BoofCV's CensusTransform.sample_S64()
+        /// is a border. BoofCV's CensusTransform.sample_S64()
         ///
         /// @param border How pixels outside the image are read. If null the image border isn't modified.
         template<class E>
@@ -151,7 +151,7 @@ namespace boofcv {
         }
 
         /// Every point in a (2*radius_x+1) by (2*radius_y+1) block except the center, in row-major order.
-        /// Same as BoofCV's CensusTransform.createBlockSamples()
+        /// BoofCV's CensusTransform.createBlockSamples()
         static std::vector<Point2D<int32_t>> create_block_samples( int32_t radius_x, int32_t radius_y ) {
             std::vector<Point2D<int32_t>> samples;
             samples.reserve((2*radius_x + 1)*(2*radius_y + 1) - 1);
@@ -165,8 +165,8 @@ namespace boofcv {
             return samples;
         }
 
-        /// 56 points inside a circle of radius 4. Same points in the same order as BoofCV's
-        /// CensusTransform.createCircleSamples(), which goes down each column, i.e. the point's x is the outer loop.
+        /// 56 points inside a circle of radius 4. BoofCV's
+        /// CensusTransform.createCircleSamples(). Goes down each column, i.e. the point's x is the outer loop.
         static std::vector<Point2D<int32_t>> create_circle_samples() {
             std::vector<Point2D<int32_t>> samples;
             for (int32_t row = 0; row < 9; row++) {
@@ -340,7 +340,7 @@ namespace boofcv {
         }
     };
 
-    /// Census transform as a filter from an input image to a census image. Same as BoofCV's FilterCensusTransform.
+    /// Census transform as a filter from an input image to a census image. BoofCV's FilterCensusTransform.
     ///
     /// @tparam E Input image type
     /// @tparam C Census image type
@@ -358,7 +358,7 @@ namespace boofcv {
         std::shared_ptr<ImageBorder<E>> border;
     };
 
-    /// 3x3 census transform. Same as BoofCV's FilterCensusTransformD33U8
+    /// 3x3 census transform. BoofCV's FilterCensusTransformD33U8
     ///
     /// @tparam Census CensusTransform or CensusTransform_MT
     template<class E, class Census = CensusTransform>
@@ -371,7 +371,7 @@ namespace boofcv {
         }
     };
 
-    /// 5x5 census transform. Same as BoofCV's FilterCensusTransformD55S32
+    /// 5x5 census transform. BoofCV's FilterCensusTransformD55S32
     ///
     /// @tparam Census CensusTransform or CensusTransform_MT
     template<class E, class Census = CensusTransform>
@@ -384,7 +384,7 @@ namespace boofcv {
         }
     };
 
-    /// Census transform which samples arbitrary points. Same as BoofCV's FilterCensusTransformSampleS64
+    /// Census transform which samples arbitrary points. BoofCV's FilterCensusTransformSampleS64
     ///
     /// @tparam Census CensusTransform or CensusTransform_MT
     template<class E, class Census = CensusTransform>

@@ -16,18 +16,18 @@ namespace boofcv {
      */
     class ConvolveImageMean {
     public:
-        /// Floating point running sums along y start over every VERTICAL_RESTART rows. Same as BoofCV's
+        /// Floating point running sums along y start over every VERTICAL_RESTART rows. BoofCV's
         /// ImplConvolveBox.VERTICAL_RESTART
         static constexpr int32_t VERTICAL_RESTART = 64;
 
-        /// Number of blocks of VERTICAL_RESTART inner rows for a kernel 'length' rows long. Same as BoofCV's
+        /// Number of blocks of VERTICAL_RESTART inner rows for a kernel 'length' rows long. BoofCV's
         /// ImplConvolveBox.restartBlocks()
         static uint32_t restart_blocks( uint32_t height, uint32_t length ) {
             return (uint32_t)std::max<int64_t>(1, ((int64_t)height - length + VERTICAL_RESTART)/VERTICAL_RESTART);
         }
 
         /// First output row of the block, for a kernel that starts 'offset' rows before the output row. Block 0
-        /// includes the top border and the last block the bottom border. Same as BoofCV's ImplConvolveBox.restartRow()
+        /// includes the top border and the last block the bottom border. BoofCV's ImplConvolveBox.restartRow()
         static uint32_t restart_row( uint32_t block, uint32_t blocks, uint32_t height, uint32_t offset ) {
             if (block == 0)
                 return 0;
@@ -144,7 +144,7 @@ namespace boofcv {
                 return;
             }
             Kernel1D<signed_type> kernel = FactoryKernel::mean1D<signed_type>(radius*2+1);
-            if( kernel.width > input.height ) { // Java: length > input.height
+            if( kernel.width > input.height ) {
                 ConvolveNormalized::vertical(kernel,input,output);
             } else {
                 ConvolveNormalized_JustBorder::vertical(kernel, input ,output );
@@ -153,9 +153,8 @@ namespace boofcv {
         }
 
         /// Mean along x over 'length' pixels starting 'offset' pixels to the left, where pixels outside the image
-        /// are read from 'border'. Same as BoofCV's ConvolveImageMean.horizontal(input, output, offset, length,
-        /// border) for U8, S16, U16, F32 and F64, including the order of the floating point operations. Integer
-        /// images round to the nearest value.
+        /// are read from 'border'. BoofCV's ConvolveImageMean.horizontal(input, output, offset, length, border)
+        /// for U8, S16, U16, F32 and F64. Integer images round to the nearest value.
         template< class E>
         static void horizontal( const Gray<E>& input, Gray<E>& output, uint32_t offset, uint32_t length,
                                 ImageBorder<E>& border ) {
@@ -208,8 +207,8 @@ namespace boofcv {
         }
 
         /// Mean along y over 'length' pixels starting 'offset' pixels above, where pixels outside the image
-        /// are read from 'border'. Same as BoofCV's ConvolveImageMean.vertical(input, output, offset, length,
-        /// border, work) for U8, S16, U16, F32 and F64, including the order of the floating point operations.
+        /// are read from 'border'. BoofCV's ConvolveImageMean.vertical(input, output, offset, length, border,
+        /// work) for U8, S16, U16, F32 and F64.
         ///
         /// @param totals Work space
         template< class E>
@@ -285,7 +284,7 @@ namespace boofcv {
 
     private:
         /// Mean of 'length' integer pixels along the image border, where pixel(k) returns the k-th pixel. The division
-        /// is rounded, same as BoofCV
+        /// is rounded
         template< class E, class PixelFunc>
         static E border_sum( const MeanDivisor<E>& divisor, int32_t length, PixelFunc pixel ) {
             typedef typename TypeInfo<E>::sum_type sum_type;
@@ -296,8 +295,8 @@ namespace boofcv {
         }
 
     public:
-        /// Floating point mean along x of the rows y0 to y1. Port of BoofCV's ImplConvolveMean.horizontal(), with the
-        /// same order of operations. Without a border the mean near the image border is of the pixels inside the image
+        /// Floating point mean along x of the rows y0 to y1. BoofCV's ImplConvolveMean.horizontal(). Without a border
+        /// the mean near the image border is of the pixels inside the image
         template< class E>
         static void float_horizontal( const Gray<E>& input, Gray<E>& output, uint32_t offset_, uint32_t length_,
                                       const ImageBorder<E>* border, uint32_t y0, uint32_t y1 ) {
@@ -394,9 +393,8 @@ namespace boofcv {
         }
 
     public:
-        /// Floating point mean along y of the output rows y0 to y1. Port of BoofCV's ImplConvolveMean.vertical(), with
-        /// the same order of operations. The running sums start over every VERTICAL_RESTART rows after the first
-        /// inner row
+        /// Floating point mean along y of the output rows y0 to y1. BoofCV's ImplConvolveMean.vertical(). The
+        /// running sums start over every VERTICAL_RESTART rows after the first inner row
         template< class E>
         static void float_vertical( const Gray<E>& input, Gray<E>& output, uint32_t offset_, uint32_t length_,
                                     const ImageBorder<E>* border, uint32_t y0_, uint32_t y1_ ) {
@@ -479,7 +477,7 @@ namespace boofcv {
             mean(input, output, radius, radius, storage);
         }
 
-        /// Mean box filter with a different radius along x and y. Same as BoofCV's BlurImageOps.mean() for U8, U16,
+        /// Mean box filter with a different radius along x and y. BoofCV's BlurImageOps.mean() for U8, U16,
         /// F32 and F64. Near the image border the box only covers pixels inside the image.
         ///
         /// @param storage Work space
@@ -497,7 +495,7 @@ namespace boofcv {
         }
 
         /// Mean box filter where pixels outside the image are read from 'border', so every box has the same number
-        /// of pixels. Same as BoofCV's BlurImageOps.meanB() for U8, U16, F32 and F64.
+        /// of pixels. BoofCV's BlurImageOps.meanB() for U8, U16, F32 and F64.
         ///
         /// @param storage Work space
         /// @param totals Work space
@@ -527,7 +525,7 @@ namespace boofcv {
             gaussian(input, output, sigma, width, sigma, width, storage);
         }
 
-        /// Gaussian blur with a different kernel along x and y. Same as BoofCV's BlurImageOps.gaussian() for U8, U16,
+        /// Gaussian blur with a different kernel along x and y. BoofCV's BlurImageOps.gaussian() for U8, U16,
         /// F32 and F64. A sigma <= 0 is computed from the width, and a width <= 0 from the sigma.
         ///
         /// @param storage Work space

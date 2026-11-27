@@ -100,7 +100,7 @@ namespace threshold_checks {
         block_subimage(rng, factory);
     }
 
-    /// Scale adjusts the Otsu threshold the same way as BoofCV's GlobalBinaryFilter
+    /// Scale adjusts the Otsu threshold
     inline void global_otsu_scale() {
         Gray<U8> img(20, 10);
         for (uint32_t i = 0; i < img.total_pixels(); i++) img.data[i] = static_cast<U8>((i*37)%256);
@@ -126,7 +126,7 @@ namespace threshold_checks {
         }
     }
 
-    /// The Otsu threshold is a histogram index offset by min_value, same as Java
+    /// The Otsu threshold is a histogram index offset by min_value
     inline void global_otsu_min_value_offset() {
         Gray<U8> img(20, 10);
         for (uint32_t i = 0; i < img.total_pixels(); i++) img.data[i] = static_cast<U8>(20 + (i*37)%181);
@@ -139,7 +139,7 @@ namespace threshold_checks {
             ASSERT_EQ(img.data[i] <= threshold, found.data[i]);
     }
 
-    /// Thresholds are doubles like in Java. Out of range values must not wrap and fractions truncate like (int)
+    /// Thresholds are doubles. Out of range values must not wrap and fractions truncate
     inline void global_fixed_double_threshold() {
         Gray<U8> img(7, 5);
         for (uint32_t i = 0; i < img.total_pixels(); i++) img.data[i] = static_cast<U8>((i*41)%256);
@@ -159,7 +159,7 @@ namespace threshold_checks {
     }
 
     /// Local mean threshold computed pixel by pixel: the mean along x of the pixels inside the image, rounded, then
-    /// the mean of those along y, rounded. Same as BoofCV's BlurImageOps.mean() for U8
+    /// the mean of those along y, rounded. BoofCV's BlurImageOps.mean() for U8
     inline Gray<U8> naive_local_mean( const Gray<U8>& input, const ConfigLength& region, float scale, bool down ) {
         const auto radius = (int32_t)region.computeI(std::min(input.width, input.height))/2;
         const auto width = (int32_t)input.width, height = (int32_t)input.height;

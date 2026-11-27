@@ -61,7 +61,7 @@ namespace threshold_block_reference {
                                    (double)std::numeric_limits<int32_t>::max());
     }
 
-    /// BoofCV's U8 code computes with a double scale and F32's with a float scale
+    /// U8 computes with a double scale and F32 with a float scale
     template<class E>
     Gray<U8> mean( const Gray<E>& input, const ConfigLength& requested, bool local, double scale, bool down ) {
         typedef typename TypeInfo<E>::sum_type sum_type;
@@ -121,7 +121,7 @@ namespace threshold_block_reference {
         return output;
     }
 
-    /// The textureless spread as BoofCV computes it for integer images: -1 if negative, otherwise Math.round saturated
+    /// The textureless spread for integer images: -1 if negative, otherwise Math.round saturated
     /// to an int, with NaN as 0
     template<class E>
     auto spread( double minimumSpread ) {

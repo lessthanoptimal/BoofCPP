@@ -142,7 +142,7 @@ namespace boofcv
     {
     public:
 
-        /// Threshold from Otsu's method. Same as BoofCV's GThresholdImageOps.computeOtsu(): the histogram has
+        /// Threshold from Otsu's method. BoofCV's GThresholdImageOps.computeOtsu(). The histogram has
         /// (int)(1 + max_value - min_value) bins and starts at (int)min_value for integer images, or (float)min_value
         /// for F32.
         ///
@@ -153,7 +153,7 @@ namespace boofcv
         /// @return Selected threshold, as a histogram index
         template<class T>
         static uint32_t computeOtsu( const Gray<T>& input , double min_value , double max_value , bool otsu2=false ) {
-            // Java's int casts saturate, and an array can't have a negative size. C++'s casts would be undefined
+            // The histogram needs 1 to INT32_MAX bins. C++'s casts of other values would be undefined
             const double range = std::trunc(1 + max_value - min_value);
             if (!(range >= 1 && range <= std::numeric_limits<int32_t>::max()))
                 throw std::invalid_argument("Bad histogram range");
@@ -181,7 +181,7 @@ namespace boofcv
           *
           * @tparam T data type of image
           * @tparam TH data type of the threshold. Can be wider than T, e.g. int for U8 images, so that a threshold
-          *            outside of the pixel range is compared the same way as in Java.
+          *            outside of the pixel range doesn't wrap.
           * @param input Input image that is to be thresholded
           * @param threshold The threshold
           * @param down direction of the threshold
@@ -332,7 +332,7 @@ namespace boofcv
     class GlobalFixedBinaryFilter : public InputToBinary<Gray<T>>
     {
     public:
-        // double, same as BoofCV. Converted to the image's type when applied
+        // Converted to the image's type when applied
         double threshold;
         bool down;
 
@@ -349,11 +349,11 @@ namespace boofcv
     class GlobalOtsuBinaryFilter : public InputToBinary<Gray<T>>
     {
     public:
-        // Bounds of the pixel values, same as BoofCV's doubles. See ThresholdOps::computeOtsu()
+        // Bounds of the pixel values. See ThresholdOps::computeOtsu()
         double min_value;
         double max_value;
         bool down;
-        // Scales the threshold. Same meaning as in BoofCV's GlobalBinaryFilter
+        // Scales the threshold
         double scale;
 
         GlobalOtsuBinaryFilter( double min_value , double max_value, bool down, double scale = 1.0 ) :
@@ -361,9 +361,9 @@ namespace boofcv
         {  }
 
         void process(const Gray<T>& input , Gray<U8>& output ) override {
-            // Same math as BoofCV GlobalBinaryFilter.process()
+            // BoofCV's GlobalBinaryFilter.process()
             double adjusted_scale = down ? scale : (scale <= 0.0 ? 0.0 : 1.0/scale);
-            // computeOtsu() returns a histogram index. Java's GThresholdImageOps.computeOtsu() adds minValue
+            // computeOtsu() returns a histogram index
             double otsu = ThresholdOps::computeOtsu(input,min_value,max_value,false) + min_value;
             double threshold = otsu*adjusted_scale;
             ThresholdOps::threshold_double(input,threshold,down,output);

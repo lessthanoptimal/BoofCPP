@@ -10,7 +10,7 @@ using namespace std;
 using namespace boofcv;
 
 namespace {
-    /// MeanDivisor must give the same result as BoofCV's (total + length/2)/length for every sum in [n0, n1)
+    /// MeanDivisor must give the same result as (total + length/2)/length for every sum in [n0, n1)
     template<class E>
     void check_mean_divisor( uint32_t length, int64_t n0, int64_t n1 ) {
         const MeanDivisor<E> divisor(length);

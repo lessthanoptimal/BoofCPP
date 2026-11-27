@@ -71,7 +71,7 @@ public abstract class NativeGlobalOtsuChecks extends ThresholdChecks {
         }
     }
 
-    /// Pixels outside [minValue, maxValue] are handled as in BoofCV. F32 values less than 1 outside and NaN are
+    /// Pixels outside [minValue, maxValue]: F32 values less than 1 outside and NaN are
     /// counted, others throw
     @Test public void pixelsOutsideRange() {
         if (supports(GrayF32.class)) {

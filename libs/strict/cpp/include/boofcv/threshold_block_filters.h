@@ -147,7 +147,7 @@ namespace boofcv
     public:
         using sum_type = typename TypeInfo<E>::sum_type;
 
-        // BoofCV computes with a double scale for integer images and a float scale otherwise
+        // Integer images compute with a double scale and others with a float scale
         double scale;
         bool down;
 
@@ -189,7 +189,7 @@ namespace boofcv
             for (uint32_t bx = 0; bx < blocks; bx++) {
                 const uint32_t area = (this->block_x1(bx, width) - this->block_x0(bx))*(y1 - y0);
                 if constexpr (std::is_integral_v<E>) {
-                    // like BoofCV, the int keeps only the bits that fit the pixel type
+                    // the int keeps only the bits that fit the pixel type
                     means[by*blocks + bx] = static_cast<E>(java_int(scale*s[bx]/area + 0.5));
                 } else {
                     means[by*blocks + bx] = static_cast<float>(scale)*s[bx]/area;
@@ -197,7 +197,7 @@ namespace boofcv
             }
         }
 
-        /// Adds a row's pixels to each block's sum, one pixel after another as BoofCV does. The last block also covers
+        /// Adds a row's pixels to each block's sum, one pixel after another. The last block also covers
         /// the pixels after the other blocks
         static void sum_float_row( const E* row, sum_type* s, uint32_t blocks, uint32_t block_width, uint32_t width ) {
             const uint32_t last = blocks - 1;
@@ -411,7 +411,7 @@ namespace boofcv
         // if the min and max value's difference is <= to this value then it is considered
         // to be textureless and a default value is used
         double minimumSpread;
-        // BoofCV computes with a double scale for integer images and a float scale otherwise
+        // Integer images compute with a double scale and others with a float scale
         double scale;
         bool down;
 
@@ -446,12 +446,11 @@ namespace boofcv
         }
 
     public:
-        /// Type of the textureless spread: BoofCV's int for integer images and the pixel type otherwise
+        /// Type of the textureless spread: int for integer images and the pixel type otherwise
         using spread_type = typename std::conditional_t<std::is_integral_v<E>, std::make_signed<sum_type>,
                                                          std::common_type<sum_type>>::type;
 
-        /// BoofCV's spread. Integers: -1 for a negative spread, otherwise rounded like Java's Math.round, then cast to
-        /// an int
+        /// The textureless spread. Integers: -1 for a negative spread, otherwise rounded half up, then cast to an int
         spread_type texture_threshold() const {
             if constexpr (std::is_integral_v<E>) {
                 if (minimumSpread < 0)
@@ -497,7 +496,6 @@ namespace boofcv
                     min = cmin[x] < min ? cmin[x] : min;
                     max = cmax[x] > max ? cmax[x] : max;
                 }
-                // BoofCV starts from the first pixel, so a NaN there is never replaced
                 const E first = input.data[input.offset + y0*input.stride + x0];
                 if (first != first)
                     min = max = first;
@@ -514,7 +512,6 @@ namespace boofcv
             for (uint32_t bx = 0; bx < this->blocksX; bx++) {
                 uint32_t bx0, by0, bx1, by1;
                 this->region(bx, by, bx0, by0, bx1, by1);
-                // BoofCV's start values. Unlike highest() and lowest(), they aren't infinite for floats
                 E min = std::numeric_limits<E>::max();
                 E max = std::numeric_limits<E>::lowest();
                 for (uint32_t y = by0; y <= by1; y++) {

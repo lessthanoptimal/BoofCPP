@@ -267,7 +267,7 @@ TEST_F(ThresholdBlockMinMaxTest, negative_spread_disables) {
     EXPECT_EQ(20u*16u, checkerboard_ones(128, 128, 0.0));
 }
 
-/// Integer images round the spread like Java's Math.round, ties up, then cast it to an int
+/// Integer images round the spread half up, then cast it to an int
 TEST_F(ThresholdBlockMinMaxTest, texture_threshold) {
     auto threshold = []( double minimumSpread ) {
         return ThresholdBlockMinMax<U8>(minimumSpread, ConfigLength::fixed(5), true, 1.0, false).texture_threshold();
@@ -297,7 +297,7 @@ TEST_F(ThresholdBlockMeanTest, scale_in_double) {
             EXPECT_EQ(0, output.at(x, y)) << x << " " << y;
 }
 
-/// Like Java's (byte), a negative scaled mean keeps its low 8 bits: -49 is 207
+/// A negative scaled mean keeps its low 8 bits: -49 is 207
 TEST_F(ThresholdBlockMeanTest, negative_scale) {
     Gray<U8> input(4, 4);
     ImageMiscOps::fill(input, (U8)100);

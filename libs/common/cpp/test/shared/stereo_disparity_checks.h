@@ -277,7 +277,7 @@ namespace stereo_disparity_checks {
         compare_every_error_to_hand_built<F32>(rng);
     }
 
-    /// The local statistics of ZSSD and NCC need a region radius of at least 1, same as BoofCV
+    /// The local statistics of ZSSD and NCC need a region radius of at least 1
     inline void factory_stereo_disparity_block_match_zssd_ncc_zero_radius( std::mt19937& rng ) {
         Gray<U8> left(1, 1), right(1, 1);
         create_pair(rng, left, right);
@@ -327,7 +327,7 @@ namespace stereo_disparity_checks {
         EXPECT_THROW(tested::FactoryCensusTransform::samples(CensusVariants::BLOCK_5_5), invalid_argument);
     }
 
-    /// SKIP leaves the image border untouched, same as BoofCV
+    /// SKIP leaves the image border untouched
     inline void factory_census_transform_variant_skip_border( std::mt19937& rng ) {
         Gray<U8> input(12, 10);
         ImageMiscOps::fill_uniform(input, (U8)0, (U8)255, rng);
@@ -379,7 +379,7 @@ namespace stereo_disparity_checks {
         EXPECT_EQ(20u, alg->get_score()->height);
     }
 
-    /// With every check off BoofCV's selector doesn't write the score, but it's still allocated
+    /// With every check off the selector doesn't write the score, but it's still allocated
     inline void stereo_disparity_block_match_basic_select_score_not_written( std::mt19937& rng ) {
         Gray<U8> left(1, 1), right(1, 1);
         create_stereo_pair(rng, left, right, 30, 20, 3);
