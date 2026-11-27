@@ -8,7 +8,7 @@ import boofcv.factory.disparity.FactoryStereoDisparity;
 import boofcv.factory.transform.census.CensusVariants;
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayU8;
-import org.boofcpp.BoofCPP;
+import org.boofcpp.BoofCPPStrict;
 import org.boofcpp.NativeConcurrency;
 import org.boofcpp.testing.BenchmarkUtils;
 import org.openjdk.jmh.annotations.*;
@@ -33,7 +33,7 @@ public class BenchmarkDisparityCensusVariants {
     StereoDisparity<GrayU8, GrayF32> nativeAlg;
 
     static {
-        BoofCPP.loadlib();
+        BoofCPPStrict.loadlib();
         // The speed target is single-threaded native against single-threaded Java
         BoofConcurrency.USE_CONCURRENT = false;
         NativeConcurrency.setMaxThreads(1);

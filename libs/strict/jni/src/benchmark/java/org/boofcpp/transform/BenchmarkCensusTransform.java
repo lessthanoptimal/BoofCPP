@@ -14,7 +14,7 @@ import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageDataType;
 import boofcv.struct.image.ImageGray;
 import georegression.struct.point.Point2D_I32;
-import org.boofcpp.BoofCPP;
+import org.boofcpp.BoofCPPStrict;
 import org.boofcpp.NativeConcurrency;
 import org.ddogleg.struct.DogArray;
 import org.openjdk.jmh.annotations.*;
@@ -52,7 +52,7 @@ public class BenchmarkCensusTransform {
     NativeCensusTransform nativeOps = new NativeCensusTransform();
 
     static {
-        BoofCPP.loadlib();
+        BoofCPPStrict.loadlib();
     }
 
     @Setup public void setup() {

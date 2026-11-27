@@ -14,7 +14,7 @@ import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
 import org.boofcpp.testing.BenchmarkUtils;
-import org.boofcpp.BoofCPP;
+import org.boofcpp.BoofCPPStrict;
 import org.boofcpp.NativeConcurrency;
 import org.openjdk.jmh.annotations.*;
 
@@ -48,7 +48,7 @@ public class BenchmarkImageBlurOps {
     public int threads;
 
     static {
-        BoofCPP.loadlib();
+        BoofCPPStrict.loadlib();
     }
 
     @Setup public void setup() {

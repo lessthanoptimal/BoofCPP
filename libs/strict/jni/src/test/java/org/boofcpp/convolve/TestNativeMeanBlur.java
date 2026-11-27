@@ -4,7 +4,7 @@ import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayF64;
 import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
-import org.boofcpp.BoofCPP;
+import org.boofcpp.BoofCPPStrict;
 import boofcv.core.image.GeneralizedImageOps;
 import boofcv.struct.border.BorderType;
 import boofcv.struct.image.ImageGray;
@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @ExtendWith(NativeSingleThreaded.class)
 public class TestNativeMeanBlur extends NativeMeanBlurChecks {
     static {
-        BoofCPP.loadlib();
+        BoofCPPStrict.loadlib();
     }
 
     public TestNativeMeanBlur() {

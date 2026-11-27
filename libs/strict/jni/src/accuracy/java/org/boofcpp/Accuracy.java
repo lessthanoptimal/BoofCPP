@@ -26,8 +26,8 @@ import org.boofcpp.transform.NativeCensusTransform;
 /// Strict's accuracy against BoofCV's Java code. Every metric should be zero
 public class Accuracy {
     public static void main( String[] args ) throws Exception {
-        BoofCPP.loadlib();
-        AccuracyRecord.run("strict", BoofCPP.nativeBuildInfo(),
+        BoofCPPStrict.loadlib();
+        AccuracyRecord.run("strict", BoofCPPStrict.nativeBuildInfo(),
                 new AverageDownSampleAccuracy(new NativeAverageDownSampleOps(), GrayU8.class, GrayS8.class,
                         GrayU16.class, GrayS16.class, GrayS32.class, GrayF32.class, GrayF64.class),
                 new MeanBlurAccuracy(new NativeImageBlurOps(), GrayU8.class, GrayU16.class, GrayF32.class,

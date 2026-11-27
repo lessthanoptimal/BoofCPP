@@ -3,7 +3,7 @@ package org.boofcpp.threshold;
 import boofcv.struct.ConfigLength;
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayU8;
-import org.boofcpp.BoofCPP;
+import org.boofcpp.BoofCPPStrict;
 import org.boofcpp.testing.NativeBlockOtsuChecks;
 import org.boofcpp.testing.NativeSingleThreaded;
 import org.junit.jupiter.api.Test;
@@ -15,7 +15,7 @@ import static org.boofcpp.testing.BoofCPPTesting.assertConcurrentToggle;
 @ExtendWith(NativeSingleThreaded.class)
 public class TestNativeBlockOtsu extends NativeBlockOtsuChecks {
     static {
-        BoofCPP.loadlib();
+        BoofCPPStrict.loadlib();
     }
 
     public TestNativeBlockOtsu() {

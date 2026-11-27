@@ -5,7 +5,7 @@ import boofcv.struct.image.GrayF64;
 import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
-import org.boofcpp.BoofCPP;
+import org.boofcpp.BoofCPPStrict;
 import org.boofcpp.testing.NativeGaussianBlurChecks;
 import org.boofcpp.testing.NativeSingleThreaded;
 import org.junit.jupiter.api.Test;
@@ -18,7 +18,7 @@ import static org.boofcpp.testing.BoofCPPTesting.assertConcurrentToggle;
 @ExtendWith(NativeSingleThreaded.class)
 public class TestNativeGaussianBlur extends NativeGaussianBlurChecks {
     static {
-        BoofCPP.loadlib();
+        BoofCPPStrict.loadlib();
     }
 
     public TestNativeGaussianBlur() {

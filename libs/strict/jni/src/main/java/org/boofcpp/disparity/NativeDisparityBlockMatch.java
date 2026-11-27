@@ -9,7 +9,7 @@ import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
 import boofcv.struct.image.ImageType;
-import org.boofcpp.BoofCPP;
+import org.boofcpp.BoofCPPStrict;
 
 /// Native stereo block matching, a replacement for BoofCV's WrapBaseBlockMatch. Use [#isSupported] to see
 /// if a configuration can be computed natively.
@@ -18,7 +18,7 @@ import org.boofcpp.BoofCPP;
 public class NativeDisparityBlockMatch<T extends ImageGray<T>, DI extends ImageGray<DI>>
         implements StereoDisparityBlockMatch<T, DI> {
     static {
-        BoofCPP.loadlib();
+        BoofCPPStrict.loadlib();
     }
 
     protected long nativePtr;
@@ -49,7 +49,7 @@ public class NativeDisparityBlockMatch<T extends ImageGray<T>, DI extends ImageG
     }
 
     /// Native block matching, or null if the configuration and image type can't be computed natively, which makes
-    /// BoofCV use its Java implementation. BoofCPP.initialize() registers it with
+    /// BoofCV use its Java implementation. BoofCPPStrict.initialize() registers it with
     /// BOverrideStereoDisparity.opCreateBlockMatch
     public static <T extends ImageGray<T>, DI extends ImageGray<DI>> StereoDisparityBlockMatch<T, DI>
     create( ConfigDisparityBM config, Class<T> imageType, Class<DI> disparityType ) {

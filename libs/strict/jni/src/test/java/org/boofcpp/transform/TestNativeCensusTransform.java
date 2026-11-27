@@ -8,7 +8,7 @@ import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.ImageGray;
 import georegression.struct.point.Point2D_I32;
-import org.boofcpp.BoofCPP;
+import org.boofcpp.BoofCPPStrict;
 import org.boofcpp.testing.NativeCensusChecks;
 import org.boofcpp.testing.NativeSingleThreaded;
 import org.ddogleg.struct.FastAccess;
@@ -21,7 +21,7 @@ import static org.boofcpp.testing.BoofCPPTesting.assertConcurrentToggle;
 @ExtendWith(NativeSingleThreaded.class)
 public class TestNativeCensusTransform extends NativeCensusChecks {
     static {
-        BoofCPP.loadlib();
+        BoofCPPStrict.loadlib();
     }
 
     public TestNativeCensusTransform() {

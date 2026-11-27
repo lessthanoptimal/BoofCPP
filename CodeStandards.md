@@ -116,8 +116,8 @@ results/    Accuracy records, see Accuracy
 - Includes always start with `boofcv/`. Strict is `#include "boofcv/convolve.h"`, fast is
   `#include "boofcv/fast/convolve.h"`
 - Each variant is its own native library and Java package, so several can be used in the same project.
-  `BoofCPP.initialize()` registers the strict hooks and then the hooks of every other variant that's available, each
-  replacing only the hooks it has
+  `BoofCPPStrict.initialize()` registers strict's hooks. Each other variant has its own `initialize()`, which replaces
+  only the hooks it has, so the base hooks, e.g. strict's, are registered first
 - New architecture specific variants follow the same layout
 
 # Common (libs/common)
@@ -165,8 +165,8 @@ results/    Accuracy records, see Accuracy
     `Tolerance.IDENTICAL` by default, and fast's test classes set `Tolerance.FLOAT`
   - When fast adds an op, that op's strict tests are moved into shared tests first, without removing or weakening any
 - Benchmark against strict's native code and BoofCV's Java code
-- Fast's tests check its results. Fast's benchmarks call BoofCV after `BoofCPP.initialize()`, so they show if fast
-  isn't hooked in
+- Fast's tests check its results. Fast's benchmarks call BoofCV after `BoofCPPStrict.initialize()` and
+  `BoofCPPFast.initialize()`, so they show if fast isn't hooked in
 - When fast adds an op, the op is added to the accuracy tool of strict and fast
 - Non-deterministic multithreaded code is run 10 times with more threads than cores. Each result must be within
   floating point tolerance of the single threaded implementation
